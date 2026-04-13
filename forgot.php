@@ -1,9 +1,35 @@
 <?php
-    //session_start();
+    session_start();
     $error = '';
     $email = '';
     $phonenum = '';
-    $information_entered = '';
+    $information_type = -1;
+    /*
+    -1: no information entered
+    0: email entered
+    1: phone number entered 
+    2: email entered is in database
+    3: phone number entered is in database
+    */
+    $otp = 0;
+    if(is_set($_SESSION['otp'])){
+        $otp = strval($_SESSION['otp']);
+        if ($_SERVER["REQUEST_METHOD"] == "POST") {
+            if(is_set($_POST['otp_in6'])){
+                $otp_in = $_POST['otp_in1'] . $_POST['otp_in2'] . $_POST['otp_in3'] . $_POST['otp_in4'] . $_POST['otp_in5'] . $_POST['otp_in6'];
+                if(strval($otp_in) == $otp){
+                    //sucess
+                    $_SESSION['otp'] = "SUC";
+                    header('Location: pofile.php');
+                    exit();
+                }
+            }
+        }
+    } else {
+        $otp=strval(rand(100000,999999));
+        $_SESSION['otp'] = $otp;
+    }
+
     if (isset($_POST['email']) || isset($_POST['phonenum'])) {
         if(isset($_POST['email'])){
             $email = $_POST['email'];
@@ -12,38 +38,41 @@
             } else if (filter_var($email, FILTER_VALIDATE_EMAIL) == false) {
                 $error = 'This is not a valid email address';
             } else {
-                $information_entered = '0';
+                $information_type = 0;
             }
         }
 
-        if(isset($_POST['phonenum']) && empty($information_entered)){
+        if(isset($_POST['phonenum']) && $information_type != 0){
             $phonenum = filter_var($_POST['phonenum'], FILTER_SANITIZE_NUMBER_INT);
             if (empty($phonenum)) {
                 $error = 'Please enter your phone number';
             } else if ($phonenum < 5 || $phonenum > 15) {
                 $error = 'This is not a valid phone number';
             } else {
-                $information_entered = '1';
+                $information_type = 1;
             }
         }
 
-        if(!empty($information_entered)) {
+        if($information_type != -1) {
             $conn = new mysqli("localhost", "root", "", "database");
             if ($conn->connect_error) {
                 die("Connection failed: " . $conn->connect_error);
             }
 
-            $result = $conn->query("SELECT * FROM user");
+            $result = $conn->query("SELECT email, phonenum FROM user");
             if ($result->num_rows > 0) { //check if database is not empty
-                while($row = $result->fetch_assoc()) { 
+                $is_done = FALSE;
+                while($row = $result->fetch_assoc() && !$is_done) { 
                     if($row["email"] == $email || $row["phonenum"] == $phonenum) {
-                        $information_entered = "+" . $information_entered;
+                        $information_type += 2;
+                        $is_done = TRUE;
                     }
                 }
             }
             $conn->close();
-            if($information_entered[0] != "+"){
-                if($information_entered[0] == "0"){
+
+            if($information_type > 1){
+                if($information_type == 2){
                     $error = 'Email you entered is not available in database';
                 } else{
                     $error = 'Phone number you entered is not available in database';
@@ -52,8 +81,7 @@
         }
         
         //otp here
-        if($information_entered == "+0"){
-            $otp=strval(rand(100000,999999));
+        if($information_type == 2){
             //template from https://github.com/Redwiat/otp-verification-email-template/blob/main/Email/otp-verification-email-template.html
             $message = '
 <!DOCTYPE html>
@@ -157,22 +185,25 @@
 //https://www.ocoxe.com
             if(mail($email, "verify-account-otp", $message, "From: FakeBank@gmail.com")){
                 //echo 'mail sent';
-                $information_entered = "+0+";
+                $information_type += 2;
             } else {
                 $error = 'Failed to send mail, please try again in a few minutes';
             }
         }
 
-        if($information_entered == "+1"){
+        if($information_type == 3){
             //Requires knowing the carrier of the recipient.
             //Carrier: viettell...
-            $carrierGateway = "Viet"
-            $to = $phonenum . "@" . $carrierGateway;
-            $otp = strval(rand(100000,999999));
-            $message = wordwrap("Your OTP is: " . $otp . "\n>Do not forward or give this code to anyone\nValid for 1 minute", 70);
+            if(!empty($carrier)){
+                $error = 'Carrier is not selected';
+                exit();
+            }
+
+            $to = $phonenum . "@" . $carrier;
+            $message = "Your OTP is: " . $otp . "\n>Do not forward or give this code to anyone\nValid for 1 minute";
             if(mail($email, "verify-account-otp (this get ignored)", $message, "From: FakeBank@gmail.com")){
                 //echo 'sms sent';
-                $information_entered = "+1+";
+                $information_type += 2;
             } else {
                 $error = 'Failed to send sms, please try again in a few minutes';
             }
@@ -205,6 +236,12 @@
                 <div class="form-group">
                     <label for="phonenum">Phone number</label>
                     <input name="phonenum" id="phonenum" type="text" class="form-control" placeholder="Phone Number">
+
+                    <label for="carrier">Carrier</label>
+                    <select name="carrier" id="carrier" required class="form-control">
+                        <option value="txt.att.net" selected>ATT</option> 
+                        <option value="" disabled>More is not being supported</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <p>If your email/phone number exists in the database, you will receive an otp from the server.</p>
@@ -218,20 +255,44 @@
                     <button class="btn btn-success px-5" type="submit">Send OTP</button>
                 </div>
             </form>
-            <p>Enter OTP here:</p>
             <br>
+            <label for="otp_in">Enter OTP here:</label>
             <table>
-              <tr>
-                <th>
-                  <label for="otp_in">OTP</label>
-                  <input name="otp_in" id="otp_in" type="text">
-                </th>
-              </tr>
+                <tr>
+                    <th><input name="otp_in1" id="otp_in" type="text" maxlength="1"></th>
+                    <th><input name="otp_in2" id="otp_in" type="text" maxlength="1"></th>
+                    <th><input name="otp_in3" id="otp_in" type="text" maxlength="1"></th>
+                    <th><input name="otp_in4" id="otp_in" type="text" maxlength="1"></th>
+                    <th><input name="otp_in5" id="otp_in" type="text" maxlength="1"></th>
+                    <th><input name="otp_in6" id="otp_in" type="text" maxlength="1"></th>
+                </tr>
             </table>
-            <button>Conform</button>
         </div>
     </div>
 </div>
 
 </body>
+<script>
+    const inputs = document.querySelectorAll("table input");
+
+    inputs.forEach((input, index) => {
+        input.addEventListener("input", () => {
+            if (input.value.length === input.maxLength) {
+                const nextInput = inputs[index + 1];
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && input.value.length === 0) {
+                const prevInput = inputs[index - 1];
+                if (prevInput) {
+                    prevInput.focus();
+                }
+            }
+        });
+    });
+</script>
 </html>
