@@ -8,20 +8,21 @@
     <title>Login</title>
 </head>
 <body>
+    <?php include("../src/header.php") ?>
     <form action="Home.php">
         <!-- <div class="container-fluid mt-5"> -->
             <div class="login-container">
                 <div class="row login-box">
                     <div id="loginMenu" class="col-lg-6 p-5">
-                        <h2 class="mb-5 text-center">Meo Meo Wallet</h2>
+                        <h3 class="mb-4 text-center">Login</h3>
             
                         <div class="mb-4">
-                            <label for="username" class="form-label fw-semibold fs-4">Username</label>
+                            <label for="username" class="form-label fs-5">Email or Phone Number</label>
                             <input type="text" class="form-control p-3 fs-5" placeholder="Type your username" id="username">
                         </div>
         
                         <div class="mb-3">
-                            <label for="pwd" class="form-label fw-semibold fs-4">Password</label>
+                            <label for="pwd" class="form-label fs-5">Password</label>
                             <input type="password" class="form-control p-3 fs-5" placeholder="Type your password" id="pwd">
                         </div>
         
@@ -35,5 +36,8 @@
             </div>
         <!-- </div> -->
     </form>
+    <?php
+        include("../src/footer.php");
+    ?>
 </body>
 </html>
