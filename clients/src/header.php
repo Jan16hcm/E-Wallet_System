@@ -7,9 +7,9 @@
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-primary py-3"> 
+    <nav class="navbar navbar-dark bg-primary py-1"> 
         <div class="container ms-4"> 
-            <a class="navbar-brand m-0 fw-bold fs-4">Meo Meo Wallet</a>
+            <a class="navbar-brand m-0 fw-bold fs-4">MeoMeo Wallet</a>
         </div>
     </nav>
 </body>

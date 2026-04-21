@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
-    <footer class="text-center mt-5">
-        <p class="fs-5">&copy; 2026 Meo Meo Wallet Final Project</p>
+    <footer class="text-center mt-3">
+        <p class="fs-6">&copy; 2026 MeoMeo Wallet Final Project</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
