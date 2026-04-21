@@ -9,7 +9,7 @@
 <body>
     <nav class="navbar navbar-dark bg-primary py-3"> 
         <div class="container ms-4"> 
-            <a class="navbar-brand m-0 fw-bold fs-4" href="#">Meo Meo Wallet</a>
+            <a class="navbar-brand m-0 fw-bold fs-4">Meo Meo Wallet</a>
         </div>
     </nav>
 </body>
