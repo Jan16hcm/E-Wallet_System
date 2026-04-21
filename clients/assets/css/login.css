@@ -1,5 +1,5 @@
 .login-container {
-    min-height: 65vh;
+    min-height: 85vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -11,7 +11,7 @@
     overflow: hidden;
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     display: flex;
-    min-height: 75vh;
+    min-height: 60vh;
     width: 100% !important;
     /* max-width: 1100px; */
 }
@@ -24,4 +24,31 @@
 #btn-signin {
     background-color: #3d5a2e; 
     border: none;
+}
+#btn-signup {
+    
+    border: none;
+}
+.hr-text {
+    border: none;
+    /* border-top: 1px solid #ccc; */
+    text-align: center;
+    /* margin: 20px 0; */
+    position: relative;
+}
+
+.hr-text::before {
+    content: "";
+    background:linear-gradient(to right, transparent, black, transparent);
+    position: absolute;
+    height: 1px;
+    width: 100%;
+    left: 0;
+    top: 50%;
+}
+.hr-text::after {
+    content: attr(data-content);
+    background:#f8f9fa;
+    position: relative;
+    padding: 0 5px;
 }
