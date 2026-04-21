@@ -7,10 +7,10 @@
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="dashboard.php">E-Wallet</a>
-            </div>
+    <nav class="navbar navbar-dark bg-primary py-3"> 
+        <div class="container ms-4"> 
+            <a class="navbar-brand m-0 fw-bold fs-4" href="#">Meo Meo Wallet</a>
+        </div>
     </nav>
 </body>
 </html>
