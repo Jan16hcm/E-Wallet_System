@@ -51,7 +51,7 @@ after successful registration. -->
                     <input type="file" class="form-control" id="idCardBack">
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Register</button>
-                <button type="button" onclick="location.href='Login.php'" class="btn btn-link mt-2" style="text-decoration: none;">Already have an account? Sign in</button>
+                <button type="button" onclick="location.href='Login.php'" class="btn btn-link mt-2 opacity-75" style="text-decoration: none;">Already have an account? Sign in</button>
             </div>
         </div>
     </form>

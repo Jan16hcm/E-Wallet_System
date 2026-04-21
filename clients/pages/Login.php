@@ -10,8 +10,8 @@
     <title>Login</title>
 </head>
 
+<?php include("../src/header.php") ?>
 <body>
-    <?php include("../src/header.php") ?>
     <form action="Home.php">
         <!-- <div class="container-fluid"> -->
             <div class="login-container" style="scrollbar-width: none;">
@@ -44,7 +44,7 @@
                             <span>Sign in</span>
                         </button>
 
-                        <button type="button"
+                        <button type="button" onclick="location.href='ForgotPassword.php'"
                             class="btn btn-outline-secondary w-100 py-2 mt-2 mb-0 d-flex align-items-center justify-content-center"
                             id="btn-forget" style="border:none;">
                             <span>Forgot Password?</span>
@@ -79,8 +79,8 @@
             </div>
         <!-- </div> -->
     </form>
+</body>
     <?php
     include("../src/footer.php");
     ?>
-</body>
 </html>
