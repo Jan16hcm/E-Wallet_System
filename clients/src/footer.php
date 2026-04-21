@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
-    <footer class="text-center mt-3">
+    <footer class="text-center mt-3 bottom-0 py-2">
         <p class="fs-6 mb-0">&copy; 2026 MeoMeo Wallet Final Project</p>
     </footer>
 
