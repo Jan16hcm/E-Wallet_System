@@ -1,9 +1,10 @@
 <?php
-    session_start();
+    include_once("../modules/function.php");
     $error = '';
     $email = '';
     $phonenum = '';
     $information_type = -1;
+    $carrier = '';
     /*
     -1: no information entered
     0: email entered
@@ -12,10 +13,10 @@
     3: phone number entered is in database
     */
     $otp = 0;
-    if(is_set($_SESSION['otp'])){
+    if(isset($_SESSION['otp'])){
         $otp = strval($_SESSION['otp']);
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            if(is_set($_POST['otp_in6'])){
+            if(isset($_POST['otp_in6'])){
                 $otp_in = $_POST['otp_in1'] . $_POST['otp_in2'] . $_POST['otp_in3'] . $_POST['otp_in4'] . $_POST['otp_in5'] . $_POST['otp_in6'];
                 if(strval($otp_in) == $otp){
                     //sucess
@@ -54,22 +55,22 @@
         }
 
         if($information_type != -1) {
-            $conn = new mysqli("localhost", "root", "", "database");
-            if ($conn->connect_error) {
-                die("Connection failed: " . $conn->connect_error);
-            }
+            $con = connect_db();
 
-            $result = $conn->query("SELECT email, phonenum FROM user");
+            $result = $con->query("SELECT email, phonenum FROM account");
             if ($result->num_rows > 0) { //check if database is not empty
-                $is_done = FALSE;
-                while($row = $result->fetch_assoc() && !$is_done) { 
-                    if($row["email"] == $email || $row["phonenum"] == $phonenum) {
+                while($row = $result->fetch_assoc()) { 
+                    if($row["email"] == $email && $information_type == 0) {
                         $information_type += 2;
-                        $is_done = TRUE;
+                        break;
+                    }
+                    if($row["phonenum"] == $phonenum && $information_type == 1) {
+                        $information_type += 2;
+                        break;
                     }
                 }
             }
-            $conn->close();
+            $con->close();
 
             if($information_type > 1){
                 if($information_type == 2){
@@ -82,109 +83,7 @@
         
         //otp here
         if($information_type == 2){
-            //template from https://github.com/Redwiat/otp-verification-email-template/blob/main/Email/otp-verification-email-template.html
-            $message = '
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <title></title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      color: #333;
-      background-color: #fff; 
-    }
-    .container {
-      margin: 0 auto;
-      width: 100%;
-      max-width: 600px;
-      padding: 0 0px;
-      padding-bottom: 10px;
-      border-radius: 5px;
-      line-height: 1.8;
-    }
-    .header {
-      border-bottom: 1px solid #eee;
-    }
-    .header a {
-      font-size: 1.4em;
-      color: #000;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .content {
-      min-width: 700px;
-      overflow: auto;
-      line-height: 2;
-    }
-    .otp {
-      background: linear-gradient(to right, #00bc69 0, #00bc88 50%, #00bca8 100%);
-      margin: 0 auto;
-      width: max-content;
-      padding: 0 10px;
-      color: #fff;
-      border-radius: 4px;
-    }
-    .footer {
-      color: #aaa;
-      font-size: 0.8em;
-      line-height: 1;
-      font-weight: 300;
-    }
-    .email-info {
-      color: #666666;
-      font-weight: 400;
-      font-size: 13px;
-      line-height: 18px;
-      padding-bottom: 6px;
-    }
-    .email-info a {
-      text-decoration: none;
-      color: #00bc69;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <strong>Dear '. $user . ',</strong>
-    <p>We have received a verify request for your Fakebank account. For security purposes, please verify your identity by providing the following One-Time Password (OTP).
-        <br/>
-        <b>Your One-Time Password (OTP) verification code is:</b>
-    </p>
-    <h2 class="otp">' . $otp . '</h2>
-    <p style="font-size: 0.9em">
-      <strong>One-Time Password (OTP) is valid for 1 minute.</strong>
-      <br/><br/>
-      If you did not initiate this login request, please disregard this message. Please ensure the confidentiality of your OTP and do not share it with anyone.<br />
-      <strong>Do not forward or give this code to anyone.</strong>
-      <br/>
-      <strong>Thank you for using FakeBank.</strong>
-      <br/>
-      Best regards,
-      <br/>
-      <strong>FakeBank</strong>
-    </p>
-    <hr style="border: none; border-top: 0.5px solid #131111" />
-    <div class="footer">
-      <p>
-        For more information about FakeBank and your account, please contact the hotline <strong>18001008</strong>
-      </p>
-    </div>
-  </div>
-  <div style="text-align: center">
-    <div class="email-info">
-      &copy; 2026 FakeBank. All rights reserved.
-    </div>
-  </div>
-</body>
-</html>'
-//This template is made Redwan one from Ocoxe.
-//https://www.ocoxe.com
-            if(mail($email, "verify-account-otp", $message, "From: FakeBank@gmail.com")){
-                //echo 'mail sent';
+            if(send_otp_email($otp, $email, $name)){
                 $information_type += 2;
             } else {
                 $error = 'Failed to send mail, please try again in a few minutes';
@@ -192,16 +91,7 @@
         }
 
         if($information_type == 3){
-            //Requires knowing the carrier of the recipient.
-            //Carrier: viettell...
-            if(!empty($carrier)){
-                $error = 'Carrier is not selected';
-                exit();
-            }
-
-            $to = $phonenum . "@" . $carrier;
-            $message = "Your OTP is: " . $otp . "\n>Do not forward or give this code to anyone\nValid for 1 minute";
-            if(mail($email, "verify-account-otp (this get ignored)", $message, "From: FakeBank@gmail.com")){
+            if(send_otp_sms($otp, $phonenum, $carrier)){
                 //echo 'sms sent';
                 $information_type += 2;
             } else {
