@@ -4,6 +4,78 @@ must have a different email address and a different phone number. After successf
 (any string of 6 characters), both email and phone number can be used as username for login. These two information will be automatically sent to
 the user's email immediately. If you can't do the email sending feature, you need to display these two information on the website interface right
 after successful registration. -->
+<?php
+    include_once("../modules/function.php");
+    $name = '';
+    $email = '';
+    $phonenum = '';
+    $birth = '';
+    $address = '';
+    $idCardFront = '';
+    $idCardBack = '';
+    $error = '';
+
+    if (isset($_POST['name']) && isset($_POST['email']) && isset($_POST['phonenum']) && isset($_POST['birth']) 
+    && isset($_POST['address']) && isset($_POST['idCardFront']) && isset($_POST['idCardBack'])){
+        $name = $_POST['name'];
+        $email = $_POST['email'];
+        $phonenum = $_POST['phonenum'];
+        $birth = $_POST['birth'];
+        $address = $_POST['address'];
+        $idCardFront = $_POST['idCardFront'];
+        $idCardBack = $_POST['idCardBack'];
+
+        if (empty($name)) {
+            $error = 'Please enter your name';
+        } else if (empty($email)) {
+            $error = 'Please enter your email';
+        } else if (filter_var($email, FILTER_VALIDATE_EMAIL) == false) {
+            $error = 'This is not a valid email address';
+        } else if (empty($phonenum)) {
+            $error = 'Please enter your phone number';
+        } else if (empty($birth)) {
+            $error = 'Please enter your birthdate';
+        } else if (empty($address)) {
+            $error = 'Please enter your address';
+        } else if (empty($idCardFront)) {
+            $error = 'Please upload the front of your id card';
+        } else if (empty($idCardBack)) {
+            $error = 'Please upload the back of your id card';
+        } else {
+            $con = connect_db();
+            $result = $con->query("SELECT email, phonenum FROM account");
+            $duplicate = false;
+
+            if ($result->num_rows > 0) {    //check if database is not empty
+                while($row = $result->fetch_assoc()) { //check duplicate
+                    if($row["email"] == $email && $row["phonenum"] == $phonenum && $row["name"] == $name) {
+                        $con->close();
+                        $duplicate = true;
+                        $error = 'Please use login site to login, ' . $name;
+                    }
+                }
+            }
+
+            if(!$duplicate){
+                $otp=strval(rand(100000,999999));
+                $_SESSION['otp'] = $otp;//first pass
+
+                $res = $con->prepare("INSERT INTO account VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL);");
+                $res->bind_param("ssssssss", $phonenum, $email, $name, $birth, $address, $idCardFront, $idCardBack, $otp);
+                /*  first parameter tell the type of data each parameter from second beyond
+                    i - integer
+                    d - double 
+                    s - string
+                    b - binary (image, PDF, etc.)*/
+                $res->execute();
+                //echo 'good';
+                $res->close();
+                $con->close();
+                header('Location: Home.php');
+            }
+        }
+    }
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -23,16 +95,16 @@ after successful registration. -->
             <div class="d-flex flex-column align-items-center p-3 bg-white rounded shadow"  style="width: 600px;">
                 <h2 class="mb-3">Create an Account</h2>
                 <div class="mb-3 w-100">
-                    <label for="fullName" class="form-label">Full Name</label>
-                    <input type="text" class="form-control" id="fullName" placeholder="Enter your full name">
+                    <label for="name" class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="name" placeholder="Enter your full name">
                 </div>
                 <div class="mb-3 w-100">
                     <label for="email" class="form-label">Email address</label>
                     <input type="email" class="form-control" id="email" placeholder="Enter your email">
                 </div>
                 <div class="mb-3 w-100">
-                    <label for="phoneNumber" class="form-label">Phone Number</label>
-                    <input type="text" class="form-control" id="phoneNumber" placeholder="Enter your phone number">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="text" class="form-control" id="phone" placeholder="Enter your phone number">
                 </div>
                 <div class="mb-3 w-100">
                     <label for="dob" class="form-label">Date of Birth</label>
@@ -51,7 +123,10 @@ after successful registration. -->
                     <input type="file" class="form-control" id="idCardBack">
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Register</button>
-                <button type="button" onclick="location.href='Login.php'" class="btn btn-link mt-2 opacity-75" style="text-decoration: none;">Already have an account? Sign in</button>
+                <button type="button" onclick="location.href='register.php'" class="btn btn-link mt-2 opacity-75" style="text-decoration: none;">Already have an account? Sign in</button>
+                <div>
+                    <p><?php echo '$error'; ?></p>
+                </div>
             </div>
         </div>
     </form>
@@ -59,5 +134,7 @@ after successful registration. -->
     include("../src/footer.php");
     ?>
 </body>
+<script>
 
+</script>
 </html>
