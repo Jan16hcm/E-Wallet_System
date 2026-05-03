@@ -1,0 +1,15 @@
+Admin account
+phone: 0000000000
+pass: 000000
+
+Account User wait for verified (verified = 0) - Wait and no money
+phone: 0987654321
+pass: 123456
+
+Active user (verified = 1)
+phone: 0912345678
+pass: 123456
+
+Account User disable (verified = 4)
+phone: 0987654321
+pass: 123456
