@@ -8,10 +8,15 @@
     
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-primary py-1 position-sticky top-0"> 
+    <header class="sticky-top"> 
+        <div class="container-fluid bg-primary py-2 text-white ps-4">
+            <span class="fw-bold fs-4">MeoMeo Wallet</span>
+        </div>
+    </header>
+    <!-- <nav class="navbar navbar-dark bg-primary py-1 position-sticky top-0"> 
         <div class="container ms-4"> 
             <a class="navbar-brand m-0 fw-bold fs-4">MeoMeo Wallet</a>
         </div>
-    </nav>
+    </nav> -->
 </body>
 </html>
