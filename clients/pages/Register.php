@@ -33,6 +33,8 @@ after successful registration. -->
             $error = 'This is not a valid email address';
         } else if (empty($phonenum)) {
             $error = 'Please enter your phone number';
+        } else if ($phonenum < 5 || $phonenum > 15) {
+            $error = 'This is not a valid phone number';
         } else if (empty($birth)) {
             $error = 'Please enter your birthdate';
         } else if (empty($address)) {
@@ -43,7 +45,7 @@ after successful registration. -->
             $error = 'Please upload the back of your id card';
         } else {
             $con = connect_db();
-            $result = $con->query("SELECT email, phonenum FROM account");
+            $result = $con->query("SELECT email, phonenum, name FROM account");
             $duplicate = false;
 
             if ($result->num_rows > 0) {    //check if database is not empty
@@ -59,14 +61,14 @@ after successful registration. -->
             if(!$duplicate){
                 $otp=strval(rand(100000,999999));
                 $_SESSION['otp'] = $otp;//first pass
+                $_SESSION['email'] = $email;
 
-                $res = $con->prepare("INSERT INTO account VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL);");
-                $res->bind_param("ssssssss", $phonenum, $email, $name, $birth, $address, $idCardFront, $idCardBack, $otp);
-                /*  first parameter tell the type of data each parameter from second beyond
-                    i - integer
+                $res = $con->prepare("INSERT INTO account VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL)");
+                $res->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $idCardFront, $idCardBack, $otp);
+                /*  i - integer
                     d - double 
                     s - string
-                    b - binary (image, PDF, etc.)*/
+                    b - binary (image, PDF,...)*/
                 $res->execute();
                 //echo 'good';
                 $res->close();
@@ -135,6 +137,8 @@ after successful registration. -->
     ?>
 </body>
 <script>
-
+    /*
+    
+    */
 </script>
 </html>
