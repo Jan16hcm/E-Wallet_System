@@ -12,7 +12,7 @@
 
 <?php include("../src/header.php") ?>
 <body>
-    <form action="Home.php">
+    <form action="../modules/login_process.php" method="POST">
         <!-- <div class="container-fluid"> -->
             <div class="login-container" style="scrollbar-width: none;">
                 <div class="row login-box">
@@ -20,15 +20,15 @@
                         <h3 class="mb-4 text-center">Sign in</h3>
 
                         <div class="mb-4">
-                            <label for="username" class="form-label fs-5">Email or Phone Number</label>
-                            <input type="text" class="form-control p-3 fs-5" placeholder="Type your username"
-                                id="username">
+                            <label for="phonenum" class="form-label fs-5">Phone Number</label>
+                            <input type="text" class="form-control p-3 fs-5" placeholder="Type your phonenumber" name="phonenum"
+                                id="phonenum">
                         </div>
 
                         <div class="mb-3">
                             <label for="pwd" class="form-label fs-5">Password</label>
-                            <input type="password" class="form-control p-3 fs-5" placeholder="Type your password"
-                                id="pwd">
+                            <input type="password" class="form-control p-3 fs-5" placeholder="Type your password" name="password"
+                                id="password">
                         </div>
 
                         <button type="submit"
