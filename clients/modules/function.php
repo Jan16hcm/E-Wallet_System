@@ -7,12 +7,24 @@
         }
         return $con;
     }
-    function selectfromuserbyemail(String $obj, String $email, String $condition){//what to select using unique email
+    function selectfromuserbyemail(String $obj, String $email, String $condition, bool $haveCondition){//what to select using unique email
         $con = connect_db();
-        $result = $con->query("select " . $obj . " from user where email = " . $email . " and " . $condition);
+        if ($haveCondition) { 
+            $result = $con->prepare("select ? from user where email = ? and ?");
+            $result->bind_param("sss", $obj, $email, $condition);
+            $result->execute();
+            $num_row = $result->num_rows;
+            $con->close();
+            $result->close();
+            return $num_row == 0;//true -> failed condition
+        }
+        $result = $con->prepare("select ? from user where email = ?");
+        $result->bind_param("ss", $obj, $email);
+        $result->execute();
         $num_row = $result->num_rows;
         $con->close();
-        return $num_row == 0;//true -> user failed condition or no data
+        $result->close();
+        return $num_row == 0;//true -> no data
     }
     function usertype() {
         if (empty($_SESSION['email'])) {
@@ -28,26 +40,84 @@
             return $re;
         }
     }
-    function handleFailedLogin(DateTime $time){
-        //call new DateTime() to input into this function ($time)
+
+    function verifypass(String $pass, String $e_or_p, bool $isEmail) {
         $con = connect_db();
-        $result = $con->query("select abnormal_login from user where email = " . $_SESSION['email']);
-        $attem_num = 0;
-        if ($result->num_rows > 0) { //check if database is not empty
-            $row = $result->fetch_assoc();
-            $attem_num = $row["verified"];
+        if($isEmail) {
+            $res = $con->prepare("select pass, email from user where email = ? and abnormal_login < 7");
+            //get email where email = email
+        } else {
+            $res = $con->prepare("select pass, email from user where phonenum = ? and abnormal_login < 7");
         }
-        if ($attem_num >= 6) {
-            return ['Account has been locked due to entering the wrong password many times, please contact the administrator for support.', -1];
-        }
-        if(!$con->query("update user set abnormal_login = " . $attem_num . " where email = " . $_SESSION['email'])) {
-            $con->close();
-            return ['Error in database, please try again later', -2];
+        $res->bind_param("s", $e_or_p);
+        $res->execute();
+        if ($res->num_rows > 0) {    //check if database is not empty
+            $real_res = $res->get_result();
+            $row = $real_res->fetch_assoc();
+
+            if(password_verify($pass, $row["pass"])) {
+                $_SESSION["email"] = $row["email"];
+                $real_res->close();
+                $res->close();
+                $con->close();
+                header('Location: Home.php');
+            }
+
+            $real_res->close();
         }
         $con->close();
-        if ($attem_num >= 3) {
-            $now = new DateTime();
-            $time_passed = $now->getTimestamp() - $time->getTimestamp();
+        $res->close();
+        $error = 'Wrong password';
+        $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
+        return true;
+    }
+    function handleFailedLogin(DateTime $time, bool $add_attem, String $e_or_p, bool $isEmail){
+        //call new DateTime() to input into this function ($time)
+        $con = connect_db();
+        $attem_num = 0;
+        $locktime = '';
+        $res = '';
+        if($isEmail) {
+            $res = $con->prepare("SELECT abnormal_login, locktime from user where email = ?");
+        } else {
+            $res = $con->prepare("SELECT abnormal_login, locktime from user where phonenum = ?");
+        }
+        $res->bind_param("s", $e_or_p);
+        $res->execute();
+
+        if ($res->num_rows > 0) {
+            $real_res = $res->get_result();
+            $row = $real_res->fetch_assoc();
+            $attem_num = $row["abnormal_login"];
+            $locktime = $row["locktime"];
+            $real_res->close();
+        }
+        $res->close();
+
+        if ($attem_num > 6) { //this if is useless
+            $con->close();
+            return ['Account has been locked due to entering the wrong password many times, please contact the administrator for support.', -1];
+        }
+
+        if ($add_attem) {
+            if($isEmail) {
+                $res = $con->prepare("update user set abnormal_login = " . $attem_num . ", locktime = " . $locktime . " where email = ?");
+            } else {
+                $res = $con->prepare("update user set abnormal_login = " . $attem_num . ", locktime = " . $locktime . " where phonenum = ?");
+            }
+            $res->bind_param("s", $e_or_p);
+            $res->execute();
+
+            if(!$res->execute()) {
+                $res->close();
+                $con->close();
+                return ['Error in database, please try again later', -2];
+            }
+        }
+
+        $con->close();
+        if ($attem_num > 3) {
+            $time_passed = $time->getTimestamp() - $locktime->getTimestamp();
             if($time_passed < 60){
                 $diff = 60 - $time_passed;
                 return ['Account is currently locked, please try again in ' . $diff . ' seconds', $time_passed];

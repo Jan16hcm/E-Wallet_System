@@ -57,7 +57,7 @@
         if($information_type != -1) {
             $con = connect_db();
 
-            $result = $con->query("SELECT email, phonenum FROM account");
+            $result = $con->query("SELECT email, phonenum FROM user");
             if ($result->num_rows > 0) { //check if database is not empty
                 while($row = $result->fetch_assoc()) { 
                     if($row["email"] == $email && $information_type == 0) {
