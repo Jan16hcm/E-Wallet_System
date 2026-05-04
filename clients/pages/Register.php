@@ -45,7 +45,7 @@ after successful registration. -->
             $error = 'Please upload the back of your id card';
         } else {
             $con = connect_db();
-            $result = $con->query("SELECT email, phonenum, name FROM account");
+            $result = $con->query("SELECT email, phonenum, name FROM user");
             $duplicate = false;
 
             if ($result->num_rows > 0) {    //check if database is not empty
@@ -63,7 +63,7 @@ after successful registration. -->
                 $_SESSION['otp'] = $otp;//first pass
                 $_SESSION['email'] = $email;
 
-                $res = $con->prepare("INSERT INTO account VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL)");
+                $res = $con->prepare("INSERT INTO user VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL)");
                 $res->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $idCardFront, $idCardBack, $otp);
                 /*  i - integer
                     d - double 

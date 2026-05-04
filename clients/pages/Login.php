@@ -1,3 +1,55 @@
+<?php
+    include_once("../modules/function.php");
+    $e_or_p = '';
+    $pass = '';
+    $error = '';
+    $do_timeout = false;
+    $lock = 0;
+    $isEmail = false;
+    $abnormal_login = 0;
+
+    if (isset($_POST['e_or_p']) && isset($_POST['pass'])){
+        $e_or_p = $_POST['e_or_p'];
+        $pass = $_POST['pass'];
+        $isEmail = str_contains($e_or_p,'@');
+
+        if (empty($e_or_p)) {
+            $error = 'Please enter your email or phone number';
+        } else if (empty($pass)) {
+            $error = 'Please enter your password';
+        } else if ($pass < 6) {
+            $error = 'Your password length must be greater than 5';
+        } else {
+            if ($isEmail) {
+                if (filter_var($e_or_p, FILTER_VALIDATE_EMAIL) == false) {
+                    $error = 'This is not a valid email address';
+                } else {
+                    $do_timeout = verifypass($pass, $e_or_p, $isEmail);
+                    //if failed password verify, it will continue below:
+                    $error = 'Wrong password';//it could be because attem_num > 3 in 60 sec or attem_num > 6
+                    $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
+                }
+            } else {
+                if ($e_or_p < 5 || $e_or_p > 15) {
+                    $error = 'This is not a valid phone number';
+                } else {
+                    $do_timeout = verifypass($pass, $e_or_p, $isEmail);
+                    $error = 'Wrong password';
+                    $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
+                }
+            }
+        }
+    }
+
+    if($do_timeout) {
+        if($lock[1] > -2){ // include -1 and > 0
+            $error = $lock[0];
+        } else {
+            //add time out here
+            $lock = handleFailedLogin(new DateTime(), true, $e_or_p, $isEmail);
+        }
+    } 
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -12,7 +64,7 @@
 
 <?php include("../src/headerOutSide.php") ?>
 <body>
-    <form action="../modules/login_process.php" method="POST">
+    <form action="Home.php">
         <!-- <div class="container-fluid"> -->
             <div class="login-container" style="scrollbar-width: none;">
                 <div class="row login-box">
@@ -20,15 +72,13 @@
                         <h3 class="mb-4 text-center">Sign in</h3>
 
                         <div class="mb-4">
-                            <label for="phonenum" class="form-label fs-5">Phone Number</label>
-                            <input type="text" class="form-control p-3 fs-5" placeholder="Type your phonenumber" name="phonenum"
-                                id="phonenum">
+                            <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
+                            <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number" id="e_or_p" value="e_or_p">
                         </div>
 
                         <div class="mb-3">
-                            <label for="pwd" class="form-label fs-5">Password</label>
-                            <input type="password" class="form-control p-3 fs-5" placeholder="Type your password" name="password"
-                                id="password">
+                            <label for="pass" class="form-label fs-5">Password</label>
+                            <input type="password" class="form-control p-3 fs-5" placeholder="Type your password here" id="pass" value="pass">
                         </div>
 
                         <button type="submit"
