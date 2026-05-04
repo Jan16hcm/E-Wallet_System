@@ -1,5 +1,7 @@
 <?php
-    include_once("../modules/function.php");
+    include_once("../modules/db_connection.php");
+    include_once("../modules/handleFailedLogin.php");
+    include_once("../modules/verifypass.php");
     $e_or_p = '';
     $pass = '';
     $error = '';
@@ -24,8 +26,12 @@
                 if (filter_var($e_or_p, FILTER_VALIDATE_EMAIL) == false) {
                     $error = 'This is not a valid email address';
                 } else {
-                    $do_timeout = verifypass($pass, $e_or_p, $isEmail);
+                    if(verifypass($pass, $e_or_p, $isEmail)){
+                        //echo "correct pass, move to pofile";
+                        header('Home.php');
+                    }
                     //if failed password verify, it will continue below:
+                    $do_timeout = true;
                     $error = 'Wrong password';//it could be because attem_num > 3 in 60 sec or attem_num > 6
                     $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
                 }
@@ -33,7 +39,10 @@
                 if ($e_or_p < 5 || $e_or_p > 15) {
                     $error = 'This is not a valid phone number';
                 } else {
-                    $do_timeout = verifypass($pass, $e_or_p, $isEmail);
+                    if(verifypass($pass, $e_or_p, $isEmail)){
+                        header('Home.php');
+                    }
+                    $do_timeout = true;
                     $error = 'Wrong password';
                     $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
                 }
@@ -47,6 +56,9 @@
         } else {
             //add time out here
             $lock = handleFailedLogin(new DateTime(), true, $e_or_p, $isEmail);
+            if($lock[1] > -2){
+                $error = $lock[0];
+            }
         }
     } 
 ?>
@@ -62,7 +74,7 @@
     <title>Login</title>
 </head>
 
-<?php include("../src/headerOutSide.php") ?>
+<?php include("../src/header.php") ?>
 <body>
     <form action="Home.php">
         <!-- <div class="container-fluid"> -->

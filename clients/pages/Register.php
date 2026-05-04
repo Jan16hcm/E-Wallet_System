@@ -6,6 +6,8 @@ the user's email immediately. If you can't do the email sending feature, you nee
 after successful registration. -->
 <?php
     include_once("../modules/db_connection.php");
+    include_once("../modules/send_otp.php");
+    
     $name = '';
     $email = '';
     $phonenum = '';
@@ -46,7 +48,6 @@ after successful registration. -->
         } else {
             //picture check
             $target_file = "../uploads/" . basename($_FILES["fileToUpload"]["name"]);
-            $uploadOk = false;
             $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
             
             // Check if image file is a actual image or fake image
@@ -78,18 +79,21 @@ after successful registration. -->
                     $otp=strval(rand(100000,999999));
                     $_SESSION['otp'] = $otp;//first pass
                     $_SESSION['email'] = $email;
-
-                    $res = $con->prepare("INSERT INTO user VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL)");
-                    $res->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $front, $back, $otp);
-                    /*  i - integer
-                        d - double 
-                        s - string
-                        b - binary (image, PDF,...)*/
-                    $res->execute();
-                    //echo 'good';
-                    $res->close();
-                    $con->close();
-                    header('Location: Home.php');
+                    if(send_otp_email($otp, $email, $name)){
+                        $error = 'Failed to send mail, please try again later';
+                    } else {
+                        $res = $con->prepare("INSERT INTO user VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL)");
+                        $res->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $front, $back, $otp);
+                        /*  i - integer
+                            d - double 
+                            s - string
+                            b - binary (image, PDF,...)*/
+                        $res->execute();
+                        //echo 'good';
+                        $res->close();
+                        $con->close();
+                        header('Location: Home.php');
+                    }
                 }
             }
         }
