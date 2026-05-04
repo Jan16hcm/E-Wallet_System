@@ -1,9 +1,10 @@
 <?php
     session_start();
-    if (!isset($_SESSION['user_phone']) || !isset($_SESSION['user_name'])) {
-        header("Location: Login.php");
-        exit();
-    }
+    require_once("../modules/db_connection.php");
+    require_once("../modules/usertype.php");
+
+    $usertype = usertype();//3 == admin, 2 = Request additional information, -1 = first login 
+    
     include '../src/header.php';
 
     $username = htmlspecialchars($_SESSION['user_name'], ENT_QUOTES, 'UTF-8');
