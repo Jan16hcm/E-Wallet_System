@@ -112,7 +112,7 @@ after successful registration. -->
 </head>
 
 <body>
-    <?php include("../src/header.php") ?>
+    <?php include("../src/headerOutSide.php") ?>
     <form>
         <div class="register-container">
             <div class="d-flex flex-column align-items-center p-3 bg-white rounded shadow"  style="width: 600px;">
