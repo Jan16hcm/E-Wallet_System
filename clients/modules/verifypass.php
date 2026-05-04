@@ -1,5 +1,4 @@
 <?php
-    session_start();
     require_once("db_connection.php");
     function verifypass(String $pass, String $e_or_p, bool $isEmail) {
         $con = connect_db();
@@ -16,6 +15,8 @@
             $row = $real_res->fetch_assoc();
 
             if(password_verify($pass, $row["pass"])) {
+                $_SESSION["phonenum"] = $row["phonenum"];
+                $_SESSION["name"] = $row["name"];
                 $_SESSION["email"] = $row["email"];
                 $real_res->close();
                 $res->close();
