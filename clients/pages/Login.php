@@ -2,6 +2,8 @@
     include_once("../modules/db_connection.php");
     include_once("../modules/handleFailedLogin.php");
     include_once("../modules/verifypass.php");
+    include_once("../modules/usertype.php");
+
     $e_or_p = '';
     $pass = '';
     $error = '';
@@ -9,6 +11,15 @@
     $lock = 0;
     $isEmail = false;
     $abnormal_login = 0;
+
+    if(isset($_SESSION['email'])){
+       $usertype = usertype();
+       if($usertype == 3){
+          header('Admin_dashboard.php');
+       } else {
+          header('Home.php');
+       }
+    }
 
     if (isset($_POST['e_or_p']) && isset($_POST['pass'])){
         $e_or_p = $_POST['e_or_p'];
@@ -28,7 +39,12 @@
                 } else {
                     if(verifypass($pass, $e_or_p, $isEmail)){
                         //echo "correct pass, move to pofile";
-                        header('Home.php');
+                        $usertype = usertype();
+                        if($usertype == 3){
+                            header('Admin_dashboard.php');
+                        } else {
+                            header('Home.php');
+                        }
                     }
                     //if failed password verify, it will continue below:
                     $do_timeout = true;
@@ -40,7 +56,12 @@
                     $error = 'This is not a valid phone number';
                 } else {
                     if(verifypass($pass, $e_or_p, $isEmail)){
-                        header('Home.php');
+                        $usertype = usertype();
+                        if($usertype == 3){
+                            header('Admin_dashboard.php');
+                        } else {
+                            header('Home.php');
+                        }
                     }
                     $do_timeout = true;
                     $error = 'Wrong password';
@@ -84,8 +105,8 @@
                         <h3 class="mb-4 text-center">Sign in</h3>
 
                         <div class="mb-4">
-                            <label for="e_or_p" class="form-label fs-5">Phone Number</label>
-                            <input type="text" class="form-control p-3 fs-5" placeholder="Type your Phone Number" id="e_or_p" value="e_or_p">
+                            <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
+                            <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number" id="e_or_p" value="e_or_p">
                         </div>
 
                         <div class="mb-3">
