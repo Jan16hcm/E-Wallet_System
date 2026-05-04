@@ -1,18 +1,18 @@
 <?php
     require_once("db_connection.php");
     function handleFailedLogin(DateTime $time, bool $add_attem, String $e_or_p, bool $isEmail){
-        /* add attempt count and locktime to user database depending on $add_attem
+        /* add attempt count and locked_time to user database depending on $add_attem
            using email or phonenum depending on $isEmail
         */ 
         //call new DateTime() to input into this function ($time)
         $con = connect_db();
         $attem_num = 0;
-        $locktime = '';
+        $locked_time = '';
         $res = '';
         if($isEmail) {
-            $res = $con->prepare("SELECT abnormal_login, locktime from user where email = ?");
+            $res = $con->prepare("SELECT abnormal_login, locked_time from user where email = ?");
         } else {
-            $res = $con->prepare("SELECT abnormal_login, locktime from user where phonenum = ?");
+            $res = $con->prepare("SELECT abnormal_login, locked_time from user where phonenum = ?");
         }
         $res->bind_param("s", $e_or_p);
         $res->execute();
@@ -21,7 +21,7 @@
             $real_res = $res->get_result();
             $row = $real_res->fetch_assoc();
             $attem_num = $row["abnormal_login"];
-            $locktime = $row["locktime"];
+            $locked_time = $row["locktime"];
             $real_res->close();
             $res->close();
         } else {
@@ -37,9 +37,9 @@
 
         if ($add_attem) {
             if($isEmail) {
-                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locktime = " . $locktime . " where email = ?");
+                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locked_time = " . $locked_time . " where email = ?");
             } else {
-                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locktime = " . $locktime . " where phonenum = ?");
+                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locked_time = " . $locked_time . " where phonenum = ?");
             }
             $res->bind_param("s", $e_or_p);
 
@@ -52,7 +52,7 @@
 
         $con->close();
         if ($attem_num > 3) {
-            $time_passed = $time->getTimestamp() - $locktime->getTimestamp();
+            $time_passed = $time->getTimestamp() - $locked_time->getTimestamp();
             if($time_passed < 60){
                 $diff = 60 - $time_passed;
                 return ['Account is currently locked, please try again in ' . $diff . ' seconds', $time_passed];
