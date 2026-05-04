@@ -15,9 +15,14 @@
             <button type="button" class="btn" onclick="location.href='../pages/Home.php'">
                 <span class="fw-bold fs-4 text-white">MeoMeo Wallet</span></button>
         </div> -->
-        <div class="container-fluid bg-primary py-2 text-white ps-4 d-flex align-items-center">
+        <div class="container-fluid bg-primary py-2 text-white ps-4 d-flex justify-content-between align-items-center">
+
             <a href="../pages/Home.php" class="text-decoration-none">
                 <span class="fw-bold fs-4 text-white">MeoMeo Wallet</span>
+            </a>
+
+            <a href="../modules/logout.php" class="btn btn-outline-light btn-sm btn-md">
+                Logout
             </a>
         </div>
     </header>
