@@ -74,7 +74,7 @@
     <title>Login</title>
 </head>
 
-<?php include("../src/header.php") ?>
+<?php include("../src/headerOutSide.php") ?>
 <body>
     <form action="Home.php">
         <!-- <div class="container-fluid"> -->
