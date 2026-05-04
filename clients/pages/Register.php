@@ -7,7 +7,8 @@ after successful registration. -->
 <?php
     include_once("../modules/db_connection.php");
     include_once("../modules/send_otp.php");
-    
+    include_once("../modules/isValidDate.php");
+
     $name = '';
     $email = '';
     $phonenum = '';
@@ -35,10 +36,16 @@ after successful registration. -->
             $error = 'This is not a valid email address';
         } else if (empty($phonenum)) {
             $error = 'Please enter your phone number';
-        } else if ($phonenum < 5 || $phonenum > 15) {
-            $error = 'This is not a valid phone number';
+        } else if (mb_strlen($phonenum) < 5 || mb_strlen($phonenum) > 15) {
+            $error = 'A phone number length must be greater than 5 and less than 15';
+        } else if (filter_var($phonenum, FILTER_VALIDATE_INT) == false){
+            $error = 'A phone number only contain number';
         } else if (empty($birth)) {
             $error = 'Please enter your birthdate';
+        } else if (isValidDate($birth)) {
+            $error = 'Invalid birthdate, format must be Year-month-day';
+        } else if ($birth > time()) {
+            $error = 'Your birthdate must be in the past';
         } else if (empty($address)) {
             $error = 'Please enter your address';
         } else if (empty($front)) {
