@@ -5,25 +5,25 @@ must have a different email address and a different phone number. After successf
 the user's email immediately. If you can't do the email sending feature, you need to display these two information on the website interface right
 after successful registration. -->
 <?php
-    include_once("../modules/function.php");
+    include_once("../modules/db_connection.php");
     $name = '';
     $email = '';
     $phonenum = '';
     $birth = '';
     $address = '';
-    $idCardFront = '';
-    $idCardBack = '';
+    $front = '';
+    $back = '';
     $error = '';
 
     if (isset($_POST['name']) && isset($_POST['email']) && isset($_POST['phonenum']) && isset($_POST['birth']) 
-    && isset($_POST['address']) && isset($_POST['idCardFront']) && isset($_POST['idCardBack'])){
+    && isset($_POST['address']) && isset($_POST['front']) && isset($_POST['back'])){
         $name = $_POST['name'];
         $email = $_POST['email'];
         $phonenum = $_POST['phonenum'];
         $birth = $_POST['birth'];
         $address = $_POST['address'];
-        $idCardFront = $_POST['idCardFront'];
-        $idCardBack = $_POST['idCardBack'];
+        $front = $_POST['front'];
+        $back = $_POST['back'];
 
         if (empty($name)) {
             $error = 'Please enter your name';
@@ -39,41 +39,58 @@ after successful registration. -->
             $error = 'Please enter your birthdate';
         } else if (empty($address)) {
             $error = 'Please enter your address';
-        } else if (empty($idCardFront)) {
+        } else if (empty($front)) {
             $error = 'Please upload the front of your id card';
-        } else if (empty($idCardBack)) {
+        } else if (empty($back)) {
             $error = 'Please upload the back of your id card';
         } else {
-            $con = connect_db();
-            $result = $con->query("SELECT email, phonenum, name FROM user");
-            $duplicate = false;
+            //picture check
+            $target_file = "../uploads/" . basename($_FILES["fileToUpload"]["name"]);
+            $uploadOk = false;
+            $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+            
+            // Check if image file is a actual image or fake image
+            if(!getimagesize($_FILES["fileToUpload"]["tmp_name"])) {
+                $error = 'This file is not a picture';
+            }
+            if ($_FILES["fileToUpload"]["size"] > 2048000) {
+                $error = 'Your picture must be < 2MB';
+            }
+            if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg") {
+                $error = 'Only JPG, JPEG, PNG files are allowed';
+            }
+            if($error == '') {
+                $con = connect_db();
+                $result = $con->query("SELECT email, phonenum, name FROM user");
+                $duplicate = false;
 
-            if ($result->num_rows > 0) {    //check if database is not empty
-                while($row = $result->fetch_assoc()) { //check duplicate
-                    if($row["email"] == $email && $row["phonenum"] == $phonenum && $row["name"] == $name) {
-                        $con->close();
-                        $duplicate = true;
-                        $error = 'Please use login site to login, ' . $name;
+                if ($result->num_rows > 0) {    //check if database is not empty
+                    while($row = $result->fetch_assoc()) { //check duplicate
+                        if($row["email"] == $email && $row["phonenum"] == $phonenum && $row["name"] == $name) {
+                            $con->close();
+                            $duplicate = true;
+                            $error = 'Please use login site to login, ' . $name;
+                        }
                     }
                 }
-            }
 
-            if(!$duplicate){
-                $otp=strval(rand(100000,999999));
-                $_SESSION['otp'] = $otp;//first pass
-                $_SESSION['email'] = $email;
+                if(!$duplicate){
+                    $otp=strval(rand(100000,999999));
+                    $_SESSION['otp'] = $otp;//first pass
+                    $_SESSION['email'] = $email;
 
-                $res = $con->prepare("INSERT INTO user VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL)");
-                $res->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $idCardFront, $idCardBack, $otp);
-                /*  i - integer
-                    d - double 
-                    s - string
-                    b - binary (image, PDF,...)*/
-                $res->execute();
-                //echo 'good';
-                $res->close();
-                $con->close();
-                header('Location: Home.php');
+                    $res = $con->prepare("INSERT INTO user VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL)");
+                    $res->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $front, $back, $otp);
+                    /*  i - integer
+                        d - double 
+                        s - string
+                        b - binary (image, PDF,...)*/
+                    $res->execute();
+                    //echo 'good';
+                    $res->close();
+                    $con->close();
+                    header('Location: Home.php');
+                }
             }
         }
     }
@@ -91,7 +108,7 @@ after successful registration. -->
 </head>
 
 <body>
-    <?php include("../src/headerOutSide.php") ?>
+    <?php include("../src/header.php") ?>
     <form>
         <div class="register-container">
             <div class="d-flex flex-column align-items-center p-3 bg-white rounded shadow"  style="width: 600px;">
@@ -117,18 +134,20 @@ after successful registration. -->
                     <input type="text" class="form-control" id="address" placeholder="Enter your address">
                 </div>
                 <div class="mb-3 w-100">
-                    <label for="idCardFront" class="form-label">ID Card Front</label>
-                    <input type="file" class="form-control" id="idCardFront">
+                    <label for="front" class="form-label">ID Card Front</label>
+                    <input type="file" class="form-control" id="front">
                 </div>
                 <div class="mb-3 w-100">
-                    <label for="idCardBack" class="form-label">ID Card Back</label>
-                    <input type="file" class="form-control" id="idCardBack">
+                    <label for="back" class="form-label">ID Card Back</label>
+                    <input type="file" class="form-control" id="back">
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Register</button>
                 <button type="button" onclick="location.href='register.php'" class="btn btn-link mt-2 opacity-75" style="text-decoration: none;">Already have an account? Sign in</button>
-                <!-- <div>
-                    <p><?php echo '$error'; ?></p>
-                </div> -->
+                <?php
+                    if (!empty($error)) {
+                        echo "<div class='alert alert-danger'>$error</div>";
+                    }
+                ?>
             </div>
         </div>
     </form>
