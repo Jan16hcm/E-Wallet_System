@@ -48,6 +48,7 @@ CREATE TABLE `user` (
   `expiration` date DEFAULT NULL,
   `locked_time` DATETIME DEFAULT NULL COMMENT 'Disable account overtime',
   PRIMARY KEY (`phonenum`) -- SET PRIMARYKEY
+  UNIQUE KEY (`email`) -- SET UNIQUE KEY
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
