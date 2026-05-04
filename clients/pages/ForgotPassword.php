@@ -1,3 +1,123 @@
+<?php
+    include_once("../modules/db_connection.php");
+    include_once("../modules/send_otp.php");
+    $error = '';
+    $email = '';
+    //$phonenum = '';
+    //$information_type = -1;
+    //$carrier = '';
+    /*
+    -1: no information entered
+    0: email entered
+    1: phone number entered 
+    2: email entered is in database
+    3: phone number entered is in database
+    */
+    $otp = 0;
+    if(isset($_SESSION['otp'])){
+        $otp = strval($_SESSION['otp']);
+        if ($_SERVER["REQUEST_METHOD"] == "POST") {
+            if(isset($_POST['otp_in6'])){
+                $otp_in = $_POST['otp_in1'] . $_POST['otp_in2'] . $_POST['otp_in3'] . $_POST['otp_in4'] . $_POST['otp_in5'] . $_POST['otp_in6'];
+                if(strval($otp_in) == $otp){
+                    //success
+                    $_SESSION['otp'] = "SUC";
+                    header('Location: Home.php');
+                    exit();
+                }
+            }
+        }
+    } else {
+        $otp=strval(rand(100000,999999));
+        $_SESSION['otp'] = $otp;
+    }
+
+    if (isset($_POST['email'])) {
+        $email = $_POST['email'];
+        if (empty($email)) {
+            $error = 'Please enter your email';
+        } else if (filter_var($email, FILTER_VALIDATE_EMAIL) == false) {
+            $error = 'This is not a valid email address';
+        } else {
+
+        /*
+        if(isset($_POST['phonenum']) && $information_type != 0){
+            $phonenum = filter_var($_POST['phonenum'], FILTER_SANITIZE_NUMBER_INT);
+            if (empty($phonenum)) {
+                $error = 'Please enter your phone number';
+            } else if ($phonenum < 5 || $phonenum > 15) {
+                $error = 'This is not a valid phone number';
+            } else {
+                $information_type = 1;
+            }
+        }
+
+        if($information_type != -1) {*/
+
+            $con = connect_db();
+            $findEmail = false;
+            $name = '';
+            $result = $con->query("SELECT email, name FROM user");
+
+            if ($result->num_rows > 0) { //check if database is not empty
+                while($row = $result->fetch_assoc()) { 
+                    if($row["email"] == $email) {
+                        //$information_type += 2;
+                        $findEmail = true;
+                        $name = $row["name"];
+                        break;
+                    }
+                    /*
+                    if($row["phonenum"] == $phonenum && $information_type == 1) {
+                        $information_type += 2;
+                        break;
+                    }*/
+                }
+            }
+            $con->close();
+            if ($findEmail) {
+                $_SESSION["email"] = $email;
+                if(send_otp_email($otp, $email, $name)){
+                    //echo "success";
+                } else {
+                    $error = 'Failed to send mail, please try again in a few minutes';
+                }
+            } else {
+                $error = 'Email you entered is not available in database';
+            }
+
+            /*
+            if($information_type > 1){
+                if($information_type == 2){
+                    $error = 'Email you entered is not available in database';
+                } else {
+                    $error = 'Phone number you entered is not available in database';
+                }
+            }*/
+        }
+        
+        //otp here
+        /*
+        if($information_type == 2){
+            if(send_otp_email($otp, $email, $name)){
+                $information_type += 2;
+            } else {
+                $error = 'Failed to send mail, please try again in a few minutes';
+            }
+        }
+
+        if($information_type == 3){
+            if(send_otp_sms($otp, $phonenum, $carrier)){
+                //echo 'sms sent';
+                $information_type += 2;
+            } else {
+                $error = 'Failed to send sms, please try again in a few minutes';
+            }
+        }
+        */
+    }
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -37,15 +157,55 @@
                 <form action="ResetPassword.php" method="POST">
                     <div class="mb-3">
                         <label for="username" class="form-label fw-semibold">Your Email</label>
-                        <input type="email" class="form-control" id="username" name="username"
-                            placeholder="Enter your email" required>
+                        <input type="email" class="form-control" id="username" name="username" placeholder="Enter your email" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Reset Password</button>
+                    <?php
+                        if (!empty($error)) {
+                            echo "<div class='alert alert-danger'>$error</div>";
+                        }
+                    ?>
                 </form>
+
+                <br>
+                <label for="otp_in">Enter OTP here:</label>
+                <table>
+                    <tr>
+                        <th><input name="otp_in1" id="otp_in" type="text" maxlength="1"></th>
+                        <th><input name="otp_in2" id="otp_in" type="text" maxlength="1"></th>
+                        <th><input name="otp_in3" id="otp_in" type="text" maxlength="1"></th>
+                        <th><input name="otp_in4" id="otp_in" type="text" maxlength="1"></th>
+                        <th><input name="otp_in5" id="otp_in" type="text" maxlength="1"></th>
+                        <th><input name="otp_in6" id="otp_in" type="text" maxlength="1"></th>
+                    </tr>
+                </table>
+            
             </div>
         </div>
     </body>
 
     <?php include("../src/footer.php"); ?>
+<script>
+    const inputs = document.querySelectorAll("table input");
 
+    inputs.forEach((input, index) => {
+        input.addEventListener("input", () => {
+            if (input.value.length === input.maxLength) {
+                const nextInput = inputs[index + 1];
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && input.value.length === 0) {
+                const prevInput = inputs[index - 1];
+                if (prevInput) {
+                    prevInput.focus();
+                }
+            }
+        });
+    });
+</script>
 </html>
