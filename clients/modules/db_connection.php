@@ -1,5 +1,7 @@
 <?php 
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     //include this file at the start of every php
     // require_once("../modules/db_connection.php");
     function connect_db(){
