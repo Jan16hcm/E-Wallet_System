@@ -72,8 +72,8 @@
                         <h3 class="mb-4 text-center">Sign in</h3>
 
                         <div class="mb-4">
-                            <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
-                            <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number" id="e_or_p" value="e_or_p">
+                            <label for="e_or_p" class="form-label fs-5">Phone Number</label>
+                            <input type="text" class="form-control p-3 fs-5" placeholder="Type your Phone Number" id="e_or_p" value="e_or_p">
                         </div>
 
                         <div class="mb-3">

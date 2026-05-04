@@ -4,7 +4,7 @@ require_once 'db_connection.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $phonenum = $_POST['phonenum'];
-    $password = $_POST['password'];
+    $password = $_POST['pass'];
 
     $sql = "SELECT * FROM `user` WHERE `phonenum` = ?";
     $stmt = $conn->prepare($sql);
