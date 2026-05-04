@@ -13,7 +13,7 @@
 </head>
 
 <body>
-    <?php include("../src/header.php"); ?>
+    <?php include("../src/headerOutSide.php"); ?>
     <link rel="stylesheet" href="../assets/css/forgot.css">
 
     <body>
