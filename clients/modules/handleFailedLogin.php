@@ -21,7 +21,7 @@
             $real_res = $res->get_result();
             $row = $real_res->fetch_assoc();
             $attem_num = $row["abnormal_login"];
-            $locked_time = $row["locktime"];
+            $locked_time = $row["locked_time"];
             $real_res->close();
             $res->close();
         } else {
