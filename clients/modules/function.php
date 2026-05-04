@@ -1,10 +1,11 @@
 <?php
     session_start();
     function connect_db(){
-        $con = new mysqli("localhost", "root", "", "databasename");
+        $con = new mysqli("localhost", "root", "", "fakebank");
         if ($con->connect_error) {
             die("Connection failed: " . $con->connect_error);
         }
+        $con->set_charset("utf8mb4");
         return $con;
     }
     function selectfromuserbyemail(String $obj, String $email, String $condition, bool $haveCondition){//what to select using unique email
@@ -72,6 +73,9 @@
         return true;
     }
     function handleFailedLogin(DateTime $time, bool $add_attem, String $e_or_p, bool $isEmail){
+        /* add attempt count and locktime to user database depending on $add_attem
+           using email or phonenum depending on $isEmail
+        */ 
         //call new DateTime() to input into this function ($time)
         $con = connect_db();
         $attem_num = 0;
@@ -91,22 +95,25 @@
             $attem_num = $row["abnormal_login"];
             $locktime = $row["locktime"];
             $real_res->close();
+            $res->close();
+        } else {
+            $res->close();
+            return ['Empty database or wrong email/phone number', 0];
         }
-        $res->close();
 
         if ($attem_num > 6) { //this if is useless
+            $con->close();
             $con->close();
             return ['Account has been locked due to entering the wrong password many times, please contact the administrator for support.', -1];
         }
 
         if ($add_attem) {
             if($isEmail) {
-                $res = $con->prepare("update user set abnormal_login = " . $attem_num . ", locktime = " . $locktime . " where email = ?");
+                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locktime = " . $locktime . " where email = ?");
             } else {
-                $res = $con->prepare("update user set abnormal_login = " . $attem_num . ", locktime = " . $locktime . " where phonenum = ?");
+                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locktime = " . $locktime . " where phonenum = ?");
             }
             $res->bind_param("s", $e_or_p);
-            $res->execute();
 
             if(!$res->execute()) {
                 $res->close();
@@ -259,7 +266,7 @@
         return false;
     }
     function send_otp_sms(String $otp, String $phonenum, String $carrier){
-        //Requires knowing the carrier of the recipient.
+        //Requires knowing the carrier of the recipient. //not working
         //Carrier: viettell...
         $to = $phonenum . "@" . $carrier;
         $message = "Your OTP is: " . $otp . "\n>Do not forward or give this code to anyone\nValid for 1 minute";
