@@ -21,6 +21,6 @@ A web-based e-wallet application that mimics the core functionalities of platfor
 
 ## 🚀 Deployment
 The application is deployed and publicly accessible at: 
-
+[meomeo.baby](http://meomeo.baby/)
 ---
 *Developed as a course project with a focus on reliable web architecture and database consistency.*
