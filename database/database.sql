@@ -59,15 +59,17 @@ CREATE TABLE `history` (
   `id` int(11) NOT NULL AUTO_INCREMENT, -- Auto increase id
   `user_phone` varchar(15) NOT NULL COMMENT 'SĐT người thực hiện giao dịch',
   `receiver_phone` varchar(15) DEFAULT NULL COMMENT 'SĐT người nhận (nếu là chuyển khoản)',
-  `transfer_type` varchar(50) DEFAULT 'Transferto' COMMENT 'Transferto/Transferby/Withdraw/Buycard',
+  `transfer_type` varchar(50) DEFAULT 'Deposit' COMMENT 'Deposit/Transferto/Transferby/Withdraw/Buycard',
   `card_num` varchar(6) NOT NULL,
   `expiration` date NOT NULL,
   `CVV` varchar(3) NOT NULL,
   `date_transfer` datetime NOT NULL,
   `date_confirm` datetime DEFAULT NULL COMMENT 'date admin approve/cancelled',
   `money` decimal(19,4) NOT NULL DEFAULT 0.0000,
+  `fee` decimal(19,4) NOT NULL DEFAULT 0.0000,
+  `fee_bearer` tinyint(1)    DEFAULT NULL,
   `note` mediumtext DEFAULT NULL,
-  `phone_card` varchar(255) DEFAULT NULL COMMENT 'an array of phone card, max 5',
+  `phone_card` JSON DEFAULT NULL COMMENT 'an array of phone card, max 5, replace nvarchar(255) to JSON',
   `status` tinyint(4) NOT NULL DEFAULT 2 COMMENT '0:Cancelled\n1:Approved\n2:Pending',
   PRIMARY KEY (`id`), -- SET key
   CONSTRAINT `fk_history_user` FOREIGN KEY (`user_phone`) REFERENCES `user` (`phonenum`) ON DELETE CASCADE
