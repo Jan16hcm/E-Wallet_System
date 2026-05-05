@@ -14,15 +14,10 @@ $abnormal_login = 0;
 
 if (isset($_SESSION['email'])) {
     $usertype = usertype();
-    if ($usertype == 3) {
-        header('Location: Admin_dashboard.php');
-    } else {
-        header('Location: Home.php');
-    }
-    exit();
+    handleLoginRedirect();
 }
 
-if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
     $e_or_p = $_POST['e_or_p'];
     $pass = $_POST['pass'];
     $isEmail = str_contains($e_or_p, '@');
@@ -32,7 +27,7 @@ if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
     } else if (empty($pass)) {
         $error = 'Please enter your password';
     } else if (strlen($pass) < 6) { // Use strlen to compare the length
-        $error = 'Your password length must be greater than 5';
+        $error = 'Your password length must be at least 6 characters';
     } else {
         if ($isEmail) {
             if (filter_var($e_or_p, FILTER_VALIDATE_EMAIL) == false) {
@@ -41,13 +36,7 @@ if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
                     //echo "correct pass, move to pofile";
                     $usertype = usertype();
-                    if ($usertype == 3) {
-                        header('Location: Admin_dashboard.php');
-                        exit();
-                    } else {
-                        header('Location: Home.php');
-                        exit();
-                    }
+                    handleLoginRedirect();
                 }
                 //if failed password verify, it will continue below:
                 $do_timeout = true;
@@ -55,18 +44,14 @@ if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
                 $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
             }
         } else {
-             if (mb_strlen($e_or_p) < 5 || mb_strlen($e_or_p) > 15) {
-                $error = 'A phone number length must be greater than 5 and less than 15';
-            } else if (filter_var($e_or_p, FILTER_VALIDATE_INT)){
-                $error = 'A phone number only contain number';
+             if (strlen($e_or_p) < 5 || strlen($e_or_p) > 15) {
+                $error = 'A phone number length must be between 5 and 15';
+            } else if (!ctype_digit($e_or_p)){ // Dung` ctype_digit de kiem tra xem chuoi co chi chua so hay khong, nen no se tu dong tra ve false neu co ky tu dac biet nhu dau + o dau so dien thoai
+                $error = 'A phone number should only contain numbers';
             } else {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
                     $usertype = usertype();
-                    if ($usertype == 3) {
-                        header('Location: Admin_dashboard.php');
-                    } else {
-                        header('Location: Home.php');
-                    }
+                    handleLoginRedirect();
                 }
                 $do_timeout = true;
                 $error = 'Wrong password';
@@ -86,6 +71,16 @@ if ($do_timeout) {
             $error = $lock[0];
         }
     }
+}
+
+function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
+    $usertype = usertype();
+    if ($usertype == 3) {
+        header('Location: Admin_dashboard.php');
+    } else {
+        header('Location: Home.php');
+    }
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -128,7 +123,7 @@ if ($do_timeout) {
                             <?php echo $error; ?>
                         </div>
                     <?php endif; ?>
-                    <button type="submit"
+                    <button type="submit" name="login_submit"
                         class="btn btn-success w-100 py-2 mt-3 fs-5 d-flex align-items-center justify-content-center"
                         id="btn-signin">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
