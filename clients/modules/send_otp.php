@@ -1,5 +1,4 @@
 <?php
-    require_once("db_connection.php");
     function send_otp_email(String $otp, String $email, String $name){
     //template from https://github.com/Redwiat/otp-verification-email-template/blob/main/Email/otp-verification-email-template.html
         $message = '
@@ -68,7 +67,7 @@
 </head>
 <body>
   <div class="container">
-    <strong>Dear '. $name . ',</strong>
+    <strong>Dear '. htmlspecialchars($name) . ',</strong>
     <p>We have received a verify request for your Fakebank account. For security purposes, please verify your identity by providing the following One-Time Password (OTP).
         <br/>
         <b>Your One-Time Password (OTP) verification code is:</b>
