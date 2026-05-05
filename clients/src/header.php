@@ -17,7 +17,7 @@
         </div> -->
         <div class="container-fluid bg-primary py-2 text-white ps-4 d-flex justify-content-between align-items-center">
 
-            <a href="../modules/login_process.php" class="text-decoration-none">
+            <a href="../pages/Home.php" class="text-decoration-none">
                 <span class="fw-bold fs-4 text-white">MeoMeo Wallet</span>
             </a>
 
