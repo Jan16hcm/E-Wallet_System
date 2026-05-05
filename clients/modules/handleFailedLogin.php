@@ -16,9 +16,9 @@
         }
         $res->bind_param("s", $e_or_p);
         $res->execute();
+        $real_res = $res->get_result();
 
-        if ($res->num_rows > 0) {
-            $real_res = $res->get_result();
+        if ($real_res->num_rows > 0) {
             $row = $real_res->fetch_assoc();
             $attem_num = $row["abnormal_login"];
             $locked_time = $row["locked_time"];
@@ -26,7 +26,7 @@
             $res->close();
         } else {
             $res->close();
-            return ['Empty database or wrong email/phone number', -2];
+            return ['Wrong email/phone number', -2]; // Dung co ghi cho nguoi dung biet la empty database by Khai
         }
 
         if ($attem_num > 6) { //this if is useless
@@ -36,10 +36,10 @@
         }
 
         if ($add_attem) {
-            if($isEmail) {
-                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locked_time = " . $locked_time . " where email = ?");
+            if($isEmail) { // Ong quen boc $locked_time vao` ' ' khi update, nen no se bi loi khi $locked_time = '' (first 3 attempt)
+                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locked_time = '" . $locked_time . "' where email = ?");
             } else {
-                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locked_time = " . $locked_time . " where phonenum = ?");
+                $res = $con->prepare("update user set abnormal_login = " . ($attem_num + 1) . ", locked_time = '" . $locked_time . "' where phonenum = ?");
             }
             $res->bind_param("s", $e_or_p);
 
@@ -52,7 +52,9 @@
 
         $con->close();
         if ($attem_num > 3) {
-            $time_passed = $time->getTimestamp() - $locked_time->getTimestamp();
+            // $time_passed = $time->getTimestamp() - $locked_time->getTimestamp();
+            $locked_time_obj = empty($locked_time) ? new DateTime() : new DateTime($locked_time);
+            $time_passed = $time->getTimestamp() - $locked_time_obj->getTimestamp();
             if($time_passed < 60){
                 $diff = 60 - $time_passed;
                 return ['Account is currently locked, please try again in ' . $diff . ' seconds', $time_passed];
