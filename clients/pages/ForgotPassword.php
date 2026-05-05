@@ -17,6 +17,8 @@
     $otp = '';
     if(isset($_SESSION['otp'])){
         $otp = strval($_SESSION['otp']);
+        $expire = $_SESSION['otp_expire'];
+        
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if(isset($_POST['otp_in6'])){
                 $otp_in = $_POST['otp_in1'] . $_POST['otp_in2'] . $_POST['otp_in3'] . $_POST['otp_in4'] . $_POST['otp_in5'] . $_POST['otp_in6'];
