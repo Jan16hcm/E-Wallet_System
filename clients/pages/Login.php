@@ -19,6 +19,7 @@ if (isset($_SESSION['email'])) {
     } else {
         header('Location: Home.php');
     }
+    exit();
 }
 
 if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
@@ -30,7 +31,7 @@ if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
         $error = 'Please enter your email or phone number';
     } else if (empty($pass)) {
         $error = 'Please enter your password';
-    } else if ($pass < 6) {
+    } else if (strlen($pass) < 6) { // Use strlen to compare the length
         $error = 'Your password length must be greater than 5';
     } else {
         if ($isEmail) {
