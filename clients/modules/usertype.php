@@ -15,6 +15,7 @@
         $result = $stmt->get_result();
         if ($result->num_rows > 0) { //check if database is not empty
             $row = $result->fetch_assoc();
+            $_SESSION["verified"] = $row["verified"];
             $re = $row["verified"];
             
             $result->close();
