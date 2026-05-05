@@ -13,7 +13,6 @@ $isEmail = false;
 $abnormal_login = 0;
 
 if (isset($_SESSION['email'])) {
-    $usertype = usertype();
     handleLoginRedirect();
 }
 
@@ -35,12 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
             } else {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
                     //echo "correct pass, move to pofile";
-                    $usertype = usertype();
+                    
                     handleLoginRedirect();
                 }
                 //if failed password verify, it will continue below:
                 $do_timeout = true;
-                $error = 'Wrong password';//it could be because attem_num > 3 in 60 sec or attem_num > 6
+                $error = 'Invalid email/phone number or password';//it could be because attem_num > 3 in 60 sec or attem_num > 6
                 $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
             }
         } else {
@@ -50,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
                 $error = 'A phone number should only contain numbers';
             } else {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
-                    $usertype = usertype();
+                    
                     handleLoginRedirect();
                 }
                 $do_timeout = true;
@@ -74,8 +73,8 @@ if ($do_timeout) {
 }
 
 function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
-    $usertype = usertype();
-    if ($usertype == 3) {
+    $type = usertype();
+    if ($type == 3) {
         header('Location: Admin_dashboard.php');
     } else {
         header('Location: Home.php');
@@ -108,14 +107,14 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
                     <div class="mb-4">
                         <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
                         <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number" id="e_or_p"
-                        name="e_or_p">
+                        name="e_or_p" required>
                         <!-- value="e_or_p" -->
                     </div>
 
                     <div class="mb-3">
                         <label for="pass" class="form-label fs-5">Password</label>
                         <input type="password" class="form-control p-3 fs-5" placeholder="Type your password here"
-                            id="pass" name="pass" placeholder="Type your password">
+                            id="pass" name="pass" placeholder="Type your password" required>
                             <!-- value="pass" -->
                     </div>
                     <?php if (!empty($error)): ?>
