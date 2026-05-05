@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
             } else {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
                     //echo "correct pass, move to pofile";
-                    
+
                     handleLoginRedirect();
                 }
                 //if failed password verify, it will continue below:
@@ -44,13 +44,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
                 $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
             }
         } else {
-             if (strlen($e_or_p) < 5 || strlen($e_or_p) > 15) {
+            if (strlen($e_or_p) < 5 || strlen($e_or_p) > 15) {
                 $error = 'A phone number length must be between 5 and 15';
-            } else if (!ctype_digit($e_or_p)){ // Dung` ctype_digit de kiem tra xem chuoi co chi chua so hay khong, nen no se tu dong tra ve false neu co ky tu dac biet nhu dau + o dau so dien thoai
+            } else if (!ctype_digit($e_or_p)) { // Dung` ctype_digit de kiem tra xem chuoi co chi chua so hay khong, nen no se tu dong tra ve false neu co ky tu dac biet nhu dau + o dau so dien thoai
                 $error = 'A phone number should only contain numbers';
             } else {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
-                    
+
                     handleLoginRedirect();
                 }
                 $do_timeout = true;
@@ -77,7 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
 }
 
 
-function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
+function handleLoginRedirect()
+{ // Viet ra 1 ham` roi tai su dung
     $type = usertype();
     if ($type == 3) {
         header('Location: Admin_dashboard.php');
@@ -89,6 +90,7 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -99,6 +101,7 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
 </head>
 
 <?php include("../src/headerOutSide.php") ?>
+
 <body>
     <form action="" method="POST" novalidate>
         <!-- <div class="container-fluid"> -->
@@ -110,7 +113,7 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
                     <div class="mb-4">
                         <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
                         <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number" id="e_or_p"
-                        name="e_or_p" value="<?php echo htmlspecialchars($e_or_p); ?>" required>
+                            name="e_or_p" value="<?php echo htmlspecialchars($e_or_p); ?>" required>
                         <!-- value="e_or_p" -->
                     </div>
 
@@ -118,16 +121,16 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
                         <label for="pass" class="form-label fs-5">Password</label>
                         <input type="password" class="form-control p-3 fs-5" placeholder="Type your password here"
                             id="pass" name="pass" placeholder="Type your password" required>
-                            <!-- value="pass" -->
+                        <!-- value="pass" -->
                     </div>
-                    
-                        
-                            <div id="error-message" class="alert alert-danger p-2 text-center" 
-                                style="<?php echo empty($error) ? 'visibility: hidden;' : 'visibility: visible;' ?>" 
-                                role="alert">
-                                <?php echo !empty($error) ? htmlspecialchars($error) : '&nbsp;'; ?>
-                            </div>
-                        
+
+
+                    <div id="error-message" class="alert alert-danger p-2 text-center"
+                        style="<?php echo empty($error) ? 'visibility: hidden;' : 'visibility: visible;' ?>"
+                        role="alert">
+                        <?php echo !empty($error) ? htmlspecialchars($error) : '&nbsp;'; ?>
+                    </div>
+
 
                     <button type="submit" name="login_submit"
                         class="btn btn-success w-100 py-2 mt-3 fs-5 d-flex align-items-center justify-content-center"
