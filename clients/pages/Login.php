@@ -54,8 +54,10 @@ if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
                 $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
             }
         } else {
-            if ($e_or_p < 5 || $e_or_p > 15) {
-                $error = 'This is not a valid phone number';
+             if (mb_strlen($e_or_p) < 5 || mb_strlen($e_or_p) > 15) {
+                $error = 'A phone number length must be greater than 5 and less than 15';
+            } else if (filter_var($e_or_p, FILTER_VALIDATE_INT)){
+                $error = 'A phone number only contain number';
             } else {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
                     $usertype = usertype();
@@ -110,13 +112,15 @@ if ($do_timeout) {
                     <div class="mb-4">
                         <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
                         <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number" id="e_or_p"
-                            name="e_or_p" value="e_or_p">
+                        name="e_or_p">
+                        <!-- value="e_or_p" -->
                     </div>
 
                     <div class="mb-3">
                         <label for="pass" class="form-label fs-5">Password</label>
                         <input type="password" class="form-control p-3 fs-5" placeholder="Type your password here"
-                            id="pass" name="pass" value="pass">
+                            id="pass" name="pass" placeholder="Type your password">
+                            <!-- value="pass" -->
                     </div>
                     <?php if (!empty($error)): ?>
                         <div class="alert alert-danger p-2 text-center" role="alert">
