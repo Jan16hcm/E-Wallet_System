@@ -3,7 +3,7 @@
     function usertype() {
         //put this in places where login is required
         if (empty($_SESSION['email'])) {
-            header('Location: /../login.php');
+            header('Location: /../pages/Login.php');
             exit;
         }
         $con = connect_db();
