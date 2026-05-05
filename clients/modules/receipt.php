@@ -1,6 +1,9 @@
-<?php
-    function send_otp_email(String $otp, String $email, String $name){
-    //template from https://github.com/Redwiat/otp-verification-email-template/blob/main/Email/otp-verification-email-template.html
+<?php 
+// the money is formated before passed into this function
+    function send_receipt(String $formatedMoneysent, String $formatedMoneytotal, String $email, String $sendername, String $name, String $note){
+    //"Once the money transfer is confirmed as successful, the recipient will 
+    //receive an automatic email notifying about the receipt and balance fluctuations"
+        //template from https://github.com/Redwiat/otp-verification-email-template/blob/main/Email/otp-verification-email-template.html
         $message = '
 <!DOCTYPE html>
 <html lang="en">
@@ -68,52 +71,37 @@
 <body>
   <div class="container">
     <strong>Dear '. htmlspecialchars($name) . ',</strong>
-    <p>We have received a verify request for your Fakebank account. For security purposes, please verify your identity by providing the following One-Time Password (OTP).
-        <br/>
-        <b>Your One-Time Password (OTP) verification code is:</b>
-    </p>
-    <h2 class="otp">' . $otp . '</h2>
-    <p style="font-size: 0.9em">
-      <strong>One-Time Password (OTP) is valid for 1 minute.</strong>
-      <br/><br/>
-      If you did not initiate this login request, please disregard this message. Please ensure the confidentiality of your OTP and do not share it with anyone.<br />
-      <strong>Do not forward or give this code to anyone.</strong>
-      <br/>
-      <strong>Thank you for using FakeBank.</strong>
+    <p><strong>'. htmlspecialchars($sendername) . '</strong> has sent you <h3>' . $formatedMoneysent . '</h3></p>
+    <br/>
+    <p>Note: ' . htmlspecialchars($note) . '</p>
+    <br/>
+    <p>Your new balance: <strong>' . $formatedMoneytotal . '</strong></p>
+    <br/>
+      <strong>Thank you for using MeoMeo.</strong>
       <br/>
       Best regards,
       <br/>
-      <strong>FakeBank</strong>
+      <strong>MeoMeo</strong>
     </p>
     <hr style="border: none; border-top: 0.5px solid #131111" />
     <div class="footer">
       <p>
-        For more information about FakeBank and your account, please contact the hotline <strong>18001008</strong>
+        For more information about MeoMeo and your account, please contact the hotline <strong>18001008</strong>
       </p>
     </div>
   </div>
   <div style="text-align: center">
     <div class="email-info">
-      &copy; 2026 FakeBank. All rights reserved.
+      &copy; 2026 MeoMeo. All rights reserved.
     </div>
   </div>
 </body>
 </html>';
 //This template is made Redwan one from Ocoxe.
 //https://www.ocoxe.com
-        if(mail($email, "verify-account-otp", $message, "From: FakeBank@gmail.com")){
+        if(mail($email, "MeoMeo - You Received Money!", $message, "From: FakeBank@gmail.com")){
             return true;
         } 
         return false;
-    }
-    function send_otp_sms(String $otp, String $phonenum, String $carrier){
-        //Requires knowing the carrier of the recipient. //not working
-        //Carrier: viettell...
-        $to = $phonenum . "@" . $carrier;
-        $message = "Your OTP is: " . $otp . "\n>Do not forward or give this code to anyone\nValid for 1 minute";
-        if(mail($to, "verify-account-otp (this get ignored)", $message, "From: FakeBank@gmail.com")){
-            return true;
-        } 
-        return false; 
     }
 ?>

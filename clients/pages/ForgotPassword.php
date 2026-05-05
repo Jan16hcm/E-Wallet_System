@@ -1,6 +1,7 @@
 <?php
     include_once("../modules/db_connection.php");
     include_once("../modules/send_otp.php");
+
     $error = '';
     $email = '';
     //$phonenum = '';
@@ -13,23 +14,34 @@
     2: email entered is in database
     3: phone number entered is in database
     */
-    $otp = 0;
+    $otp = '';
     if(isset($_SESSION['otp'])){
         $otp = strval($_SESSION['otp']);
+        $expire = $_SESSION['otp_expire'];
+        
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if(isset($_POST['otp_in6'])){
                 $otp_in = $_POST['otp_in1'] . $_POST['otp_in2'] . $_POST['otp_in3'] . $_POST['otp_in4'] . $_POST['otp_in5'] . $_POST['otp_in6'];
-                if(strval($otp_in) == $otp){
+                if(strcmp($otp_in, $otp) != 0) {
+                    $error = 'Wrong OTP code';
+                } else if($expire < time()){
+                    $error = 'OTP code expired';
+                    unset($_SESSION['otp']);
+                    unset($_SESSION['otp_expire']);
+                } else {
                     //success
                     $_SESSION['otp'] = "SUC";
-                    header('Location: Home.php');
+                    unset($_SESSION['otp_expire']);
+                    header('Location: Home.php');//unset otp in reset password
                     exit();
                 }
             }
         }
     } else {
-        $otp=strval(rand(100000,999999));
+        $otp = sprintf('%06d', random_int(0, 999999));
+        $expire = date('Y-m-d H:i:s', time() + 60);//a time in future
         $_SESSION['otp'] = $otp;
+        $_SESSION['otp_expire'] = $expire;
     }
 
     if (isset($_POST['email'])) {

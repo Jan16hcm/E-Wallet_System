@@ -83,8 +83,8 @@ after successful registration. -->
                 }
 
                 if(!$duplicate){
-                    $otp=strval(rand(100000,999999));
-                    $_SESSION['otp'] = $otp;//first pass
+                    $otp = sprintf('%06d', random_int(0, 999999));
+                    $_SESSION['otp'] = $otp;//first pass need no expire otp
                     $_SESSION['email'] = $email;
                     if(send_otp_email($otp, $email, $name)){
                         $error = 'Failed to send mail, please try again later';
