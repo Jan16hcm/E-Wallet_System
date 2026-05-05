@@ -4,24 +4,20 @@ include_once("../modules/handleFailedLogin.php");
 include_once("../modules/verifypass.php");
 include_once("../modules/usertype.php");
 
-$e_or_p = '';
+$error = $_SESSION['login_error'] ?? '';
+$e_or_p = $_SESSION['login_e_or_p'] ?? '';
+unset($_SESSION['login_error'], $_SESSION['login_e_or_p']);
+
 $pass = '';
-$error = '';
 $do_timeout = false;
 $lock = 0;
 $isEmail = false;
-$abnormal_login = 0;
 
 if (isset($_SESSION['email'])) {
-    $usertype = usertype();
-    if ($usertype == 3) {
-        header('Location: Admin_dashboard.php');
-    } else {
-        header('Location: Home.php');
-    }
+    handleLoginRedirect();
 }
 
-if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
     $e_or_p = $_POST['e_or_p'];
     $pass = $_POST['pass'];
     $isEmail = str_contains($e_or_p, '@');
@@ -30,8 +26,8 @@ if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
         $error = 'Please enter your email or phone number';
     } else if (empty($pass)) {
         $error = 'Please enter your password';
-    } else if ($pass < 6) {
-        $error = 'Your password length must be greater than 5';
+    } else if (strlen($pass) < 6) { // Use strlen to compare the length
+        $error = 'Your password length must be at least 6 characters';
     } else {
         if ($isEmail) {
             if (filter_var($e_or_p, FILTER_VALIDATE_EMAIL) == false) {
@@ -39,33 +35,23 @@ if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
             } else {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
                     //echo "correct pass, move to pofile";
-                    $usertype = usertype();
-                    if ($usertype == 3) {
-                        header('Location: Admin_dashboard.php');
-                        exit();
-                    } else {
-                        header('Location: Home.php');
-                        exit();
-                    }
+
+                    handleLoginRedirect();
                 }
                 //if failed password verify, it will continue below:
                 $do_timeout = true;
-                $error = 'Wrong password';//it could be because attem_num > 3 in 60 sec or attem_num > 6
+                $error = 'Invalid email/phone number or password';//it could be because attem_num > 3 in 60 sec or attem_num > 6
                 $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
             }
         } else {
-             if (mb_strlen($e_or_p) < 5 || mb_strlen($e_or_p) > 15) {
-                $error = 'A phone number length must be greater than 5 and less than 15';
-            } else if (filter_var($e_or_p, FILTER_VALIDATE_INT)){
-                $error = 'A phone number only contain number';
+            if (strlen($e_or_p) < 5 || strlen($e_or_p) > 15) {
+                $error = 'A phone number length must be between 5 and 15';
+            } else if (!ctype_digit($e_or_p)) { // Dung` ctype_digit de kiem tra xem chuoi co chi chua so hay khong, nen no se tu dong tra ve false neu co ky tu dac biet nhu dau + o dau so dien thoai
+                $error = 'A phone number should only contain numbers';
             } else {
                 if (verifypass($pass, $e_or_p, $isEmail)) {
-                    $usertype = usertype();
-                    if ($usertype == 3) {
-                        header('Location: Admin_dashboard.php');
-                    } else {
-                        header('Location: Home.php');
-                    }
+
+                    handleLoginRedirect();
                 }
                 $do_timeout = true;
                 $error = 'Wrong password';
@@ -73,18 +59,33 @@ if (isset($_POST['e_or_p']) && isset($_POST['pass'])) {
             }
         }
     }
-}
-
-if ($do_timeout) {
-    if ($lock[1] > -2) { // include -1 and > 0
-        $error = $lock[0];
-    } else {
-        //add time out here
-        $lock = handleFailedLogin(new DateTime(), true, $e_or_p, $isEmail);
-        if ($lock[1] > -2) {
+    if ($do_timeout) {
+        if ($lock[1] > -2) { // include -1 and > 0
             $error = $lock[0];
+        } else {
+            //add time out here
+            $lock = handleFailedLogin(new DateTime(), true, $e_or_p, $isEmail);
+            if ($lock[1] > -2) {
+                $error = $lock[0];
+            }
         }
     }
+    $_SESSION['login_error'] = $error;
+    $_SESSION['login_e_or_p'] = $e_or_p;
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+
+function handleLoginRedirect()
+{ // Viet ra 1 ham` roi tai su dung
+    $type = usertype();
+    if ($type == 3) {
+        header('Location: Admin_dashboard.php');
+    } else {
+        header('Location: Home.php');
+    }
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -102,7 +103,7 @@ if ($do_timeout) {
 <?php include("../src/headerOutSide.php") ?>
 
 <body>
-    <form action="" method="POST">
+    <form action="" method="POST" novalidate>
         <!-- <div class="container-fluid"> -->
         <div class="login-container" style="scrollbar-width: none;">
             <div class="row login-box">
@@ -112,22 +113,26 @@ if ($do_timeout) {
                     <div class="mb-4">
                         <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
                         <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number" id="e_or_p"
-                        name="e_or_p">
+                            name="e_or_p" value="<?php echo htmlspecialchars($e_or_p); ?>" required>
                         <!-- value="e_or_p" -->
                     </div>
 
                     <div class="mb-3">
                         <label for="pass" class="form-label fs-5">Password</label>
                         <input type="password" class="form-control p-3 fs-5" placeholder="Type your password here"
-                            id="pass" name="pass" placeholder="Type your password">
-                            <!-- value="pass" -->
+                            id="pass" name="pass" placeholder="Type your password" required>
+                        <!-- value="pass" -->
                     </div>
-                    <?php if (!empty($error)): ?>
-                        <div class="alert alert-danger p-2 text-center" role="alert">
-                            <?php echo $error; ?>
-                        </div>
-                    <?php endif; ?>
-                    <button type="submit"
+
+
+                    <div id="error-message" class="alert alert-danger p-2 text-center"
+                        style="<?php echo empty($error) ? 'visibility: hidden;' : 'visibility: visible;' ?>"
+                        role="alert">
+                        <?php echo !empty($error) ? htmlspecialchars($error) : '&nbsp;'; ?>
+                    </div>
+
+
+                    <button type="submit" name="login_submit"
                         class="btn btn-success w-100 py-2 mt-3 fs-5 d-flex align-items-center justify-content-center"
                         id="btn-signin">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
@@ -174,6 +179,22 @@ if ($do_timeout) {
         </div>
         <!-- </div> -->
     </form>
+
+    <script>
+        const errorMessage = document.getElementById('error-message');
+        const username = document.getElementById('e_or_p');
+        const password = document.getElementById('pass');
+
+        if (errorMessage) {
+            username.addEventListener('input', () => {
+                errorMessage.style.visibility = 'hidden';
+            });
+
+            password.addEventListener('input', () => {
+                errorMessage.style.visibility = 'hidden';
+            });
+        }
+    </script>
 </body>
 <?php
 include("../src/footer.php");
