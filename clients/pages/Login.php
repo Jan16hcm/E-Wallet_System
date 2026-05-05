@@ -4,13 +4,14 @@ include_once("../modules/handleFailedLogin.php");
 include_once("../modules/verifypass.php");
 include_once("../modules/usertype.php");
 
-$e_or_p = '';
+$error = $_SESSION['login_error'] ?? '';
+$e_or_p = $_SESSION['login_e_or_p'] ?? '';
+unset($_SESSION['login_error'], $_SESSION['login_e_or_p']);
+
 $pass = '';
-$error = '';
 $do_timeout = false;
 $lock = 0;
 $isEmail = false;
-$abnormal_login = 0;
 
 if (isset($_SESSION['email'])) {
     handleLoginRedirect();
@@ -58,19 +59,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
             }
         }
     }
-}
-
-if ($do_timeout) {
-    if ($lock[1] > -2) { // include -1 and > 0
-        $error = $lock[0];
-    } else {
-        //add time out here
-        $lock = handleFailedLogin(new DateTime(), true, $e_or_p, $isEmail);
-        if ($lock[1] > -2) {
+    if ($do_timeout) {
+        if ($lock[1] > -2) { // include -1 and > 0
             $error = $lock[0];
+        } else {
+            //add time out here
+            $lock = handleFailedLogin(new DateTime(), true, $e_or_p, $isEmail);
+            if ($lock[1] > -2) {
+                $error = $lock[0];
+            }
         }
     }
+    $_SESSION['login_error'] = $error;
+    $_SESSION['login_e_or_p'] = $e_or_p;
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit();
 }
+
 
 function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
     $type = usertype();
@@ -84,7 +89,6 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -95,9 +99,8 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
 </head>
 
 <?php include("../src/headerOutSide.php") ?>
-
 <body>
-    <form action="" method="POST">
+    <form action="" method="POST" novalidate>
         <!-- <div class="container-fluid"> -->
         <div class="login-container" style="scrollbar-width: none;">
             <div class="row login-box">
@@ -107,7 +110,7 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
                     <div class="mb-4">
                         <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
                         <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number" id="e_or_p"
-                        name="e_or_p" required>
+                        name="e_or_p" value="<?php echo htmlspecialchars($e_or_p); ?>" required>
                         <!-- value="e_or_p" -->
                     </div>
 
@@ -117,11 +120,15 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
                             id="pass" name="pass" placeholder="Type your password" required>
                             <!-- value="pass" -->
                     </div>
-                    <?php if (!empty($error)): ?>
-                        <div class="alert alert-danger p-2 text-center" role="alert">
-                            <?php echo $error; ?>
-                        </div>
-                    <?php endif; ?>
+                    
+                        
+                            <div id="error-message" class="alert alert-danger p-2 text-center" 
+                                style="<?php echo empty($error) ? 'visibility: hidden;' : 'visibility: visible;' ?>" 
+                                role="alert">
+                                <?php echo !empty($error) ? htmlspecialchars($error) : '&nbsp;'; ?>
+                            </div>
+                        
+
                     <button type="submit" name="login_submit"
                         class="btn btn-success w-100 py-2 mt-3 fs-5 d-flex align-items-center justify-content-center"
                         id="btn-signin">
@@ -169,6 +176,22 @@ function handleLoginRedirect() { // Viet ra 1 ham` roi tai su dung
         </div>
         <!-- </div> -->
     </form>
+
+    <script>
+        const errorMessage = document.getElementById('error-message');
+        const username = document.getElementById('e_or_p');
+        const password = document.getElementById('pass');
+
+        if (errorMessage) {
+            username.addEventListener('input', () => {
+                errorMessage.style.visibility = 'hidden';
+            });
+
+            password.addEventListener('input', () => {
+                errorMessage.style.visibility = 'hidden';
+            });
+        }
+    </script>
 </body>
 <?php
 include("../src/footer.php");
