@@ -2,7 +2,7 @@
 require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
 
-// $usertype = usertype();//3 == admin, 2 = Reque st additional information, -1 = first login 
+$usertype = usertype();//3 == admin, 2 = Reque st additional information, -1 = first login 
 
 
 
