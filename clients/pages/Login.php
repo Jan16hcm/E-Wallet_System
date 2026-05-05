@@ -87,17 +87,17 @@ function handleLoginRedirect()
     }
     exit();
 }
+include("../src/headerOutSide.php");
 ?>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-<link rel="stylesheet" href="../assets/css/login_test.css">
+<link rel="stylesheet" href="../assets/css/login.css">
 <title>Login</title>
 
 <div class="d-flex flex-column min-vh-100">
-    <?php include("../src/headerOutSide.php"); ?>
 
     <!-- Thay đổi class container để nó tự giãn rộng -->
     <main class="flex-grow-1 d-flex align-items-center justify-content-center py-4">
@@ -194,5 +194,5 @@ function handleLoginRedirect()
         </script>
     </main>
 
-    <?php include("../src/footer.php"); ?>
 </div> <!-- Đóng div flex-column -->
+<?php include("../src/footer.php"); ?>
