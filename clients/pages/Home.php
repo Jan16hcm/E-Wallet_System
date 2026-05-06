@@ -204,6 +204,11 @@ include '../src/header.php';
 
         </div>
     </main>
+    <button id="sidebarToggle" class="sidebar-toggle-btn">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
 </div>
 <div class="mobile-bottom-nav">
     <a href="home.php" class="nav-item active">
@@ -300,6 +305,39 @@ include '../src/header.php';
         type: 'bar',
         data: { labels: ['C', 'G', 'P', 'B'], datasets: [{ data: [34, 16, 8, 6], backgroundColor: gradBar, borderRadius: 6 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.querySelector('.sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        // Hàm đóng/mở
+        function toggleSidebar() {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('show');
+
+            // Đổi icon từ menu sang đóng
+            const icon = toggleBtn.querySelector('i');
+            if (sidebar.classList.contains('active')) {
+                icon.classList.replace('fa-bars', 'fa-xmark');
+            } else {
+                icon.classList.replace('fa-xmark', 'fa-bars');
+            }
+        }
+
+        toggleBtn.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar);
+
+        // Đóng sidebar khi bấm vào các mục menu trên mobile
+        const navLinks = document.querySelectorAll('.nav-menu a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('show');
+                }
+            });
+        });
     });
 </script>
 
