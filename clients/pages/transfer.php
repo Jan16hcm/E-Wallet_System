@@ -1,15 +1,10 @@
 <?php
 include_once("../modules/db_connection.php");
+include_once("../modules/usertype.php");
 include_once("../modules/formatMoney.php");
 include_once("../modules/receipt.php");
 
 $usertype = usertype();
-$user = requireLogin();
-if($usertype != 1 || $usertype != 3) {//1: verified; 3: admin
-    header("Location: Home.php");
-    exit();
-}
-
 $step = $_GET['step'] ?? 1;
 //?? is use the rightside value if leftside is null
 $recipientPhone = '';
@@ -18,7 +13,15 @@ $note = '';
 $selfFeeBear = false;//false -> recipient bear 5% fee; true -> sender bear 5% fee
 $error = '';
 
-if (isset($_POST['recipientPhone']) && isset($_POST['amount']) && $step == 1){
+if($usertype != 1 || $usertype != 3) {//1: verified; 3: admin
+    if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+        $error = 'Please wait for verification before using this feature';
+    } else {
+        $error = 'This function is only for verified account';
+    }
+}
+
+if (isset($_POST['recipientPhone']) && isset($_POST['amount']) && $step == 1 && empty($error)){
     $recipientPhone = trim($_POST['recipientPhone'] ?? '');
     $amount = str_replace(',','',($_POST['amount'] ?? '0'));//double and float are the same type
     $note = trim($_POST['note'] ?? 'no note');//note can be empty;  
@@ -87,9 +90,11 @@ if (isset($_POST['recipientPhone']) && isset($_POST['amount']) && $step == 1){
                                                 'selfPhone' => $selfPhone,
                                                 'recipientGet' => $recipientGet,
                                                 'selfDeduct' => $selfDeduct];
-                        /*$step = 2;
+                        $step = 2;
+                        /*
                         header('Location: transfer.php?step=2');
-                        exit;*/
+                        exit;
+                        */
                     }
                 }
             } else {
@@ -101,7 +106,7 @@ if (isset($_POST['recipientPhone']) && isset($_POST['amount']) && $step == 1){
     }
 }
 
-if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer'])) {
+if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empty($error)) {
     if (empty($_SESSION['transfer'])) {//useless ?
         header('Location: transfer.php');
         exit;
@@ -115,7 +120,7 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer'])) {
             $otp_in = $_POST['otp_in1'] . $_POST['otp_in2'] . $_POST['otp_in3'] . $_POST['otp_in4'] . $_POST['otp_in5'] . $_POST['otp_in6'];
             if(strcmp($otp_in, $otp) != 0) {
                 $error = 'Wrong OTP code';
-            } else if($expire > time()){
+            } else if($expire < time()){
                 $error = 'OTP code expired';
                 unset($_SESSION['otp']);
                 unset($_SESSION['otp_expire']);
@@ -125,43 +130,58 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer'])) {
                 $t = $_SESSION['transfer']; //to shorten lonnnng name
                 $status = $t['amount'] > 5000000 ? 2 : 1; //5 milion need approve
                 //1 == completed == Approved; 2 == Pending
-                $date = date('Y-m-d H:i:s'); // current date/time
+                $date = date('Y-m-d H:i:s'); // current date/time 
+                //MySQL expects: YYYY-MM-DD HH:MM:SS 
                 $con = connect_db();
 
                 $tran = $con->prepare("INSERT INTO history (user_phone, receiver_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, Transferto, " . $date . ", ?, ?, " . $status . ", ?)");
                 $tran->bind_param("ssdsi", $t['selfPhone'], $t['recipientPhone'], $t['amount'], $t['note'], $t['selfFeeBear']);
                 //bool => integer (i) if sql TINYINT(1) or string (s)
                 if(!$tran->execute()){
-                    $error = "Database error: " . $tran->error;
+                    $error = 'Failed to save in transfer history';
                 } else if($status == 1){
                     $tran = $con->prepare("update user set money = money - ? where phonenum = ?");
                     $tran->bind_param("ds", $t['selfDeduct'], $t['selfPhone']);
-                    $tran->execute();//no error check
+                    if(!$tran->execute()){
+                        $error = 'Failed to update user balance, cancelled the transferal';
 
-                    $tran = $con->prepare("update user set money = money + ? where phonenum = ?");
-                    $tran->bind_param("ds", $t['recipientGet'], $t['recipientPhone']);
-                    $tran->execute();
-
-                    //get recipient email and balance
-                    $email = '';
-                    $recipientMoney = 0;
-                    $tran = $con->prepare('select email, money from user where phonenum = ?');
-                    $tran->bind_param("s", $t['recipientPhone']);
-                    $tran->execute();
-                    $tran->get_result();
-                    $tran->bind_result($email, $recipientMoney);
-                    $tran->fetch();
-
-                    $recipientMoney = floatval($recipientMoney); //incase
-                    $tran->close();
-                    $con->close();
-
-                    if(!send_receipt(formatMoney($t['recipientGet']), formatMoney($recipientMoney), $email, $t['selfName'], $t['recipientName'], $t['note'])){
-                        $error = 'Failed to sent receipt to receiver';
+                        //write cancel to history
+                        $canceldate = date('Y-m-d H:i:s');
+                        $withd = $con->prepare("update history status = 0, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
+                        $withd->bind_param("ssds", $canceldate, $t['selfPhone'], $t['amount'], $date);
+                        if(!$withd->execute()){
+                            $error = 'Failed to update user balance, failed cancelled the withdrawalidk, it seem like god want you to have free money';
+                            //i don't know how to handle this case
+                        }
+                        unset($_SESSION['transfer']);
                     } else {
-                        $step = 3;
-                        //complete success
-                        //should show something on screen
+
+                        $tran = $con->prepare("update user set money = money + ? where phonenum = ?");
+                        $tran->bind_param("ds", $t['recipientGet'], $t['recipientPhone']);
+                        $tran->execute();//shouldn't fail?
+
+                        //get recipient email and balance
+                        $email = '';
+                        $recipientMoney = 0;
+                        $tran = $con->prepare('select email, money from user where phonenum = ?');
+                        $tran->bind_param("s", $t['recipientPhone']);
+                        $tran->execute();
+                        $tran->get_result();
+                        $tran->bind_result($email, $recipientMoney);
+                        $tran->fetch();
+
+                        $recipientMoney = floatval($recipientMoney); //incase
+                        $tran->close();
+                        $con->close();
+
+                        if(!send_receipt(formatMoney($t['recipientGet']), formatMoney($recipientMoney), $email, $t['selfName'], $t['recipientName'], $t['note'])){
+                            $error = 'Failed to sent receipt to receiver';
+                        } else {
+                            $step = 3;
+                            unset($_SESSION['transfer']);
+                            //complete success
+                            //should show something on screen
+                        }
                     }
                 }
                 $tran->close();
@@ -172,7 +192,17 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer'])) {
 }
 ?>
 
-
+<label for="otp_in">Enter OTP here:</label>
+<table>
+    <tr>
+        <th><input name="otp_in1" id="otp_in" type="text" maxlength="1"></th>
+        <th><input name="otp_in2" id="otp_in" type="text" maxlength="1"></th>
+        <th><input name="otp_in3" id="otp_in" type="text" maxlength="1"></th>
+        <th><input name="otp_in4" id="otp_in" type="text" maxlength="1"></th>
+        <th><input name="otp_in5" id="otp_in" type="text" maxlength="1"></th>
+        <th><input name="otp_in6" id="otp_in" type="text" maxlength="1"></th>
+    </tr>
+</table>
 
 <script>
 //claude here (not checked)
@@ -199,4 +229,26 @@ if (phoneInput) {
         }
     });
 }
+
+const inputs = document.querySelectorAll("table input");
+
+    inputs.forEach((input, index) => {
+        input.addEventListener("input", () => {
+            if (input.value.length === input.maxLength) {
+                const nextInput = inputs[index + 1];
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && input.value.length === 0) {
+                const prevInput = inputs[index - 1];
+                if (prevInput) {
+                    prevInput.focus();
+                }
+            }
+        });
+    });
 </script>
