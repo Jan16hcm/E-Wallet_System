@@ -58,62 +58,59 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
             $error = $valid_error;
         } else {
             $totalDeduct = $amount*1.05;//5% fee
-            $con = connect_db();
-            $result = $con->query("SELECT email, phonenum, name, money FROM user");
-            $found = false;
-            //$selfName = '';
             $selfamount = 0;
             $selfPhone = '';
+            $con = connect_db();
+            $withd = $con->prepare("SELECT phonenum, money FROM user where email = ?");
+            $withd->bind_param("s", $_SESSION["email"]);
 
-            if ($result->num_rows > 0) {    //check if database is not empty
-                while($row = $result->fetch_assoc()) { //check duplicate
-                    if($row["email"] == $_SESSION['email']) {
-                        $selfamount = $row['money'];//get self money
-                        $selfPhone = $row['phonenum'];
-                        //$selfName = $row['name'];
-                        $found = true;
-                        break;
-                    }
+            if(!$withd->execute()){
+                $error = 'Error in database, please try again later';
+            } else {
+                $withd->bind_result($selfPhone, $selfamount);
+                if (!$withd->fetch()) {
+                    //Bound variable (selfPhone) keep it last successfully fetched values - they are not reset to null automatically
+                    $error = "Can\'t find user account";
                 }
             }
 
-            if (!$found) {
-                $error = "Can\'t find user account";
-            } else if ($selfamount < $totalDeduct) {
-                $error = 'Insufficient balance. You need ' . formatMoney($totalDeduct) . ' (including 5% fee) but have ' . formatMoney($selfamount);
-            } else {
-                $status = $amount > 5000000 ? 2 : 1; //5 milion need approve
-                $date = date('Y-m-d H:i:s'); // current date/time
-                //selfFeeBear is true because 5% fee is applied to user who withdraw
-                $withd = $con->prepare("INSERT INTO history (user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, fee_bearer) VALUES (?, Withdraw, ?, ?, ?, " . $date . ", ?, ?, " . $status . ", true)");
-                //maybe should rename expiration to expire
-                $withd->bind_param("ssssds", $selfPhone, $card_num, $expire, $cvv, $totalDeduct, $note);
-
-                if(!$withd->execute()){
-                    $error = 'Failed to save in withdrawal history';
-                } else if ($status == 1) {
-                    $withd = $con->prepare("update user set money = money - ? where phonenum = ?");
-                    $withd->bind_param("ds", $totalDeduct, $selfPhone);
+            if (!empty($selfPhone)) {
+                if ($selfamount < $totalDeduct) {
+                    $error = 'Insufficient balance. You need ' . formatMoney($totalDeduct) . ' (including 5% fee) but have ' . formatMoney($selfamount);
+                } else {
+                    $status = $amount > 5000000 ? 2 : 1; //5 milion need approve
+                    $date = date('Y-m-d H:i:s'); // current date/time
+                    //selfFeeBear is true because 5% fee is applied to user who withdraw
+                    $withd = $con->prepare("INSERT INTO history (user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, fee_bearer) VALUES (?, Withdraw, ?, ?, ?, " . $date . ", ?, ?, " . $status . ", true)");
+                    //maybe should rename expiration to expire
+                    $withd->bind_param("ssssds", $selfPhone, $card_num, $expire, $cvv, $totalDeduct, $note);
 
                     if(!$withd->execute()){
-                        $error = 'Failed to update user balance, cancelled the withdrawal';
-                        //write cancel to history
-                        $canceldate = date('Y-m-d H:i:s');
-                        $withd = $con->prepare("update history status = 0, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
-                        $withd->bind_param("ssds", $canceldate, $selfPhone, $totalDeduct, $date);
-                        if(!$withd->execute()){
-                            $error = 'Failed to update user balance, failed cancelled the withdrawalidk, it seem like god want you to have free money';
-                            //i don't know how to handle this case
-                        }
-                    } else {
-                        //complete success
-                        //should show something on screen
+                        $error = 'Failed to save in withdrawal history';
+                    } else if ($status == 1) {
+                        $withd = $con->prepare("update user set money = money - ? where phonenum = ?");
+                        $withd->bind_param("ds", $totalDeduct, $selfPhone);
 
+                        if(!$withd->execute()){
+                            $error = 'Failed to update user balance, cancelled the withdrawal';
+                            //write cancel to history
+                            $canceldate = date('Y-m-d H:i:s');
+                            $withd = $con->prepare("update history status = 0, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
+                            $withd->bind_param("ssds", $canceldate, $selfPhone, $totalDeduct, $date);
+                            if(!$withd->execute()){
+                                $error = 'Failed to update user balance, failed cancelled the withdrawal. It seem like god want you to have free money';
+                                //i don't know how to handle this case
+                            }
+                        } else {
+                            //complete success
+                            //should show something on screen
+
+                        }
                     }
                 }
-                $withd->close();
-                $con->close();
             }
+            $withd->close();
+            $con->close();
         }
     }
 }
