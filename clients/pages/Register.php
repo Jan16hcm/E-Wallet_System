@@ -5,165 +5,151 @@ must have a different email address and a different phone number. After successf
 the user's email immediately. If you can't do the email sending feature, you need to display these two information on the website interface right
 after successful registration. -->
 <?php
-    include_once("../modules/db_connection.php");
-    include_once("../modules/send_otp.php");
-    include_once("../modules/isValidDate.php");
+include_once("../modules/db_connection.php");
+include_once("../modules/sendOTP.php");
+include_once("../modules/isValidDate.php");
 
-    $name = '';
-    $email = '';
-    $phonenum = '';
-    $birth = '';
-    $address = '';
-    $front = '';
-    $back = '';
-    $error = '';
+$error = '';
+$success = '';
 
-    if (isset($_POST['name']) && isset($_POST['email']) && isset($_POST['phonenum']) && isset($_POST['birth']) 
-    && isset($_POST['address']) && isset($_POST['front']) && isset($_POST['back'])){
-        $name = $_POST['name'];
-        $email = $_POST['email'];
-        $phonenum = $_POST['phonenum'];
-        $birth = $_POST['birth'];
-        $address = $_POST['address'];
-        $front = $_POST['front'];
-        $back = $_POST['back'];
-        //picture check
-        $imageFileType = strtolower(pathinfo("../uploads/" . basename($_FILES["fileToUpload"]["name"]),PATHINFO_EXTENSION));
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $con = connect_db();
 
-        if (empty($name)) {
-            $error = 'Please enter your name';
-        } else if (empty($email)) {
-            $error = 'Please enter your email';
-        } else if (filter_var($email, FILTER_VALIDATE_EMAIL) == false) {
-            $error = 'This is not a valid email address';
-        } else if (empty($phonenum)) {
-            $error = 'Please enter your phone number';
-        } else if (mb_strlen($phonenum) < 5 || mb_strlen($phonenum) > 15) {
-            $error = 'A phone number length must be greater than 5 and less than 15';
-        } else if (filter_var($phonenum, FILTER_VALIDATE_INT) == false){
-            $error = 'A phone number only contain number';
-        } else if (empty($birth)) {
-            $error = 'Please enter your birthdate';
-        } else if (empty($address)) {
-            $error = 'Please enter your address';
-        } else if (empty($front)) {
-            $error = 'Please upload the front of your id card';
-        } else if (empty($back)) {
-            $error = 'Please upload the back of your id card';
-        } else if (!getimagesize($_FILES["fileToUpload"]["tmp_name"])) {
-            $error = 'This file is not a picture';// Check if image file is a actual image or fake image
-        } else if ($_FILES["fileToUpload"]["size"] > 2048000) {
-            $error = 'Your picture must be < 2MB';
-        } else if ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg") {
-            $error = 'Only JPG, JPEG, PNG files are allowed';
+    $name = mysqli_real_escape_string($con, $_POST['name']);
+    $email = mysqli_real_escape_string($con, $_POST['email']);
+    $phonenum = mysqli_real_escape_string($con, $_POST['phonenum']);
+    $birth = $_POST['birth'];
+    $address = mysqli_real_escape_string($con, $_POST['address']);
+
+    if (empty($name) || empty($email) || empty($phonenum) || empty($birth) || empty($address)) {
+        $error = 'All fields are required.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Invalid email format.';
+    } elseif (!isset($_FILES['front']) || !isset($_FILES['back']) || $_FILES['front']['error'] !== 0 || $_FILES['back']['error'] !== 0) {
+        $error = 'Please upload both front and back ID card images.';
+    } else {
+        $check_query = $con->prepare("SELECT email, phonenum FROM user WHERE email = ? OR phonenum = ?");
+        $check_query->bind_param("ss", $email, $phonenum);
+        $check_query->execute();
+        $result = $check_query->get_result();
+
+        if ($result->num_rows > 0) {
+            $error = 'Email or Phone number already registered.';
         } else {
-            $date_error = isValidDate($birth);
-            if (!empty($date_error)) {
-                $error = $date_error;
-            } else if ($birth > time()) {
-                $error = 'Your birthdate must be in the past';
+            $target_dir = "../uploads/";
+            if (!is_dir($target_dir)) {
+                mkdir($target_dir, 0777, true);
+            }
+
+            $front_ext = strtolower(pathinfo($_FILES["front"]["name"], PATHINFO_EXTENSION));
+            $back_ext = strtolower(pathinfo($_FILES["back"]["name"], PATHINFO_EXTENSION));
+            $allowed_exts = ['jpg', 'jpeg', 'png'];
+
+            if (!in_array($front_ext, $allowed_exts) || !in_array($back_ext, $allowed_exts)) {
+                $error = 'Only JPG, JPEG & PNG files are allowed.';
             } else {
-                $con = connect_db();
-                $result = $con->query("SELECT email, phonenum, name FROM user");
-                $duplicate = false;
+                $front_new_name = "FRONT_" . time() . "_" . uniqid() . "." . $front_ext;
+                $back_new_name = "BACK_" . time() . "_" . uniqid() . "." . $back_ext;
 
-                if ($result->num_rows > 0) {    //check if database is not empty
-                    while($row = $result->fetch_assoc()) { //check duplicate
-                        if($row["email"] == $email && $row["phonenum"] == $phonenum && $row["name"] == $name) {
-                            $con->close();
-                            $duplicate = true;
-                            $error = 'Please use login site to login, ' . $name;
-                            break;
+                $front_path = $target_dir . $front_new_name;
+                $back_path = $target_dir . $back_new_name;
+
+                if (
+                    move_uploaded_file($_FILES["front"]["tmp_name"], $front_path) &&
+                    move_uploaded_file($_FILES["back"]["tmp_name"], $back_path)
+                ) {
+
+                    $random_pass = substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyz"), 0, 6);
+                    if (sendRegistrationEmail($email, $name, $random_pass)) {
+                        $password_to_store = password_hash($random_pass, PASSWORD_DEFAULT);
+                        // 8. Lưu vào Database
+                        // Lưu ý: Password nên hash nếu không có yêu cầu lưu text thô
+                        $insert_stmt = $con->prepare("INSERT INTO user (`phonenum`, `email`, `name`, `birth`, `address`, `front`, `back`, `pass`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $insert_stmt->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $front_new_name, $back_new_name, $password_to_store);
+
+                        if ($insert_stmt->execute()) {
+                            $success = "Registration successful! Your password has been sent to $email.";
+                            sleep(5);
+                            header("Location: Login.php");
+                        } else {
+                            $error = "Error saving data: " . $con->error;
                         }
-                    }
-                }
-
-                if(!$duplicate){
-                    $otp = sprintf('%06d', random_int(0, 999999));
-                    $_SESSION['otp'] = $otp;//first pass need no expire otp
-                    $_SESSION['email'] = $email;
-                    if(send_otp_email($otp, $email, $name)){
-                        $error = 'Failed to send mail, please try again later';
+                        $insert_stmt->close();
                     } else {
-                        $res = $con->prepare("INSERT INTO user VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 0, NULL, NULL)");
-                        $res->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $front, $back, $otp);
-                        /*  i - integer
-                            d - double 
-                            s - string (datetime?)
-                            b - binary (image, PDF,...)*/
-                        $res->execute();
-                        $res->close();
-                        $con->close();
-                        header('Location: Home.php');
+                        $error = "Account created but failed to send email. Please contact support.";
                     }
+                } else {
+                    $error = "Failed to upload images. Please check folder permissions.";
                 }
             }
         }
+        $check_query->close();
     }
+    $con->close();
+}
+include("../src/headerOutSide.php");
 ?>
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../assets/css/register.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <title>Register</title>
-</head>
+<meta charset="UTF-8">
+<title>Register - MeoMeo E-Wallet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/register.css">
 
-<body>
-    <?php include("../src/headerOutSide.php") ?>
-    <form>
-        <div class="register-container">
-            <div class="d-flex flex-column align-items-center p-3 bg-white rounded shadow"  style="width: 600px;">
-                <h2 class="mb-3">Create an Account</h2>
-                <div class="mb-3 w-100">
-                    <label for="name" class="form-label">Full Name</label>
-                    <input type="text" class="form-control" id="name" placeholder="Enter your full name">
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <form action="register.php" method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow">
+                <h2 class="text-center mb-4">Sign up</h2>
+
+                <?php if ($error): ?>
+                    <div class="alert alert-danger"><?= $error ?></div> <?php endif; ?>
+                <?php if ($success): ?>
+                    <div class="alert alert-success"><?= $success ?></div> <?php endif; ?>
+
+                <div class="mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="Full name" required>
                 </div>
-                <div class="mb-3 w-100">
-                    <label for="email" class="form-label">Email address</label>
-                    <input type="email" class="form-control" id="email" placeholder="Enter your email">
+
+                <div class="mb-3">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" name="email" class="form-control" placeholder="Email address" required>
                 </div>
-                <div class="mb-3 w-100">
-                    <label for="phone" class="form-label">Phone Number</label>
-                    <input type="text" class="form-control" id="phone" placeholder="Enter your phone number">
+
+                <div class="mb-3">
+                    <label class="form-label">Phone Number</label>
+                    <input type="text" name="phonenum" class="form-control" placeholder="Phone number" required>
                 </div>
-                <div class="mb-3 w-100">
-                    <label for="dob" class="form-label">Date of Birth</label>
-                    <input type="date" class="form-control" id="dob">
+
+                <div class="mb-3">
+                    <label class="form-label">Date of Birth</label>
+                    <input type="date" name="birth" class="form-control" required>
                 </div>
-                <div class="mb-3 w-100">
-                    <label for="address" class="form-label">Address</label>
-                    <input type="text" class="form-control" id="address" placeholder="Enter your address">
+
+                <div class="mb-3">
+                    <label class="form-label">Address</label>
+                    <textarea name="address" class="form-control" rows="2" required></textarea>
                 </div>
-                <div class="mb-3 w-100">
-                    <label for="front" class="form-label">ID Card Front</label>
-                    <input type="file" class="form-control" id="front">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">ID Card Front</label>
+                        <input type="file" name="front" class="form-control" accept="image/*" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">ID Card Back</label>
+                        <input type="file" name="back" class="form-control" accept="image/*" required>
+                    </div>
                 </div>
-                <div class="mb-3 w-100">
-                    <label for="back" class="form-label">ID Card Back</label>
-                    <input type="file" class="form-control" id="back">
+
+                <button type="submit" class="btn btn-primary w-100">Sign up</button>
+
+                <div class="text-center mt-3 fs-5">
+                    <small>Already have an account? <a href="login.php" class="text-decoration-none">Sign in</a></small>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Register</button>
-                <button type="button" onclick="location.href='register.php'" class="btn btn-link mt-2 opacity-75" style="text-decoration: none;">Already have an account? Sign in</button>
-                <?php
-                    if (!empty($error)) {
-                        echo "<div class='alert alert-danger'>$error</div>";
-                    }
-                ?>
-            </div>
+            </form>
         </div>
-    </form>
-    <?php
-    include("../src/footer.php");
-    ?>
-</body>
-<script>
-    /*
-    
-    */
-</script>
-</html>
+    </div>
+</div>
+<?php include("../src/footer.php"); ?>
