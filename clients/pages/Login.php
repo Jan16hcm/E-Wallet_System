@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
                 $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
             }
         } else {
-            if (strlen($e_or_p) < 5 || strlen($e_or_p) > 15) {
+            if (strlen($e_or_p) < 5 || strlen($e_or_p) > 15 ) {
                 $error = 'A phone number length must be between 5 and 15';
             } else if (!ctype_digit($e_or_p)) { // Dung` ctype_digit de kiem tra xem chuoi co chi chua so hay khong, nen no se tu dong tra ve false neu co ky tu dac biet nhu dau + o dau so dien thoai
                 $error = 'A phone number should only contain numbers';
@@ -89,110 +89,125 @@ function handleLoginRedirect()
 }
 include("../src/headerOutSide.php");
 ?>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+    href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/login.css">
-<title>Login</title>
 
-<div class="d-flex flex-column min-vh-100">
+<main class="login-page-wrapper">
+    <form action="" method="POST" novalidate class="w-100 d-flex justify-content-center">
 
-    <!-- Thay đổi class container để nó tự giãn rộng -->
-    <main class="flex-grow-1 d-flex align-items-center justify-content-center py-4">
-        <form action="" method="POST" novalidate class="w-100">
-            <div class="login-container">
-                <div class="row login-box mx-auto">
-                    <div id="loginMenu" class="col-lg-6 col-xl-6 p-4">
-                        <h3 class="mb-4 text-center">Sign in</h3>
+        <div class="login-box">
 
-                        <div class="mb-4">
-                            <label for="e_or_p" class="form-label fs-5">Email or Phone Number</label>
-                            <input type="text" class="form-control p-3 fs-5" placeholder="Email/Phone Number"
-                                id="e_or_p" name="e_or_p" value="<?php echo htmlspecialchars($e_or_p); ?>" required>
-                            <!-- value="e_or_p" -->
-                        </div>
+            <div class="login-form-side">
 
-                        <div class="mb-3">
-                            <label for="pass" class="form-label fs-5">Password</label>
-                            <input type="password" class="form-control p-3 fs-5" placeholder="Type your password here"
-                                id="pass" name="pass" placeholder="Type your password" required>
-                            <!-- value="pass" -->
-                        </div>
+                <div class="brand-mark">
+                    <div class="brand-icon">
 
-
-                        <div id="error-message" class="alert alert-danger p-2 text-center"
-                            style="<?php echo empty($error) ? 'visibility: hidden;' : 'visibility: visible;' ?>"
-                            role="alert">
-                            <?php echo !empty($error) ? htmlspecialchars($error) : '&nbsp;'; ?>
-                        </div>
-
-
-                        <button type="submit" name="login_submit"
-                            class="btn btn-success w-100 py-2 mt-3 fs-5 d-flex align-items-center justify-content-center"
-                            id="btn-signin">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-                                class="bi bi-box-arrow-in-right me-2" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd"
-                                    d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0z" />
-                                <path fill-rule="evenodd"
-                                    d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z" />
-                            </svg>
-                            <span>Sign in</span>
-                        </button>
-
-                        <button type="button" onclick="location.href='ForgotPassword.php'"
-                            class="btn btn-outline-secondary w-100 py-2 mt-2 mb-0 d-flex align-items-center justify-content-center"
-                            id="btn-forget" style="border:none;">
-                            <span>Forgot Password?</span>
-                        </button>
-
-
-                        <div class="text-center mt-1 text-muted fs-6">
-                            <span>
-                                <hr class="hr-text" data-content="Or">
-                            </span>
-                        </div>
-
-                        <button type="button" onclick="location.href='Register.php'"
-                            class="btn btn-primary w-100 py-2 mt-2 d-flex align-items-center justify-content-center"
-                            id="btn-signup">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-                                class="bi bi-person-plus me-2" viewBox="0 0 16 16">
-                                <path
-                                    d="M6 8c1.657 0 3-1.343 3-3S7.657 2 6 2s-3 1.343-3 3 1.343 3 3 3zM11.5 8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2A.5.5 0 0 1 11.5 8zM11.5 10a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5z" />
-                                <path fill-rule="evenodd"
-                                    d="M13.854 9.146a.5.5 0 0 1 .146.354v4a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.354-.146l-4-4A.5.5 0 0 1 .146 9l4-4A.5.5 0 0 1 .707 .707l4-4A.5.5 0 1 1 .707 .707L9 .707l4-4A.5.5 0 1 1 .707 .707l4-4z" />
-                            </svg>
-                            <span>Sign Up</span>
-                        </button>
+                        <i class="fa-solid fa-wallet fs-4"></i>
                     </div>
-
-                    <div id="loginBackground" class="col-lg-6 col-xl-6 d-none d-lg-flex p-0">
-                        <img src="../assets/img/meomeoBackground.jpg" alt="Meo Meo" class="login-image">
-                    </div>
+                    <span class="brand-name">MeoMeo Wallet</span>
                 </div>
+
+                <h1 class="form-title">Welcome back</h1>
+                <p class="form-subtitle">Login to MeoMeo hehe</p>
+
+                <label for="e_or_p" class="form-label-custom">Email or Phone Number</label>
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                    </span>
+                    <input type="text" class="form-input" id="e_or_p" name="e_or_p" placeholder="Email/Phone Number"
+                        value="<?= htmlspecialchars($e_or_p) ?>" autocomplete="username" required>
+                </div>
+
+                <label for="pass" class="form-label-custom">Password</label>
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </span>
+                    <input type="password" class="form-input" id="pass" name="pass" placeholder="Type your password"
+                        autocomplete="current-password" required>
+                    <button type="button" class="toggle-pass" id="toggle-pass" title="Hiện/ẩn mật khẩu">
+                        <svg id="eye-show" viewBox="0 0 24 24">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        <svg id="eye-hide" viewBox="0 0 24 24" style="display:none">
+                            <path
+                                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div id="error-msg" class="error-alert<?= empty($error) ? ' is-invisible' : '' ?>" role="alert">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+                        <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
+                </div>
+                <button type="submit" name="login_submit" class="btn-primary-custom">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                        <polyline points="10 17 15 12 10 7" />
+                        <line x1="15" y1="12" x2="3" y2="12" />
+                    </svg>
+                    Sign in
+                </button>
+
+                <button type="button" onclick="location.href='ForgotPassword.php'" class="btn-ghost-custom">Forgot
+                    Password?</button>
+
+                <div class="divider"><span>Or</span></div>
+
+                <button type="button" onclick="location.href='Register.php'" class="btn-signup-custom">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <line x1="19" y1="8" x2="19" y2="14" />
+                        <line x1="22" y1="11" x2="16" y2="11" />
+                    </svg>
+                    Sign Up
+                </button>
+
             </div>
-            <!-- </div> -->
-        </form>
+            <div class="login-image-side">
+                <img src="../assets/img/meomeoBackground.jpg" alt="E-Wallet background">
+            </div>
 
-        <script>
-            const errorMessage = document.getElementById('error-message');
-            const username = document.getElementById('e_or_p');
-            const password = document.getElementById('pass');
+        </div>
+    </form>
+</main>
 
-            if (errorMessage) {
-                username.addEventListener('input', () => {
-                    errorMessage.style.visibility = 'hidden';
-                });
+<script>
+    /* Toggle password visibility */
+    const toggleBtn = document.getElementById('toggle-pass');
+    const passInput = document.getElementById('pass');
+    const eyeShow = document.getElementById('eye-show');
+    const eyeHide = document.getElementById('eye-hide');
 
-                password.addEventListener('input', () => {
-                    errorMessage.style.visibility = 'hidden';
-                });
-            }
-        </script>
-    </main>
+    toggleBtn.addEventListener('click', () => {
+        const isText = passInput.type === 'text';
+        passInput.type = isText ? 'password' : 'text';
+        eyeShow.style.display = isText ? 'block' : 'none';
+        eyeHide.style.display = isText ? 'none' : 'block';
+    });
 
-</div> <!-- Đóng div flex-column -->
+    const errorEl = document.getElementById('error-msg');
+    ['e_or_p', 'pass'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', () => {
+            errorEl.classList.add('is-invisible');
+        });
+    });
+</script>
+
 <?php include("../src/footer.php"); ?>
