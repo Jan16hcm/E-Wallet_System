@@ -52,7 +52,7 @@ function sendRegistrationEmail($email, $name, $password) {
     $subject = "Welcome to MeoMeo Wallet - Account Created";
     $content = "
         <div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
-            <h3 style='color: #0d6efd;'>Welcome aboard, $name!</h3>
+            <h3 style='color: #0d6efd;'>Welcome, $name!</h3>
             <p>Your account has been created successfully. You can now login using either your <b>Email</b> or <b>Phone Number</b>.</p>
             <div style='background: #f4f4f4; padding: 10px; border-radius: 5px; margin: 15px 0;'>
                 <p style='margin: 0;'>Your temporary password is: <b style='font-size: 18px; color: #0d6efd;'>$password</b></p>
