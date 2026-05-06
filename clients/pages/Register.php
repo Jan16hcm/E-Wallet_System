@@ -27,6 +27,8 @@ after successful registration. -->
         $address = $_POST['address'];
         $front = $_POST['front'];
         $back = $_POST['back'];
+        //picture check
+        $imageFileType = strtolower(pathinfo("../uploads/" . basename($_FILES["fileToUpload"]["name"]),PATHINFO_EXTENSION));
 
         if (empty($name)) {
             $error = 'Please enter your name';
@@ -42,32 +44,25 @@ after successful registration. -->
             $error = 'A phone number only contain number';
         } else if (empty($birth)) {
             $error = 'Please enter your birthdate';
-        } else if (isValidDate($birth)) {
-            $error = 'Invalid birthdate, format must be Year-month-day';
-        } else if ($birth > time()) {
-            $error = 'Your birthdate must be in the past';
         } else if (empty($address)) {
             $error = 'Please enter your address';
         } else if (empty($front)) {
             $error = 'Please upload the front of your id card';
         } else if (empty($back)) {
             $error = 'Please upload the back of your id card';
+        } else if (!getimagesize($_FILES["fileToUpload"]["tmp_name"])) {
+            $error = 'This file is not a picture';// Check if image file is a actual image or fake image
+        } else if ($_FILES["fileToUpload"]["size"] > 2048000) {
+            $error = 'Your picture must be < 2MB';
+        } else if ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg") {
+            $error = 'Only JPG, JPEG, PNG files are allowed';
         } else {
-            //picture check
-            $target_file = "../uploads/" . basename($_FILES["fileToUpload"]["name"]);
-            $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-            
-            // Check if image file is a actual image or fake image
-            if(!getimagesize($_FILES["fileToUpload"]["tmp_name"])) {
-                $error = 'This file is not a picture';
-            }
-            if ($_FILES["fileToUpload"]["size"] > 2048000) {
-                $error = 'Your picture must be < 2MB';
-            }
-            if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg") {
-                $error = 'Only JPG, JPEG, PNG files are allowed';
-            }
-            if($error == '') {
+            $date_error = isValidDate($birth);
+            if (!empty($date_error)) {
+                $error = $date_error;
+            } else if ($birth > time()) {
+                $error = 'Your birthdate must be in the past';
+            } else {
                 $con = connect_db();
                 $result = $con->query("SELECT email, phonenum, name FROM user");
                 $duplicate = false;
@@ -78,6 +73,7 @@ after successful registration. -->
                             $con->close();
                             $duplicate = true;
                             $error = 'Please use login site to login, ' . $name;
+                            break;
                         }
                     }
                 }
@@ -93,10 +89,9 @@ after successful registration. -->
                         $res->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $front, $back, $otp);
                         /*  i - integer
                             d - double 
-                            s - string
+                            s - string (datetime?)
                             b - binary (image, PDF,...)*/
                         $res->execute();
-                        //echo 'good';
                         $res->close();
                         $con->close();
                         header('Location: Home.php');
