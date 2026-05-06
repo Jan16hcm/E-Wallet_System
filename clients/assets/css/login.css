@@ -338,7 +338,7 @@ footer.bg-white {
 /* ── RESPONSIVE BREAKPOINTS ── */
 
 /* 1. Mobile (< 768px):  */
-@media (max-width: 767.98px) {
+@media (max-width: 480px) {
   html,
   body {
     height: auto;
@@ -362,7 +362,7 @@ footer.bg-white {
 }
 
 /* 2. Tablet (768px - 991px):  */
-@media (min-width: 768px) and (max-width: 991.98px) {
+@media (min-width: 641px) and (max-width: 1024px) {
   html,
   body {
     height: auto;
@@ -392,7 +392,7 @@ footer.bg-white {
   }
 } */
 /* Tối ưu cho màn hình laptop hoặc màn hình có chiều cao thấp */
-@media (max-height: 800px) and (min-width: 992px) {
+@media (max-height: 800px) and (min-width: 1025px) {
   .login-box {
     max-height: 95vh; /* Tăng nhẹ không gian chiếm dụng */
     max-width: 900px;
@@ -427,14 +427,14 @@ footer.bg-white {
     padding: 10px !important; /* Thu nhỏ nút bấm */
   }
 }
-@media (min-width: 1200px) {
+@media (min-width: 1025px) {
   .login-image-side {
     display: block; /* Hiện ảnh khi màn hình đủ rộng */
     width: 45%;
   }
 }
 /* 4. PC (>= 1400px):  */
-@media (min-width: 1400px) {
+@media (min-width: 1281px) {
   .login-box {
     max-width: 1080px;
   }
