@@ -6,17 +6,39 @@ include_once("../modules/usertype.php");
 
 $error = $_SESSION['login_error'] ?? '';
 $e_or_p = $_SESSION['login_e_or_p'] ?? '';
-unset($_SESSION['login_error'], $_SESSION['login_e_or_p']);
+unset($_SESSION['login_error']);
 
 $pass = '';
-$do_timeout = false;
 $lock = 0;
 $isEmail = false;
 
 if (isset($_SESSION['email'])) {
     handleLoginRedirect();
 }
+if (!empty($e_or_p)) {
+    $con = connect_db();
+    $isEmail = str_contains($e_or_p, '@');
+    $query = $isEmail ? "SELECT abnormal_login, locked_time FROM user WHERE email = ?"
+        : "SELECT abnormal_login, locked_time FROM user WHERE phonenum = ?";
 
+    $stmt = $con->prepare($query);
+    $stmt->bind_param("s", $e_or_p);
+    $stmt->execute();
+    $res = $stmt->get_result()->fetch_assoc();
+
+    if ($res && $res['abnormal_login'] >= 3 && $res['abnormal_login'] < 4 && !empty($res['locked_time'])) {
+        $locked_time = new DateTime($res['locked_time']);
+        $now = new DateTime();
+        $diff = $now->getTimestamp() - $locked_time->getTimestamp();
+
+        if ($diff < 60) {
+            $lock_seconds = 60 - $diff;
+            // Reset time after refresh page even ctrl + f5
+            $error = "Account is currently locked, please try again in " . $lock_seconds . " seconds";
+        }
+    }
+    $stmt->close();
+}
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
     $e_or_p = $_POST['e_or_p'];
     $pass = $_POST['pass'];
@@ -29,54 +51,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
     } else if (strlen($pass) < 6) { // Use strlen to compare the length
         $error = 'Your password length must be at least 6 characters';
     } else {
-        if ($isEmail) {
-            if (filter_var($e_or_p, FILTER_VALIDATE_EMAIL) == false) {
-                $error = 'This is not a valid email address';
-            } else {
-                if (verifypass($pass, $e_or_p, $isEmail)) {
-                    //echo "correct pass, move to pofile";
+        if ($isEmail && filter_var($e_or_p, FILTER_VALIDATE_EMAIL) == false) {
+            $error = 'This is not a valid email address';
+        } else if ($isEmail == false && (strlen($e_or_p) < 5 || strlen($e_or_p) > 15)) {
+            $error = 'A phone number length must be between 5 and 15';
+        } else if ($isEmail == false && (!ctype_digit($e_or_p))) {
+            $error = 'A phone number should only contain numbers';
+        } else {
+            if (verifypass($pass, $e_or_p, $isEmail)) {
+                $con = connect_db();
+                $resetQuery = $isEmail ? "UPDATE user SET abnormal_login = 0, locked_time = NULL WHERE email = ?"
+                    : "UPDATE user SET abnormal_login = 0, locked_time = NULL WHERE phonenum = ?";
+                $stmt = $con->prepare($resetQuery);
+                $stmt->bind_param("s", $e_or_p);
+                $stmt->execute();
+                $stmt->close();
 
+                if(usertype() == 4) {
+                    $error = "Account has been locked due to entering the wrong password many times, please contact the administrator for support.";
+                } else {
                     handleLoginRedirect();
                 }
-                //if failed password verify, it will continue below:
-                $do_timeout = true;
-                $error = 'Invalid email/phone number or password';//it could be because attem_num > 3 in 60 sec or attem_num > 6
-                $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
-            }
-        } else {
-            if (strlen($e_or_p) < 5 || strlen($e_or_p) > 15 ) {
-                $error = 'A phone number length must be between 5 and 15';
-            } else if (!ctype_digit($e_or_p)) { // Dung` ctype_digit de kiem tra xem chuoi co chi chua so hay khong, nen no se tu dong tra ve false neu co ky tu dac biet nhu dau + o dau so dien thoai
-                $error = 'A phone number should only contain numbers';
             } else {
-                if (verifypass($pass, $e_or_p, $isEmail)) {
-
-                    handleLoginRedirect();
-                }
-                $do_timeout = true;
-                $error = 'Wrong password';
-                $lock = handleFailedLogin(new DateTime(), false, $e_or_p, $isEmail);
-            }
-        }
-    }
-    if ($do_timeout) {
-        if ($lock[1] > -2) { // include -1 and > 0
-            $error = $lock[0];
-        } else {
-            //add time out here
-            $lock = handleFailedLogin(new DateTime(), true, $e_or_p, $isEmail);
-            if ($lock[1] > -2) {
+                $lock = handleFailedLogin(new DateTime(), $e_or_p, $isEmail);
                 $error = $lock[0];
             }
         }
     }
+
     $_SESSION['login_error'] = $error;
     $_SESSION['login_e_or_p'] = $e_or_p;
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit();
 }
 
-function handleLoginRedirect(){ // Viet ra 1 ham` roi tai su dung
+function handleLoginRedirect()
+{ // Viet ra 1 ham` roi tai su dung
     $type = usertype();
     switch ($type) {
         case -1:
@@ -90,9 +100,6 @@ function handleLoginRedirect(){ // Viet ra 1 ham` roi tai su dung
             break;
         case 3:
             header('Location: Admin_dashboard.php');
-            break;
-        case 4:
-            header('Location: DisableAccount.php');
             break;
         default:
             header('Location: Home.php');
@@ -168,7 +175,7 @@ include("../src/headerOutSide.php");
                     </svg>
                     <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
                 </div>
-                <button type="submit" name="login_submit" class="btn-primary-custom">
+                <button type="submit" name="login_submit" id="btn-login" class="btn-primary-custom">
                     <svg viewBox="0 0 24 24">
                         <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
                         <polyline points="10 17 15 12 10 7" />
@@ -202,7 +209,28 @@ include("../src/headerOutSide.php");
 </main>
 
 <script>
-    /* Toggle password visibility */
+    document.addEventListener('DOMContentLoaded', function () {
+        const btnLogin = document.getElementById('btn-login');
+        const btnText = document.getElementById('btn-text');
+        const errorMsg = document.getElementById('error-msg');
+
+        let seconds = <?php echo (int) $lock_seconds; ?>;
+
+        if (seconds >= 1) {
+            const timer = setInterval(() => {
+                seconds--;
+                if (seconds >= 1) {
+                    btnText.innerText = `Locked (${seconds}s)`;
+                    if (errorMsg.querySelector('span')) {
+                        errorMsg.querySelector('span').innerText = `Account is currently locked, please try again in ${seconds} seconds`;
+                    }
+                } else {
+                    clearInterval(timer);    
+                    errorMsg.classList.add('is-invisible');
+                }
+            }, 1000);
+        }
+    });
     const toggleBtn = document.getElementById('toggle-pass');
     const passInput = document.getElementById('pass');
     const eyeShow = document.getElementById('eye-show');
