@@ -65,16 +65,18 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
                 $dep->bind_result($selfPhone);
                 if (!$dep->fetch()) {
                     //Bound variable (selfPhone) keep it last successfully fetched values - they are not reset to null automatically
-                    $error = "Can\'t find user account";
+                    $error = 'User account not found';
                 }
             }
 
             if (!empty($selfPhone)) {
-                //$status = 1; //no need approve in deposit
+                $status = 1; //no need approve in deposit
+                $transfer_type = "Deposit";
+                $selfFeeBear = false;
                 $date = date('Y-m-d H:i:s');
                 //selfFeeBear is false because 5% fee is not applied
-                $dep = $con->prepare("INSERT INTO history (user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, fee_bearer) VALUES (?, Deposit, ?, ?, ?, " . $date . ", ?, ?, 1, false)");
-                $dep->bind_param("ssssds", $selfPhone, $card_num, $expire, $cvv, $amount, $note);
+                $dep = $con->prepare("INSERT INTO history (user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, $date, ?, ?, $status, $selfFeeBear)");
+                $dep->bind_param("ssssds", $selfPhone, $transfer_type, $card_num, $expire, $cvv, $amount, $note);
 
                 if(!$dep->execute()){
                     $error = 'Failed to save in deposit history';
@@ -85,9 +87,10 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
                     if(!$dep->execute()){
                         $error = 'Failed to update user balance, cancelled the deposit';
                         //write cancel to history
+                        $status = 0;
                         $canceldate = date('Y-m-d H:i:s');
-                        $dep = $con->prepare("update history status = 0, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
-                        $dep->bind_param("ssds", $canceldate, $selfPhone, $amount, $date);
+                        $dep = $con->prepare("update history status = ?, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
+                        $dep->bind_param("issds", $status, $canceldate, $selfPhone, $amount, $date);
                         if(!$dep->execute()){
                             $error = 'Failed to update user balance, failed cancelled the deposit. It seem like god want you to lose money';
                             //i don't know how to handle this case
@@ -104,4 +107,15 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
         }
     }
 }
+include("../src/headerOutSide.php");
 ?>
+
+
+</div>
+<div id="error-msg" class="error-alert<?= empty($error) ? ' is-invisible' : '' ?>" role="alert">
+    <svg viewBox="0 0 24 24" width="16" height="16">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </svg>
+    <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
+</div>

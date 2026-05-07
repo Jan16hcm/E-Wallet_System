@@ -4,9 +4,6 @@ include_once("../modules/usertype.php");
 include_once("../modules/formatMoney.php");
 
 $usertype = usertype();
-if ($usertype != 1 && $usertype != 3) {
-    $error = 'This function is only for verified accounts';
-}
 $page = max(1, (int)($_GET['page'] ?? 1));//no -number
 $perPage = max(1, (int)($_GET['perPage'] ?? 20));
 $totalPages = 1;
@@ -16,6 +13,9 @@ $filter = $_GET['transfer_type'] ?? '';
 //Deposit/Transferto/Transferby/Withdraw/Buycard
 $error = '';
 
+if ($usertype != 1 && $usertype != 3) {
+    $error = 'This function is only for verified accounts';
+}
 
 if(empty($error)){
     $con = connect_db();
