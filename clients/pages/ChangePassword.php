@@ -6,21 +6,21 @@ include_once("../modules/usertype.php");
 $usertype = usertype();
 $oldPass = '';
 $normalreset = true;//reset_via_otp => false
-$newPass = '';
+$newPass1 = '';
 $newPass2 = '';
 $error = '';
 
-if ($usertype != 1 && $usertype != 3) {
-    if ($_SERVER['REQUEST_METHOD'] == 'POST'){
-        $error = 'Please wait for verification before using this feature';
-    } else {
-        $error = 'This function is only for verified account';
-    }
+if ($usertype == 4) {
+    $error = 'This function is only for activated account';
+}
+
+if ($usertype == -1) {
+    $normalreset = false;//first login
 }
 
 if (isset($_POST['otp'])){
     if ($_POST['otp'] == 'SUC'){
-        $error = '';
+        $normalreset = false;//change pass using otp
     }
 }
 
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($
         }
 
         if (empty($error)) {
-            if (strlen($newPass) < 6) {
+            if (strlen($newPass1) < 6) {
                 $error = 'New password must be at least 6 characters';
             } else if ($newPass1 != $newPass2) {
                 $error = 'New passwords do not match';
