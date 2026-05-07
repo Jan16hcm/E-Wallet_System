@@ -130,12 +130,13 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
                 $t = $_SESSION['transfer']; //to shorten lonnnng name
                 $status = $t['amount'] > 5000000 ? 2 : 1; //5 milion need approve
                 //1 == completed == Approved; 2 == Pending
+                $transfer_type = "Transfer";
                 $date = date('Y-m-d H:i:s'); // current date/time 
-                //MySQL expects: YYYY-MM-DD HH:MM:SS 
-                $con = connect_db();
+                //MySQL expects: YYYY-MM-DD HH:MM:SS
 
-                $tran = $con->prepare("INSERT INTO history (user_phone, receiver_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, Transferto, " . $date . ", ?, ?, " . $status . ", ?)");
-                $tran->bind_param("ssdsi", $t['selfPhone'], $t['recipientPhone'], $t['amount'], $t['note'], $t['selfFeeBear']);
+                $con = connect_db();
+                $tran = $con->prepare("INSERT INTO history (user_phone, receiver_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, $date, ?, ?, $status, ?)");
+                $tran->bind_param("sssdsi", $t['selfPhone'], $t['recipientPhone'], $transfer_type, $t['amount'], $t['note'], $t['selfFeeBear']);
                 //bool => integer (i) if sql TINYINT(1) or string (s)
                 if(!$tran->execute()){
                     $error = 'Failed to save in transfer history';
@@ -146,11 +147,12 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
                         $error = 'Failed to update user balance, cancelled the transferal';
 
                         //write cancel to history
+                        $status = 0;
                         $canceldate = date('Y-m-d H:i:s');
-                        $withd = $con->prepare("update history status = 0, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
-                        $withd->bind_param("ssds", $canceldate, $t['selfPhone'], $t['amount'], $date);
+                        $withd = $con->prepare("update history status = ?, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
+                        $withd->bind_param("issds", $status, $canceldate, $t['selfPhone'], $t['amount'], $date);
                         if(!$withd->execute()){
-                            $error = 'Failed to update user balance, failed cancelled the withdrawalidk, it seem like god want you to have free money';
+                            $error = 'Failed to update user balance, failed cancelled the withdrawal. It seem like god want you to have free money';
                             //i don't know how to handle this case
                         }
                         unset($_SESSION['transfer']);
@@ -166,7 +168,6 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
                         $tran = $con->prepare('select email, money from user where phonenum = ?');
                         $tran->bind_param("s", $t['recipientPhone']);
                         $tran->execute();
-                        $tran->get_result();
                         $tran->bind_result($email, $recipientMoney);
                         $tran->fetch();
 
@@ -181,6 +182,7 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
                             unset($_SESSION['transfer']);
                             //complete success
                             //should show something on screen
+
                         }
                     }
                 }
@@ -190,7 +192,12 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
         }
     }
 }
+include("../src/headerOutSide.php");
 ?>
+
+
+
+
 
 <label for="otp_in">Enter OTP here:</label>
 <table>
@@ -204,6 +211,14 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
     </tr>
 </table>
 
+</div>
+<div id="error-msg" class="error-alert<?= empty($error) ? ' is-invisible' : '' ?>" role="alert">
+    <svg viewBox="0 0 24 24" width="16" height="16">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </svg>
+    <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
+</div>
 <script>
 //claude here (not checked)
 // Look up recipient as they type

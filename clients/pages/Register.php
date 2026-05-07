@@ -30,9 +30,16 @@ function getCompressedImageData($source, $quality)
     imagedestroy($image);
     return $imageData;
 }
+$name = $_SESSION['reg_data']['name'] ?? '';
+$email = $_SESSION['reg_data']['email'] ?? '';
+$phonenum = $_SESSION['reg_data']['phonenum'] ?? '';
+$birth = $_SESSION['reg_data']['birth'] ?? '';
+$address = $_SESSION['reg_data']['address'] ?? '';
 
-$error = '';
-$success = '';
+$error = $_SESSION['reg_error'] ?? '';
+$success = $_SESSION['reg_success'] ?? '';
+unset($_SESSION['reg_error'], $_SESSION['reg_success'], $_SESSION['reg_data']);
+
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $con = connect_db();
@@ -45,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (empty($name) || empty($email) || empty($phonenum) || empty($birth) || empty($address)) {
         $error = 'All fields are required.';
+    } elseif (!preg_match('/^[0-9]{10,11}$/', $phonenum)) {
+        $error = 'Invalid phone number.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Invalid email format.';
     } elseif (!isset($_FILES['front']) || !isset($_FILES['back']) || $_FILES['front']['error'] !== 0 || $_FILES['back']['error'] !== 0) {
@@ -60,10 +69,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             $front_ext = strtolower(pathinfo($_FILES["front"]["name"], PATHINFO_EXTENSION));
             $back_ext = strtolower(pathinfo($_FILES["back"]["name"], PATHINFO_EXTENSION));
-            $allowed_exts = ['jpg', 'jpeg', 'png'];
+            $allowed_mimes = ['image/jpeg', 'image/png'];
 
-            if (!in_array($front_ext, $allowed_exts) || !in_array($back_ext, $allowed_exts)) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+
+            $front_mime = finfo_file($finfo, $_FILES['front']['tmp_name']);
+            $back_mime = finfo_file($finfo, $_FILES['back']['tmp_name']);
+
+            if (!in_array($front_mime, $allowed_mimes) || !in_array($back_mime, $allowed_mimes)) {
                 $error = 'Only JPG, JPEG & PNG files are allowed.';
+            } else if(($_FILES['front']['size'] > 20 * 1024 * 1024) || $_FILES['back']['size'] > 20 * 1024 * 1024) {
+                $error = 'File size is too large. Maximum limit is 10MB.';
             } else {
                 $front_data = getCompressedImageData($_FILES["front"]["tmp_name"], 60);
                 $back_data = getCompressedImageData($_FILES["back"]["tmp_name"], 60);
@@ -99,6 +115,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $insert_stmt->send_long_data(6, $back_data);
                         if ($insert_stmt->execute()) {
                             $success = "Registration successful! Your password has been sent to $email.";
+                            $_SESSION['reg_success'] = $success;
+                            header('Location: ' . $_SERVER['PHP_SELF']);
+                            exit();
                         } else {
                             $error = "Error saving data: " . $con->error;
                         }
@@ -111,6 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         $check_query->close();
+    }
+    if (!empty($error)) {
+        $_SESSION['reg_error'] = $error;
+        $_SESSION['reg_data'] = $_POST;
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit();
     }
 }
 include("../src/headerOutSide.php");
@@ -135,10 +160,10 @@ include("../src/headerOutSide.php");
                 <?php if ($success): ?>
                     <div class="alert alert-success">
                         <?= $success ?>
-                        <br><small>Redirecting to login page in <span id="countdown">10</span> seconds...</small>
+                        <br><small>Redirecting to login page in <span id="countdown">5</span> seconds...</small>
                     </div>
                     <script>
-                        let seconds = 10;
+                        let seconds = 5;
                         setInterval(function () {
                             seconds--;
                             document.getElementById('countdown').textContent = seconds;
@@ -174,7 +199,8 @@ include("../src/headerOutSide.php");
 
                 <div class="mb-3">
                     <label class="form-label">Address</label>
-                    <textarea name="address" class="form-control" rows="2"> <?= htmlspecialchars($address ?? '') ?></textarea>
+                    <textarea name="address" class="form-control"
+                        rows="2"> <?= htmlspecialchars($address ?? '') ?></textarea>
                 </div>
 
                 <div class="row">
@@ -200,13 +226,13 @@ include("../src/headerOutSide.php");
 <script>
     const errorBox = document.getElementById('error-box');
 
-    const nameInput     = document.querySelector('[name="name"]');
-    const emailInput    = document.querySelector('[name="email"]');
+    const nameInput = document.querySelector('[name="name"]');
+    const emailInput = document.querySelector('[name="email"]');
     const phonenumInput = document.querySelector('[name="phonenum"]');
-    const birthInput    = document.querySelector('[name="birth"]');
-    const addressInput  = document.querySelector('[name="address"]');
-    const frontInput    = document.querySelector('[name="front"]');
-    const backInput     = document.querySelector('[name="back"]');
+    const birthInput = document.querySelector('[name="birth"]');
+    const addressInput = document.querySelector('[name="address"]');
+    const frontInput = document.querySelector('[name="front"]');
+    const backInput = document.querySelector('[name="back"]');
 
     ['name', 'email', 'phonenum', 'birth', 'address'].forEach(fieldName => {
         const el = document.querySelector(`[name="${fieldName}"]`);

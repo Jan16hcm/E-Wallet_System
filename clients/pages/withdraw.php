@@ -39,7 +39,7 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
     } else if (empty($_POST['amount'])) {
         $error = 'Please enter the amount to withdraw';
     } else if (!is_numeric($amount)) {
-        $error = 'This is not a valid number to withdrawal';
+        $error = 'This is not a valid number to withdraw';
     } else if (getTodayWithdrawCount($_SESSION['email']) >= 2) {
         $error = 'You can only make 2 withdrawals per day. Please try again tomorrow';
     } else {
@@ -49,7 +49,7 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
         
         if ($amount <= 0) {
             //put link to deposit page here -----------------
-            $error = 'Please visit the <a href="">deposit page</a> if you want to deposit';
+            $error = 'Please visit the <a href="deposit.php">deposit page</a> if you want to deposit';
         } else if ($amount % 50000 != 0) {
             $error = 'Withdrawal amount must be a multiple of 50,000 VND.';
         } else if (!empty($date_error)) {
@@ -70,7 +70,7 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
                 $withd->bind_result($selfPhone, $selfamount);
                 if (!$withd->fetch()) {
                     //Bound variable (selfPhone) keep it last successfully fetched values - they are not reset to null automatically
-                    $error = "Can\'t find user account";
+                    $error = 'User account not found';
                 }
             }
 
@@ -79,11 +79,13 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
                     $error = 'Insufficient balance. You need ' . formatMoney($totalDeduct) . ' (including 5% fee) but have ' . formatMoney($selfamount);
                 } else {
                     $status = $amount > 5000000 ? 2 : 1; //5 milion need approve
-                    $date = date('Y-m-d H:i:s'); // current date/time
+                    $transfer_type = "Withdraw";
+                    $selfFeeBear = true;
                     //selfFeeBear is true because 5% fee is applied to user who withdraw
-                    $withd = $con->prepare("INSERT INTO history (user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, fee_bearer) VALUES (?, Withdraw, ?, ?, ?, " . $date . ", ?, ?, " . $status . ", true)");
+                    $date = date('Y-m-d H:i:s'); // current date/time
+                    $withd = $con->prepare("INSERT INTO history (user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, $date, ?, ?, $status, $selfFeeBear)");
                     //maybe should rename expiration to expire
-                    $withd->bind_param("ssssds", $selfPhone, $card_num, $expire, $cvv, $totalDeduct, $note);
+                    $withd->bind_param("sssssds", $selfPhone, $transfer_type, $card_num, $expire, $cvv, $totalDeduct, $note);
 
                     if(!$withd->execute()){
                         $error = 'Failed to save in withdrawal history';
@@ -94,9 +96,10 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
                         if(!$withd->execute()){
                             $error = 'Failed to update user balance, cancelled the withdrawal';
                             //write cancel to history
+                            $status = 0;
                             $canceldate = date('Y-m-d H:i:s');
-                            $withd = $con->prepare("update history status = 0, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
-                            $withd->bind_param("ssds", $canceldate, $selfPhone, $totalDeduct, $date);
+                            $withd = $con->prepare("update history status = ?, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
+                            $withd->bind_param("issds", $status, $canceldate, $selfPhone, $totalDeduct, $date);
                             if(!$withd->execute()){
                                 $error = 'Failed to update user balance, failed cancelled the withdrawal. It seem like god want you to have free money';
                                 //i don't know how to handle this case
@@ -114,4 +117,14 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
         }
     }
 }
+include("../src/headerOutSide.php");
 ?>
+
+</div>
+<div id="error-msg" class="error-alert<?= empty($error) ? ' is-invisible' : '' ?>" role="alert">
+    <svg viewBox="0 0 24 24" width="16" height="16">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </svg>
+    <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
+</div>
