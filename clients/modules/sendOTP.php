@@ -94,6 +94,7 @@ function sendRegistrationEmail($email, $phonenum, $name, $password) {
     return sendEmail($email, $name, $subject, $content);
 }
 function sendOTPEmail($email, $recipientName, $otpCode) {
+    $minute = 1;//all otp is 1 minute
     $subject = 'Your OTP Verification Code';
     $content = "
         <div style='font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;'>
@@ -105,14 +106,14 @@ function sendOTPEmail($email, $recipientName, $otpCode) {
             <div style='background-color: #f8f9fc; padding: 15px; text-align: center; border-radius: 5px; margin: 20px 0;'>
                 <span style='font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #1cc88a;'>$otpCode</span>
             </div>
-            <p>This code is valid for <b>5 minutes</b>. For security reasons, please do not share this code with anyone.</p>
+            <p>This code is valid for <b>$minute minutes</b>. For security reasons, please do not share this code with anyone.</p>
             <p>If you did not request this, please ignore this email or contact our support team immediately.</p>
             <hr style='border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;'>
             <p style='font-size: 12px; color: #858796; text-align: center;'>
                 &copy; 2026 MeoMeo E-Wallet System. All rights reserved.
             </p>
         </div>";
-    $altBody = "Your verification code is: $otpCode. This code is valid for 5 minutes.";
+    $altBody = "Your verification code is: $otpCode. This code is valid for $minute minutes.";
     return sendEmail($email, $recipientName, $subject, $content, $altBody);
 }
 
