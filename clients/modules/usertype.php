@@ -18,6 +18,7 @@
             $_SESSION["verified"] = $row["verified"];
             $re = $row["verified"];
             
+            $stmt->close();
             $result->close();
             $con->close();
             return $re;
@@ -25,6 +26,7 @@
 
         $stmt->close();
         $result->close();
-        return null;// if user is not found
+        header('Location: ../pages/Login.php');
+        exit();// if user is not found
     }
 ?>
