@@ -14,11 +14,40 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+--
+CREATE DATABASE IF NOT EXISTS fakebank DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE fakebank;
+
+-- Table structure for table `user`
+--
+
+DROP TABLE IF EXISTS `user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user` (
+  `phonenum` varchar(15) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `birth` date DEFAULT NULL,
+  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `front` mediumblob,
+  `back` mediumblob,
+  `pass` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `verified` tinyint(1) NOT NULL DEFAULT '0' COMMENT '-1:firstRegist\n0:False\n1:True\n2:Request additional information\n3:IsAdmin True\n4:DisableAccount',
+  `abnormal_login` tinyint NOT NULL DEFAULT '0' COMMENT '>6 lock account\n>3 lock 1 minute',
+  `card_num` varchar(6) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `money` decimal(19,4) NOT NULL DEFAULT '0.0000',
+  `CVV` varchar(3) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `expire` date DEFAULT NULL,
+  `locked_time` datetime DEFAULT NULL COMMENT 'Disable account overtime',
+  PRIMARY KEY (`phonenum`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 
 --
 -- Table structure for table `history`
 --
-
 DROP TABLE IF EXISTS `history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -51,32 +80,6 @@ LOCK TABLES `history` WRITE;
 /*!40000 ALTER TABLE `history` ENABLE KEYS */;
 UNLOCK TABLES;
 
---
--- Table structure for table `user`
---
-
-DROP TABLE IF EXISTS `user`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `user` (
-  `phonenum` varchar(15) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `birth` date DEFAULT NULL,
-  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `front` mediumblob,
-  `back` mediumblob,
-  `pass` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `verified` tinyint(1) NOT NULL DEFAULT '0' COMMENT '-1:firstRegist\n0:False\n1:True\n2:Request additional information\n3:IsAdmin True\n4:DisableAccount',
-  `abnormal_login` tinyint NOT NULL DEFAULT '0' COMMENT '>6 lock account\n>3 lock 1 minute',
-  `card_num` varchar(6) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `money` decimal(19,4) NOT NULL DEFAULT '0.0000',
-  `CVV` varchar(3) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `expire` date DEFAULT NULL,
-  `locked_time` datetime DEFAULT NULL COMMENT 'Disable account overtime',
-  PRIMARY KEY (`phonenum`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `user`
@@ -84,7 +87,10 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES ('0000000000','admin@meomeo.com','Admin','2005-01-16','TDTU',NULL,NULL,'$2y$10$B6hq495fsonInn5zlBf7mOn.CbplMG7/Y87wCD1go.chQeGWdNk8y',3,0,NULL,0.0000,NULL,NULL,NULL),('0909090909','user3@gmail.com','Le Van C','1998-02-28','Đà Nẵng',NULL,NULL,'$2y$10$BBstCMneuLr2RJoEgEtOUualLHCJtTrC3HVvIPwOg/vYTXwxgATsO',4,0,NULL,150000.0000,NULL,NULL,NULL),('0912345678','user1@gmail.com','Tran Hoang Khai','1995-05-15','Hồ Chí Minh',NULL,NULL,'$2y$10$Wyq/jXyw6jwyxjjvxy1.ceYiYODYEOS34GfitOqthWL1llDPmZlBe',1,0,NULL,5000000.0000,NULL,NULL,NULL),('0987654321','user2@gmail.com','Tran Thi B','2000-10-20','Hà Nội',NULL,NULL,'$2y$10$WdH8txReFwer4lGWxptvpuW6D0L7MdFDTqwhGoWgNmY8m9daATH.K',0,0,NULL,0.0000,NULL,NULL,NULL);
+INSERT INTO `user` VALUES ('0000000000','admin@meomeo.com','Admin','2005-01-16','TDTU',NULL,NULL,'$2y$10$B6hq495fsonInn5zlBf7mOn.CbplMG7/Y87wCD1go.chQeGWdNk8y',3,0,NULL,0.0000,NULL,NULL,NULL),
+('0909090909','user3@gmail.com','Le Van C','1998-02-28','Đà Nẵng',NULL,NULL,'$2y$10$BBstCMneuLr2RJoEgEtOUualLHCJtTrC3HVvIPwOg/vYTXwxgATsO',4,0,NULL,150000.0000,NULL,NULL,NULL),
+('0912345678','user1@gmail.com','Tran Hoang Khai','1995-05-15','Hồ Chí Minh',NULL,NULL,'$2y$10$Wyq/jXyw6jwyxjjvxy1.ceYiYODYEOS34GfitOqthWL1llDPmZlBe',1,0,NULL,5000000.0000,NULL,NULL,NULL),
+('0987654321','user2@gmail.com','Tran Thi B','2000-10-20','Hà Nội',NULL,NULL,'$2y$10$WdH8txReFwer4lGWxptvpuW6D0L7MdFDTqwhGoWgNmY8m9daATH.K',0,0,NULL,0.0000,NULL,NULL,NULL);
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 
