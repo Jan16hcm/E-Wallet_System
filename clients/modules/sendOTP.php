@@ -48,18 +48,49 @@ function sendEmail($recipientEmail, $recipientName, $subject, $content, $altBody
         return false;
     }
 }
-function sendRegistrationEmail($email, $name, $password) {
-    $subject = "Welcome to MeoMeo Wallet - Account Created";
-    $content = "
-        <div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
-            <h3 style='color: #0d6efd;'>Welcome, $name!</h3>
-            <p>Your account has been created successfully. You can now login using either your <b>Email</b> or <b>Phone Number</b>.</p>
-            <div style='background: #f4f4f4; padding: 10px; border-radius: 5px; margin: 15px 0;'>
-                <p style='margin: 0;'>Your temporary password is: <b style='font-size: 18px; color: #0d6efd;'>$password</b></p>
-            </div>
-            <p style='font-size: 13px; color: #666;'>Please change your password after logging in for the first time.</p>
-        </div>";
+function sendRegistrationEmail($email, $phonenum, $name, $password) {
+    $subject = "Welcome to MeoMeo Wallet - Get Started Now!";
+    $link_page = "http://meomeo.baby/clients/pages/Login.php";
+    $brand_color = "#7C3AED";
     
+    $content = "
+        <div style='font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 16px; overflow: hidden;'>
+            <div style='background-color: #1A1530; padding: 30px; text-align: center;'>
+                <h1 style='color: white; margin: 0; font-size: 28px;'>MeoMeo Wallet</h1>
+                <p style='color: #B8AED4; margin-top: 10px;'>Your financial journey starts here!</p>
+            </div>
+
+            <div style='padding: 40px 30px; background-color: #ffffff; color: #333;'>
+                <h2 style='color: $brand_color; margin-top: 0;'>Hi $name,</h2>
+                <p style='line-height: 1.6;'>Welcome to the family! Your account has been successfully created. You can now manage your assets, track spending, and make transfers with ease.</p>
+                
+                <div style='background-color: #F8F7FF; border-left: 4px solid $brand_color; padding: 20px; margin: 25px 0;'>
+                    <p style='margin: 0 0 10px 0; font-weight: bold; color: #555;'>Login Credentials:</p>
+                    <p style='margin: 5px 0;'><b>Username:</b> $email (or $phonenum)</p>
+                    <p style='margin: 5px 0;'><b>Temporary Password:</b> <span style='color: $brand_color; font-size: 18px; font-weight: bold;'>$password</span></p>
+                </div>
+
+                <h3 style='font-size: 18px; color: #333;'>Quick Start Guide:</h3>
+                <ol style='line-height: 1.8; padding-left: 20px;'>
+                    <li><b>Log in:</b> Access your dashboard using the credentials above.</li>
+                    <li><b>Secure your account:</b> Go to settings and change your temporary password immediately.</li>
+                    <li><b>Explore:</b> Link your cards and start your first transaction!</li>
+                </ol>
+
+                <div style='text-align: center; margin-top: 35px;'>
+                    <a href='$link_page' style='background-color: $brand_color; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;'>Go to My Wallet</a>
+                </div>
+            </div>
+
+            <div style='background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee;'>
+                <p style='font-size: 12px; color: #888; margin: 0;'>
+                    If you did not create this account, please ignore this email or contact support.<br><br>
+                    &copy; 2026 MeoMeo Wallet Team. All rights reserved.
+                </p>
+            </div>
+        </div>
+    ";
+
     return sendEmail($email, $name, $subject, $content);
 }
 function sendOTPEmail($email, $recipientName, $otpCode) {
