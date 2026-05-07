@@ -78,14 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                         $insert_stmt = $con->prepare(
                             "INSERT INTO user (`phonenum`, `email`, `name`, `birth`, `address`, `front`, `back`, `pass`, `verified`)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, -1)"
                         );
 
                         // s=string, b=blob
-                        $verified = 0; // default to not verified
+                        //$verified = -1; // default to not verified -1 =? first register
                         $null = null;
                         $insert_stmt->bind_param(
-                            "sssssbbsi",
+                            "sssssbbs",
                             $phonenum,
                             $email,
                             $name,
@@ -93,19 +93,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $address,
                             $null,
                             $null,
-                            $password_to_store,
-                            $verified
+                            $password_to_store
                         );
                         $insert_stmt->send_long_data(5, $front_data);
                         $insert_stmt->send_long_data(6, $back_data);
                         if ($insert_stmt->execute()) {
                             $success = "Registration successful! Your password has been sent to $email.";
-                            $insert_stmt->close();
-                            $con->close();
                         } else {
                             $error = "Error saving data: " . $con->error;
-                            $insert_stmt->close();
                         }
+                        $insert_stmt->close();
+                        $con->close();
                     } else {
                         $error = "Account created but failed to send email. Please contact support.";
                     }
