@@ -63,6 +63,12 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
     $stmt->close();
 
     if ($new_attem >= 6) {
+        $updateQuery = $isEmail ? "UPDATE `user` SET `verified` = 4 WHERE `email` = ?"
+        : "UPDATE `user` SET `verified` = 4 WHERE phonenum = ?";
+        $stmt = $con->prepare($updateQuery);
+        $stmt->bind_param("s", $e_or_p);
+        $stmt->execute();
+        $stmt->close();
         return ['Account has been locked due to entering the wrong password many times, please contact the administrator for support.', -1];
     }
     if ($new_attem == 3) {
