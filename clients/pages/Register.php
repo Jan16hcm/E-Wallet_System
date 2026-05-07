@@ -127,7 +127,7 @@ include("../src/headerOutSide.php");
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <form action="register.php" method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow">
+            <form action="Register.php" method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow">
                 <h2 class="text-center mb-4">Sign up</h2>
 
                 <div class="alert alert-danger <?= empty($error) ? 'invisible' : '' ?>" id="error-box">
