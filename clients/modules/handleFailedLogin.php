@@ -12,9 +12,9 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
     $res = '';
     $user_type = 1;
     if ($isEmail) {
-        $res = $con->prepare("SELECT abnormal_login, locked_time from user where email = ?");
+        $res = $con->prepare("SELECT abnormal_login, locked_time, verified from user where email = ?");
     } else {
-        $res = $con->prepare("SELECT abnormal_login, locked_time from user where phonenum = ?");
+        $res = $con->prepare("SELECT abnormal_login, locked_time, verified from user where phonenum = ?");
     }
     $res->bind_param("s", $e_or_p);
     $res->execute();
@@ -25,7 +25,7 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
     $row = $real_res->fetch_assoc();
     $attem_num = (int) $row["abnormal_login"];
     $locked_time = $row["locked_time"];
-    $user_type = (int) $row["type"];
+    $user_type = (int) $row["verified"];
     $res->close();
 
     if ($user_type === 3) { // Admin never locked
@@ -63,12 +63,6 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
     $stmt->close();
 
     if ($new_attem >= 6) {
-        $updateQuery = $isEmail ? "UPDATE `user` SET `verified` = ? WHERE `email` = ?"
-        : "UPDATE `user` SET `verified` = ? WHERE phonenum = ?";
-        $stmt = $con->prepare($updateQuery);
-        $stmt->bind_param("i", 4);
-        $stmt->execute();
-        $stmt->close();
         return ['Account has been locked due to entering the wrong password many times, please contact the administrator for support.', -1];
     }
     if ($new_attem == 3) {
