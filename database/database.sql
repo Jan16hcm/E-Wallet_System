@@ -33,7 +33,7 @@ CREATE TABLE `user` (
   `front` mediumblob,
   `back` mediumblob,
   `pass` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `verified` tinyint(1) NOT NULL DEFAULT '0' COMMENT '-1:firstRegist\n0:False\n1:True\n2:Request additional information\n3:IsAdmin True\n4:DisableAccount',
+  `verified` tinyint(1) NOT NULL DEFAULT '0' COMMENT '-1:firstRegist\n0:False\n1:True\n2:Request additional information\n3:IsAdmin True',
   `abnormal_login` tinyint NOT NULL DEFAULT '0' COMMENT '>6 lock account\n>3 lock 1 minute',
   `card_num` varchar(6) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `money` decimal(19,4) NOT NULL DEFAULT '0.0000',
