@@ -10,8 +10,8 @@ $newPass1 = '';
 $newPass2 = '';
 $error = '';
 
-if ($usertype == -1) {
-    $normalreset = false;//first login
+if ($usertype == -1 || (isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === true)) {
+    $normalreset = false;
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($_POST['newPass2'])) {
@@ -39,15 +39,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($
             } else {
                 $hash = password_hash($newPass1, PASSWORD_DEFAULT);
                 $con = connect_db();
+                $email_for_update = isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === true
+                    ? $_SESSION['reset_email_final'] // SESSIon in ForgotPassword.php
+                    : $_SESSION['email'];
                 $result = $con->prepare('UPDATE `user` SET `pass` = ?, verified = 1 WHERE `email` = ?');
                 $result->bind_param('ss', $hash, $_SESSION['email']);
                 if (!$result->execute()) {
                     $error = 'Failed to update to new password';
                 } else {
-                    header('Location: Home.php');
+                    $result->close();
+                    $con->close();
+                    if ($_SESSION['forgotPass'] === true) {
+                        session_unset();
+                        session_destroy();
+                        header('Location: Login.php');
+                        exit();
+                    } else {
+                        header('Location: Home.php');
+                    }
                     exit();
                 }
-                $result->close();
+
             }
         }
     }
