@@ -1,3 +1,4 @@
 <?php
-    echo"Update page";
+include("../src/header.php");
+echo"Update page";
 ?>

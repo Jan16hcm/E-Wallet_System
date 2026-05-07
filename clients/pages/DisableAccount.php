@@ -1,3 +1,4 @@
 <?php
-    echo"Disable page";
+include("../src/header.php");
+echo"Disable page";
 ?>

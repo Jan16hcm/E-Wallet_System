@@ -1,3 +1,4 @@
 <?php
-    echo"Waiting page";
+include("../src/header.php");
+echo"Waiting page";
 ?>
