@@ -3,7 +3,10 @@ require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
 
 $usertype = usertype();//3 == admin, 2 = Reque st additional information, -1 = first login 
-
+if($usertype != "1") {
+    header('Location: Login.php');
+    exit();
+}
 
 
 $useremail = htmlspecialchars($_SESSION['email'], ENT_QUOTES, 'UTF-8');
