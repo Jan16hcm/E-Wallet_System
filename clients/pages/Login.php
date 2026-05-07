@@ -78,22 +78,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
 
 function handleLoginRedirect(){ // Viet ra 1 ham` roi tai su dung
     $type = usertype();
-    if ($type == -1) {
-        header('Location: ChangePassword.php');
+    switch ($type) {
+        case -1:
+            header('Location: ChangePassword.php');
+            break;
+        case 0:
+            header('Location: WaitingApproval.php');
+            break;
+        case 2:
+            header('Location: UpdateInformation.php');
+            break;
+        case 3:
+            header('Location: Admin_dashboard.php');
+            break;
+        case 4:
+            header('Location: DisableAccount.php');
+            break;
+        default:
+            header('Location: Home.php');
+            break;
     }
-    if ($type == 0) {
-        header('Location: WaitingApproval.php');
-    } 
-    if ($type == 2) {
-        header('Location: UpdateInformation.php');
-    }
-    if ($type == 3) {
-        header('Location: Admin_dashboard.php');
-    } 
-    if ($type == 4) {
-        header('Location: DisableAccount.php');
-    } 
-    header('Location: Home.php');
     exit();
 }
 include("../src/headerOutSide.php");
