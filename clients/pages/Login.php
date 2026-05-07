@@ -76,21 +76,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
     exit();
 }
 
-
-function handleLoginRedirect()
-{ // Viet ra 1 ham` roi tai su dung
+function handleLoginRedirect(){ // Viet ra 1 ham` roi tai su dung
     $type = usertype();
+    if ($type == -1) {
+        header('Location: ChangePassword.php');
+    }
+    if ($type == 0) {
+        header('Location: WaitingApproval.php');
+    } 
+    if ($type == 2) {
+        header('Location: UpdateInformation.php');
+    }
     if ($type == 3) {
         header('Location: Admin_dashboard.php');
-    } else if ($type == 0) {
-        header('Location: WaitingApproval.php');
-    } else if ($type == 2) {
-        header('Location: UpdateInformation.php');
-    } else if ($type == 4) {
+    } 
+    if ($type == 4) {
         header('Location: DisableAccount.php');
-    } else {
-        header('Location: Home.php');
-    }
+    } 
+    header('Location: Home.php');
     exit();
 }
 include("../src/headerOutSide.php");
