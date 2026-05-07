@@ -191,7 +191,7 @@ include("../src/headerOutSide.php");
                 <button type="submit" class="btn btn-primary w-100">Sign up</button>
 
                 <div class="text-center mt-3 fs-5">
-                    <small>Already have an account? <a href="login.php" class="text-decoration-none">Sign in</a></small>
+                    <small>Already have an account? <a href="Login.php" class="text-decoration-none">Sign in</a></small>
                 </div>
             </form>
         </div>
