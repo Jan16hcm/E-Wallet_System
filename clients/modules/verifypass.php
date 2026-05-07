@@ -22,7 +22,7 @@
                 $_SESSION["money"] = $row["money"];
                 
                 $res = $con->prepare("SELECT `card_num` FROM `history` WHERE `user_phone` = ? ORDER BY `date_transfer` desc limit 1");
-                $_SESSION["card_num"] = $row["card_num"];
+                $_SESSION["card_num"] = $row["card_num"] ?? '';
                 $real_res->close();
                 $res->close();
                 $con->close();
