@@ -11,6 +11,7 @@ unset($_SESSION['login_error']);
 $pass = '';
 $lock = 0;
 $isEmail = false;
+$lock_seconds = 0;
 
 if (isset($_SESSION['email'])) {
     handleLoginRedirect();
