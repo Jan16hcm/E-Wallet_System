@@ -82,6 +82,12 @@ function handleLoginRedirect()
     $type = usertype();
     if ($type == 3) {
         header('Location: Admin_dashboard.php');
+    } else if ($type == 0) {
+        header('Location: WaitingApproval.php');
+    } else if ($type == 2) {
+        header('Location: UpdateInformation.php');
+    } else if ($type == 4) {
+        header('Location: DisableAccount.php');
     } else {
         header('Location: Home.php');
     }
