@@ -77,14 +77,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $password_to_store = password_hash($random_pass, PASSWORD_DEFAULT);
 
                         $insert_stmt = $con->prepare(
-                            "INSERT INTO user (`phonenum`, `email`, `name`, `birth`, `address`, `front`, `back`, `pass`)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                            "INSERT INTO user (`phonenum`, `email`, `name`, `birth`, `address`, `front`, `back`, `pass`, `verified`)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                         );
 
                         // s=string, b=blob
+                        $verified = 0; // default to not verified
                         $null = null;
                         $insert_stmt->bind_param(
-                            "sssssbbs",
+                            "sssssbbsi",
                             $phonenum,
                             $email,
                             $name,
@@ -92,7 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $address,
                             $null,
                             $null,
-                            $password_to_store
+                            $password_to_store,
+                            $verified
                         );
                         $insert_stmt->send_long_data(5, $front_data);
                         $insert_stmt->send_long_data(6, $back_data);
