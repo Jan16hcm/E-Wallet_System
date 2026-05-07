@@ -93,10 +93,7 @@ include("../src/headerOutSide.php");
     <div class="auth-box">
         <div class="brand-mark">
             <div class="brand-icon">
-                <svg viewBox="0 0 24 24">
-                    <path
-                        d="M19 7h-1V6a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V10a3 3 0 0 0-3-3ZM5 5h10a1 1 0 0 1 1 1v1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm14 14H5a1 1 0 0 1-1-1V9h15v1h-3a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3h3v1a1 1 0 0 1-1 1Zm3-6v2h-3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h3v2Z" />
-                </svg>
+                <i class="fa-solid fa-wallet fs-4"></i>
             </div>
             <span class="brand-name">MeoMeo Wallet</span>
         </div>
