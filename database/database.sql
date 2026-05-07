@@ -28,7 +28,7 @@ CREATE TABLE `history` (
   `receiver_phone` varchar(15) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'SĐT người nhận (nếu là chuyển khoản)',
   `transfer_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'Transferto' COMMENT 'Transferto/Transferby/Withdraw/Buycard',
   `card_num` varchar(6) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `expiration` date NOT NULL,
+  `expire` date NOT NULL,
   `CVV` varchar(3) COLLATE utf8mb4_unicode_ci NOT NULL,
   `date_transfer` datetime NOT NULL,
   `date_confirm` datetime DEFAULT NULL COMMENT 'date admin approve/cancelled',
