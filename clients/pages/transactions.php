@@ -2,6 +2,7 @@
 include_once("../modules/db_connection.php");
 include_once("../modules/usertype.php");
 include_once("../modules/formatMoney.php");
+include_once("../modules/generateIdCode.php");
 
 $usertype = usertype();
 $page = max(1, (int)($_GET['page'] ?? 1));//no -number
@@ -11,11 +12,7 @@ $count = 0;
 $offset = ($page - 1) * $perPage;
 $filter = $_GET['transfer_type'] ?? '';
 //Deposit/Transferto/Transferby/Withdraw/Buycard
-$error = '';
-
-if ($usertype != 1 && $usertype != 3) {
-    $error = 'This function is only for verified accounts';
-}
+$error = checkuser($usertype);
 
 if(empty($error)){
     $con = connect_db();

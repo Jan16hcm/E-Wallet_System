@@ -3,6 +3,7 @@ include_once("../modules/db_connection.php");
 include_once("../modules/usertype.php");
 include_once("../modules/formatMoney.php");
 include_once("../modules/receipt.php");
+include_once("../modules/generateIdCode.php");
 
 $usertype = usertype();
 $step = $_GET['step'] ?? 1;
@@ -11,15 +12,7 @@ $recipientPhone = '';
 $amount = 0;
 $note = '';
 $selfFeeBear = false;//false -> recipient bear 5% fee; true -> sender bear 5% fee
-$error = '';
-
-if($usertype != 1 || $usertype != 3) {//1: verified; 3: admin
-    if ($_SERVER['REQUEST_METHOD'] == 'POST'){
-        $error = 'Please wait for verification before using this feature';
-    } else {
-        $error = 'This function is only for verified account';
-    }
-}
+$error = checkuser($usertype);
 
 if (isset($_POST['recipientPhone']) && isset($_POST['amount']) && $step == 1 && empty($error)){
     $recipientPhone = trim($_POST['recipientPhone'] ?? '');
@@ -127,16 +120,18 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
             } else {
                 unset($_SESSION['otp']);
                 unset($_SESSION['otp_expire']);
+                
                 $t = $_SESSION['transfer']; //to shorten lonnnng name
                 $status = $t['amount'] > 5000000 ? 2 : 1; //5 milion need approve
                 //1 == completed == Approved; 2 == Pending
                 $transfer_type = "Transfer";
                 $date = date('Y-m-d H:i:s'); // current date/time 
                 //MySQL expects: YYYY-MM-DD HH:MM:SS
+                $id = generateIdCode($selfPhone, 1);
 
                 $con = connect_db();
-                $tran = $con->prepare("INSERT INTO history (user_phone, receiver_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, $date, ?, ?, $status, ?)");
-                $tran->bind_param("sssdsi", $t['selfPhone'], $t['recipientPhone'], $transfer_type, $t['amount'], $t['note'], $t['selfFeeBear']);
+                $tran = $con->prepare("INSERT INTO history (id, user_phone, receiver_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, $date, ?, ?, $status, ?)");
+                $tran->bind_param("ssssdsi", $id, $t['selfPhone'], $t['recipientPhone'], $transfer_type, $t['amount'], $t['note'], $t['selfFeeBear']);
                 //bool => integer (i) if sql TINYINT(1) or string (s)
                 if(!$tran->execute()){
                     $error = 'Failed to save in transfer history';
@@ -149,8 +144,8 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
                         //write cancel to history
                         $status = 0;
                         $canceldate = date('Y-m-d H:i:s');
-                        $withd = $con->prepare("update history status = ?, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
-                        $withd->bind_param("issds", $status, $canceldate, $t['selfPhone'], $t['amount'], $date);
+                        $withd = $con->prepare("update history status = ?, date_confirm = ? where id = ?");
+                        $withd->bind_param("iss", $status, $canceldate, $id);
                         if(!$withd->execute()){
                             $error = 'Failed to update user balance, failed cancelled the withdrawal. It seem like god want you to have free money';
                             //i don't know how to handle this case
@@ -160,7 +155,7 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
 
                         $tran = $con->prepare("update user set money = money + ? where phonenum = ?");
                         $tran->bind_param("ds", $t['recipientGet'], $t['recipientPhone']);
-                        $tran->execute();//shouldn't fail?
+                        $tran->execute();//shouldn't fail if the first one work?
 
                         //get recipient email and balance
                         $email = '';
