@@ -52,13 +52,13 @@ DROP TABLE IF EXISTS `history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `history` (
-  `id` int NOT NULL AUTO_INCREMENT,
+  `id` varchar(30) NOT NULL COMMENT '14 char from max time length + 6-16 phonenum length',
   `user_phone` varchar(15) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'SĐT người thực hiện giao dịch',
   `receiver_phone` varchar(15) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'SĐT người nhận (nếu là chuyển khoản)',
-  `transfer_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'Transferto' COMMENT 'Transfer/Deposit/Withdraw/Buycard',
-  `card_num` varchar(6) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `expire` date NOT NULL,
-  `CVV` varchar(3) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `transfer_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'Transfer' COMMENT 'Transfer/Deposit/Withdraw/Buycard',
+  `card_num` varchar(6) COLLATE utf8mb4_unicode_ci NULL,
+  `expire` date NULL,
+  `CVV` varchar(3) COLLATE utf8mb4_unicode_ci NULL,
   `date_transfer` datetime NOT NULL,
   `date_confirm` datetime DEFAULT NULL COMMENT 'date admin approve/cancelled',
   `money` decimal(19,4) NOT NULL DEFAULT '0.0000',
