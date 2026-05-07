@@ -60,18 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
         } else {
             if (verifypass($pass, $e_or_p, $isEmail)) {
                 $con = connect_db();
-                $resetQuery = $isEmail ? "UPDATE user SET abnormal_login = 0, locked_time = NULL WHERE email = ?"
-                    : "UPDATE user SET abnormal_login = 0, locked_time = NULL WHERE phonenum = ?";
+                $resetQuery = $isEmail ? "UPDATE user SET `abnormal_login` = 0, `locked_time` = NULL WHERE `email` = ?"
+                    : "UPDATE user SET `abnormal_login` = 0, `locked_time` = NULL WHERE `phonenum` = ?";
                 $stmt = $con->prepare($resetQuery);
                 $stmt->bind_param("s", $e_or_p);
                 $stmt->execute();
                 $stmt->close();
-
-                if(usertype() == 4) {
-                    $error = "Account has been locked due to entering the wrong password many times, please contact the administrator for support.";
-                } else {
-                    handleLoginRedirect();
-                }
+                handleLoginRedirect();         
             } else {
                 $lock = handleFailedLogin(new DateTime(), $e_or_p, $isEmail);
                 $error = $lock[0];
