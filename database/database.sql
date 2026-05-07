@@ -26,7 +26,7 @@ CREATE TABLE `history` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_phone` varchar(15) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'SĐT người thực hiện giao dịch',
   `receiver_phone` varchar(15) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'SĐT người nhận (nếu là chuyển khoản)',
-  `transfer_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'Transferto' COMMENT 'Transferto/Transferby/Withdraw/Buycard',
+  `transfer_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'Transferto' COMMENT 'Transfer/Deposit/Withdraw/Buycard',
   `card_num` varchar(6) COLLATE utf8mb4_unicode_ci NOT NULL,
   `expire` date NOT NULL,
   `CVV` varchar(3) COLLATE utf8mb4_unicode_ci NOT NULL,
