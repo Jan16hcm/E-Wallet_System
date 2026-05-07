@@ -9,6 +9,28 @@ include_once("../modules/db_connection.php");
 include_once("../modules/sendOTP.php");
 include_once("../modules/isValidDate.php");
 
+function getCompressedImageData($source, $quality)
+{
+    $info = getimagesize($source);
+    if ($info['mime'] == 'image/jpeg') {
+        $image = imagecreatefromjpeg($source);
+    } elseif ($info['mime'] == 'image/gif') {
+        $image = imagecreatefromgif($source);
+    } elseif ($info['mime'] == 'image/png') {
+        $image = imagecreatefrompng($source);
+    } else {
+        return false;
+    }
+
+    ob_start();
+    imagejpeg($image, null, $quality);
+    $imageData = ob_get_contents();
+    ob_end_clean();
+
+    imagedestroy($image);
+    return $imageData;
+}
+
 $error = '';
 $success = '';
 
@@ -36,11 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($result->num_rows > 0) {
             $error = 'Email or Phone number already registered.';
         } else {
-            $target_dir = "../uploads/";
-            if (!is_dir($target_dir)) {
-                mkdir($target_dir, 0777, true);
-            }
-
             $front_ext = strtolower(pathinfo($_FILES["front"]["name"], PATHINFO_EXTENSION));
             $back_ext = strtolower(pathinfo($_FILES["back"]["name"], PATHINFO_EXTENSION));
             $allowed_exts = ['jpg', 'jpeg', 'png'];
@@ -48,44 +65,55 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!in_array($front_ext, $allowed_exts) || !in_array($back_ext, $allowed_exts)) {
                 $error = 'Only JPG, JPEG & PNG files are allowed.';
             } else {
-                $front_new_name = "FRONT_" . time() . "_" . uniqid() . "." . $front_ext;
-                $back_new_name = "BACK_" . time() . "_" . uniqid() . "." . $back_ext;
+                $front_data = getCompressedImageData($_FILES["front"]["tmp_name"], 60);
+                $back_data = getCompressedImageData($_FILES["back"]["tmp_name"], 60);
 
-                $front_path = $target_dir . $front_new_name;
-                $back_path = $target_dir . $back_new_name;
-
-                if (
-                    move_uploaded_file($_FILES["front"]["tmp_name"], $front_path) &&
-                    move_uploaded_file($_FILES["back"]["tmp_name"], $back_path)
-                ) {
-
+                if ($front_data === false || $back_data === false) {
+                    $error = 'Failed to process images. Please upload valid image files.';
+                } else {
                     $random_pass = substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyz"), 0, 6);
-                    if (sendRegistrationEmail($email, $name, $random_pass)) {
-                        $password_to_store = password_hash($random_pass, PASSWORD_DEFAULT);
-                        // 8. Lưu vào Database
-                        // Lưu ý: Password nên hash nếu không có yêu cầu lưu text thô
-                        $insert_stmt = $con->prepare("INSERT INTO user (`phonenum`, `email`, `name`, `birth`, `address`, `front`, `back`, `pass`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $insert_stmt->bind_param("sssssbbs", $phonenum, $email, $name, $birth, $address, $front_new_name, $back_new_name, $password_to_store);
 
+                    if (sendRegistrationEmail($email, $phonenum, $name, $random_pass)) {
+                        $password_to_store = password_hash($random_pass, PASSWORD_DEFAULT);
+
+                        $insert_stmt = $con->prepare(
+                            "INSERT INTO user (`phonenum`, `email`, `name`, `birth`, `address`, `front`, `back`, `pass`, `verified`)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                        );
+
+                        // s=string, b=blob
+                        $verified = 0; // default to not verified
+                        $null = null;
+                        $insert_stmt->bind_param(
+                            "sssssbbsi",
+                            $phonenum,
+                            $email,
+                            $name,
+                            $birth,
+                            $address,
+                            $null,
+                            $null,
+                            $password_to_store,
+                            $verified
+                        );
+                        $insert_stmt->send_long_data(5, $front_data);
+                        $insert_stmt->send_long_data(6, $back_data);
                         if ($insert_stmt->execute()) {
                             $success = "Registration successful! Your password has been sent to $email.";
-                            sleep(5);
-                            header("Location: Login.php");
+                            $insert_stmt->close();
+                            $con->close();
                         } else {
                             $error = "Error saving data: " . $con->error;
+                            $insert_stmt->close();
                         }
-                        $insert_stmt->close();
                     } else {
                         $error = "Account created but failed to send email. Please contact support.";
                     }
-                } else {
-                    $error = "Failed to upload images. Please check folder permissions.";
                 }
             }
         }
         $check_query->close();
     }
-    $con->close();
 }
 include("../src/headerOutSide.php");
 ?>
@@ -102,44 +130,63 @@ include("../src/headerOutSide.php");
             <form action="register.php" method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow">
                 <h2 class="text-center mb-4">Sign up</h2>
 
-                <?php if ($error): ?>
-                    <div class="alert alert-danger"><?= $error ?></div> <?php endif; ?>
+                <div class="alert alert-danger <?= empty($error) ? 'invisible' : '' ?>" id="error-box">
+                    <?= !empty($error) ? $error : '&nbsp;' ?>
+                </div>
+
                 <?php if ($success): ?>
-                    <div class="alert alert-success"><?= $success ?></div> <?php endif; ?>
+                    <div class="alert alert-success">
+                        <?= $success ?>
+                        <br><small>Redirecting to login page in <span id="countdown">10</span> seconds...</small>
+                    </div>
+                    <script>
+                        let seconds = 10;
+                        setInterval(function () {
+                            seconds--;
+                            document.getElementById('countdown').textContent = seconds;
+                            if (seconds <= 0) {
+                                window.location.href = 'Login.php';
+                            }
+                        }, 1000);
+                    </script>
+                <?php endif; ?>
 
                 <div class="mb-3">
                     <label class="form-label">Full Name</label>
-                    <input type="text" name="name" class="form-control" placeholder="Full name" required>
+                    <input type="text" name="name" class="form-control" placeholder="Full name"
+                        value="<?= htmlspecialchars($name ?? '') ?>">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-control" placeholder="Email address" required>
+                    <input type="email" name="email" class="form-control" placeholder="Email address"
+                        value="<?= htmlspecialchars($email ?? '') ?>">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Phone Number</label>
-                    <input type="text" name="phonenum" class="form-control" placeholder="Phone number" required>
+                    <input type="text" name="phonenum" class="form-control" placeholder="Phone number"
+                        value="<?= htmlspecialchars($phonenum ?? '') ?>">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Date of Birth</label>
-                    <input type="date" name="birth" class="form-control" required>
+                    <input type="date" name="birth" class="form-control" value="<?= htmlspecialchars($birth ?? '') ?>">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Address</label>
-                    <textarea name="address" class="form-control" rows="2" required></textarea>
+                    <textarea name="address" class="form-control" rows="2"> <?= htmlspecialchars($address ?? '') ?></textarea>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">ID Card Front</label>
-                        <input type="file" name="front" class="form-control" accept="image/*" required>
+                        <input type="file" name="front" class="form-control" accept="image/*">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">ID Card Back</label>
-                        <input type="file" name="back" class="form-control" accept="image/*" required>
+                        <input type="file" name="back" class="form-control" accept="image/*">
                     </div>
                 </div>
 
@@ -152,4 +199,41 @@ include("../src/headerOutSide.php");
         </div>
     </div>
 </div>
+<script>
+    const errorBox = document.getElementById('error-box');
+
+    const nameInput     = document.querySelector('[name="name"]');
+    const emailInput    = document.querySelector('[name="email"]');
+    const phonenumInput = document.querySelector('[name="phonenum"]');
+    const birthInput    = document.querySelector('[name="birth"]');
+    const addressInput  = document.querySelector('[name="address"]');
+    const frontInput    = document.querySelector('[name="front"]');
+    const backInput     = document.querySelector('[name="back"]');
+
+    ['name', 'email', 'phonenum', 'birth', 'address'].forEach(fieldName => {
+        const el = document.querySelector(`[name="${fieldName}"]`);
+        if (el) el.addEventListener('input', () => errorBox.classList.add('invisible'));
+    });
+
+    <?php if ($error): ?>
+        <?php if (empty($_POST['name'])): ?>
+            nameInput.focus();
+        <?php elseif (empty($_POST['email'])): ?>
+            emailInput.focus();
+        <?php elseif (empty($_POST['phonenum'])): ?>
+            phonenumInput.focus();
+        <?php elseif (empty($_POST['birth'])): ?>
+            birthInput.focus();
+        <?php elseif (empty($_POST['address'])): ?>
+            addressInput.focus();
+        <?php elseif (strpos($error, 'email') !== false || strpos($error, 'Email') !== false): ?>
+            emailInput.focus();
+        <?php elseif (strpos($error, 'Phone') !== false || strpos($error, 'phone') !== false): ?>
+            phonenumInput.focus();
+        <?php elseif (strpos($error, 'ID') !== false || strpos($error, 'front') !== false || strpos($error, 'back') !== false): ?>
+            frontInput.focus();
+        <?php endif; ?>
+    <?php endif; ?>
+</script>
+
 <?php include("../src/footer.php"); ?>

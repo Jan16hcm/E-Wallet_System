@@ -3,7 +3,7 @@
     require_once("../modules/db_connection.php");
     $admin = $_SESSION["verified"];
     if($admin != 3) {
-        header("Location: Home.php");
+        header("Location: Login.php");
     } else {
         include("../src/header.php");   
 
