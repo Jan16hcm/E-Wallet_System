@@ -3,11 +3,11 @@
     function verifypass(String $pass, String $e_or_p, bool $isEmail) {
         $con = connect_db();
         if($isEmail) {
-            $res = $con->prepare("SELECT `pass`, `email`, `phonenum`, `name`, `money` FROM `user` WHERE `email` = ? and `abnormal_login` < 7");
+            $res = $con->prepare("SELECT `pass`, `email`, `phonenum`, `name`, `money` FROM `user` WHERE `email` = ? and `abnormal_login` < 6");
             $res1 = $con->prepare("SELECT card_num FROM history WHERE user_phone = ? ORDER BY date_transfer desc limit 1");
             //get email where email = email
         } else {
-            $res = $con->prepare("SELECT `pass`, `email`, `phonenum`, `name`, `money` FROM `user` WHERE `phonenum` = ? and `abnormal_login` < 7");
+            $res = $con->prepare("SELECT `pass`, `email`, `phonenum`, `name`, `money` FROM `user` WHERE `phonenum` = ? and `abnormal_login` < 6");
         }
         $res->bind_param("s", $e_or_p);
         $res->execute();
@@ -22,7 +22,7 @@
                 $_SESSION["money"] = $row["money"];
                 
                 $res = $con->prepare("SELECT `card_num` FROM `history` WHERE `user_phone` = ? ORDER BY `date_transfer` desc limit 1");
-                $_SESSION["card_num"] = $row["card_num"];
+                $_SESSION["card_num"] = $row["card_num"] ?? '';
                 $real_res->close();
                 $res->close();
                 $con->close();
