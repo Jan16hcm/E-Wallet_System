@@ -40,12 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($
                 $hash = password_hash($newPass1, PASSWORD_DEFAULT);
                 $con = connect_db();
                 $email_for_update = isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === true
-                    ? $_SESSION['reset_email_final'] // SESSIon in ForgotPassword.php
+                    ? $_SESSION['reset_email_final'] // Session in ForgotPassword.php
                     : $_SESSION['email'];
-                $result = $con->prepare('UPDATE `user` SET `pass` = ?, verified = 1 WHERE `email` = ?');
+                $result = $con->prepare('UPDATE `user` SET `pass` = ? WHERE `email` = ?');
+                //change password does not mean the user is verified, admin need to verify manually
                 $result->bind_param('ss', $hash, $_SESSION['email']);
                 if (!$result->execute()) {
                     $error = 'Failed to update to new password';
+                    $result->close();
+                    $con->close();
                 } else {
                     $result->close();
                     $con->close();
@@ -53,9 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($
                         session_unset();
                         session_destroy();
                         header('Location: Login.php');
-                        exit();
                     } else {
-                        header('Location: Home.php');
+                        header('Location: Home.php');//change password
                     }
                     exit();
                 }
