@@ -30,7 +30,15 @@ function getCompressedImageData($source, $quality)
     imagedestroy($image);
     return $imageData;
 }
+$error = $_SESSION['reg_error'] ?? '';
+$success = $_SESSION['reg_success'] ?? '';
+$name = $_SESSION['reg_data']['name'] ?? '';
+$email = $_SESSION['reg_data']['email'] ?? '';
+$phonenum = $_SESSION['reg_data']['phonenum'] ?? '';
+$birth = $_SESSION['reg_data']['birth'] ?? '';
+$address = $_SESSION['reg_data']['address'] ?? '';
 
+unset($_SESSION['reg_error'], $_SESSION['reg_success'], $_SESSION['reg_data']);
 $error = '';
 $success = '';
 
@@ -99,6 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $insert_stmt->send_long_data(6, $back_data);
                         if ($insert_stmt->execute()) {
                             $success = "Registration successful! Your password has been sent to $email.";
+                            $_SESSION['reg_success'] = $success;
+                            header('Location: ' . $_SERVER['PHP_SELF']);
+                            exit();
                         } else {
                             $error = "Error saving data: " . $con->error;
                         }
@@ -111,6 +122,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         $check_query->close();
+    }
+    if (!empty($error)) {
+        $_SESSION['reg_error'] = $error;
+        $_SESSION['reg_data'] = $_POST;
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit();
     }
 }
 include("../src/headerOutSide.php");
@@ -174,7 +191,8 @@ include("../src/headerOutSide.php");
 
                 <div class="mb-3">
                     <label class="form-label">Address</label>
-                    <textarea name="address" class="form-control" rows="2"> <?= htmlspecialchars($address ?? '') ?></textarea>
+                    <textarea name="address" class="form-control"
+                        rows="2"> <?= htmlspecialchars($address ?? '') ?></textarea>
                 </div>
 
                 <div class="row">
@@ -200,13 +218,13 @@ include("../src/headerOutSide.php");
 <script>
     const errorBox = document.getElementById('error-box');
 
-    const nameInput     = document.querySelector('[name="name"]');
-    const emailInput    = document.querySelector('[name="email"]');
+    const nameInput = document.querySelector('[name="name"]');
+    const emailInput = document.querySelector('[name="email"]');
     const phonenumInput = document.querySelector('[name="phonenum"]');
-    const birthInput    = document.querySelector('[name="birth"]');
-    const addressInput  = document.querySelector('[name="address"]');
-    const frontInput    = document.querySelector('[name="front"]');
-    const backInput     = document.querySelector('[name="back"]');
+    const birthInput = document.querySelector('[name="birth"]');
+    const addressInput = document.querySelector('[name="address"]');
+    const frontInput = document.querySelector('[name="front"]');
+    const backInput = document.querySelector('[name="back"]');
 
     ['name', 'email', 'phonenum', 'birth', 'address'].forEach(fieldName => {
         const el = document.querySelector(`[name="${fieldName}"]`);
