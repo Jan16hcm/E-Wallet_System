@@ -113,7 +113,8 @@ ALTER TABLE `phonecard`
 --
 ALTER TABLE `user`
   ADD PRIMARY KEY (`phonenum`);
-
+ALTER TABLE `user` 
+  ADD UNIQUE (`email`);
 --
 -- Constraints for dumped tables
 --
