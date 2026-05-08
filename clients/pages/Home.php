@@ -1,13 +1,19 @@
 <?php
 require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
+require_once '../../vendor/autoload.php';
 
-$usertype = usertype();//3 == admin, 2 = Reque st additional information, -1 = first login 
-if($usertype != "1") {
+$usertype = usertype();//3 == admin, 2 = Request additional information, -1 = first login 
+if ($usertype != "1") {
     header('Location: Login.php');
     exit();
 }
+$detect = new Detection\MobileDetect;
 
+$is_desktop = false;
+if (!$detect->isMobile() && !$detect->isTablet()) {
+    $is_desktop = true;
+}
 
 $useremail = htmlspecialchars($_SESSION['email'], ENT_QUOTES, 'UTF-8');
 $username = htmlspecialchars($_SESSION['name'], ENT_QUOTES, 'UTF-8');
@@ -37,16 +43,16 @@ include '../src/header.php';
         </div>
 
         <nav class="nav-menu">
-            <a href="home.php" class="nav-link active"><i class="fa-solid fa-border-all"></i> Dashboard</a>
-            <a href="profile.php" class="nav-link"><i class="fa-regular fa-user"></i> Accounts</a>
+            <a href="Home.php" class="nav-link active"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+            <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
             <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
             <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
             <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit
                 money</a>
-            <a href="transaction_history.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction
+            <a href="transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction
                 history</a>
-            <a href="buy_card.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
-            <a href="settings.php" class="nav-link"><i class="fa-solid fa-gear"></i> Settings</a>
+            <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+            <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
         </nav>
     </aside>
 
@@ -76,6 +82,10 @@ include '../src/header.php';
             </div>
         </div>
         <div class="mobile-services-grid">
+            <a href="Profile.php" class="service-item">
+                <div class="icon-box"><i class="fa-solid fa-user"></i></div>
+                <span>Profile</span>
+            </a>
             <a href="deposit.php" class="service-item">
                 <div class="icon-box"><i class="fa-solid fa-arrow-down"></i></div>
                 <span>Deposit</span>
@@ -88,9 +98,13 @@ include '../src/header.php';
                 <div class="icon-box"><i class="fa-solid fa-money-bill-transfer"></i></div>
                 <span>Transfer</span>
             </a>
-            <a href="buy_card.php" class="service-item">
+            <a href="Buycard.php" class="service-item">
                 <div class="icon-box"><i class="fa-solid fa-mobile-screen"></i></div>
                 <span>Phone Card</span>
+            </a>
+            <a href="ChangePassword.php" class="service-item">
+                <div class="icon-box"><i class="fa-solid fa-key"></i></div>
+                <span>Password</span>
             </a>
         </div>
         <div class="dashboard-grid">
@@ -144,7 +158,7 @@ include '../src/header.php';
                     <span class="widget-title">Transactions</span>
                     <div style="display: flex; gap: 8px;">
                         <div class="widget-icon"><i class="fa-solid fa-filter"></i></div>
-                        <a href="transaction_history.php" class="widget-icon" style="text-decoration:none;"><i
+                        <a href="transactions.php" class="widget-icon" style="text-decoration:none;"><i
                                 class="fa-solid fa-arrow-up-right-from-square"></i></a>
                     </div>
                 </div>
@@ -207,34 +221,29 @@ include '../src/header.php';
 
         </div>
     </main>
-    <button id="sidebarToggle" class="sidebar-toggle-btn">
-        <i class="fa-solid fa-bars"></i>
-    </button>
-
-    <div id="sidebarOverlay" class="sidebar-overlay"></div>
 </div>
 <div class="mobile-bottom-nav">
-    <a href="home.php" class="nav-item active">
+    <a href="Home.php" class="nav-item active">
         <i class="fa-solid fa-house"></i>
         <span>Home</span>
     </a>
-    <a href="transaction_history.php" class="nav-item">
+    <a href="transactions.php" class="nav-item">
         <i class="fa-solid fa-clock-rotate-left"></i>
         <span>History</span>
     </a>
-    <a href="scan.php" class="nav-item scan-btn">
+    <a href="Buycard.php" class="nav-item scan-btn">
         <div class="scan-circle">
-            <i class="fa-solid fa-qrcode"></i>
+            <i class="fa-solid fa-mobile-screen"></i>
         </div>
-        <span>Scan QR</span>
+        <span>Phone Card</span>
     </a>
     <a href="transfer.php" class="nav-item">
         <i class="fa-solid fa-arrow-right-arrow-left"></i>
         <span>Transfer</span>
     </a>
-    <a href="profile.php" class="nav-item">
-        <i class="fa-regular fa-user"></i>
-        <span>Profile</span>
+    <a href="ChangePassword.php" class="nav-item">
+        <i class="fa-solid fa-key"></i>
+        <span>Password</span>
     </a>
 </div>
 
@@ -309,39 +318,18 @@ include '../src/header.php';
         data: { labels: ['C', 'G', 'P', 'B'], datasets: [{ data: [34, 16, 8, 6], backgroundColor: gradBar, borderRadius: 6 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
     });
-    document.addEventListener('DOMContentLoaded', function () {
-        const sidebar = document.querySelector('.sidebar');
-        const toggleBtn = document.getElementById('sidebarToggle');
-        const overlay = document.getElementById('sidebarOverlay');
 
-        // Hàm đóng/mở
-        function toggleSidebar() {
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('show');
-
-            // Đổi icon từ menu sang đóng
-            const icon = toggleBtn.querySelector('i');
-            if (sidebar.classList.contains('active')) {
-                icon.classList.replace('fa-bars', 'fa-xmark');
-            } else {
-                icon.classList.replace('fa-xmark', 'fa-bars');
-            }
-        }
-
-        toggleBtn.addEventListener('click', toggleSidebar);
-        overlay.addEventListener('click', toggleSidebar);
-
-        // Đóng sidebar khi bấm vào các mục menu trên mobile
-        const navLinks = document.querySelectorAll('.nav-menu a');
-        navLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 1024) {
-                    sidebar.classList.remove('active');
-                    overlay.classList.remove('show');
-                }
-            });
-        });
-    });
 </script>
 
-<?php include '../src/footer.php'; ?>
+<?php
+if ($is_desktop) {
+    include '../src/footer.php';
+} else {
+    ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+
+    </html>
+    <?php
+}
+?>
