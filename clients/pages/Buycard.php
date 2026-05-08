@@ -3,7 +3,7 @@ include_once("../modules/db_connection.php");
 include_once("../modules/usertype.php");
 include_once("../modules/formatMoney.php");
 include_once("../modules/isValidCard.php");
-include_once("../modules/generateIdCode.php");
+include_once("../modules/generateCode.php");
 
 $usertype = usertype();
 $error = checkuser($usertype);
@@ -12,7 +12,7 @@ $carrier = '';
 $denomination = 0;
 $quantity = 0;
 $note = '';
-$carriers = CARRIERS;//['Viettel'  =>'11111', 'Mobifone' =>'22222', 'Vinaphone'=>'33333']
+$carriers = CARRIERS;//['Viettel'=>'11111','Mobifone'=>'22222','Vinaphone'=>'33333']
 $denoms = CARD_DENOMINATIONS;//[10000, 20000, 50000, 100000]
 $codes = array();
 $user_money = 0;
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
     } elseif ($quantity < 1 || $quantity > 5) {
         $error = 'You can buy between 1 and 5 cards at a time';
     } else {
-        $total = $denomination*$quantity;
+        $total = ($denomination + $fee)*$quantity;
         $selfPhone = '';
         $con = connect_db();
         $stmt = $con->prepare("SELECT phonenum, money FROM user where email = ?");
@@ -70,8 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
                         $error = "Failed to save in phone card history at card number " . ($i + 1) . ". ";
                         $total = $denomination*$i;
                         break;
-                    } 
-                }  
+                    }
+                }
                 // Deduct balance
                 $stmt->prepare("UPDATE user SET money = money - ? WHERE phonenum = ?");
                 $stmt->bind_param("ds", $total, $selfPhone);
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
                     $stmt->bind_param("iss", $status, $canceldate, $id);
                     
                     if(!$stmt->execute()){
-                        if($total != $denomination*$quantity) {//only buy less card than expected
+                        if($total != ($denomination + $fee)*$quantity) {//only buy less card than expected
                             $error .= 'Failed to update user balance, failed to cancel the transaction to buy card.';
                             //i don't know how to handle this case
                         } else {
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
         $con->close();
     }
 }
-include("../src/headerOutSide.php");
+include("../src/header.php");
 ?>
 
 <h2>Buy Phone Cards</h2>
@@ -254,8 +254,7 @@ include("../src/headerOutSide.php");
     </div>
 </div>
 <?php endif; ?>
-
-
+<?php include("../src/footer.php"); ?>
 <script>
 function copyCode(code) {
     navigator.clipboard.writeText(code).then(() => {

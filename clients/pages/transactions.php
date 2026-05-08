@@ -2,7 +2,7 @@
 include_once("../modules/db_connection.php");
 include_once("../modules/usertype.php");
 include_once("../modules/formatMoney.php");
-include_once("../modules/generateIdCode.php");
+include_once("../modules/generateCode.php");
 
 $usertype = usertype();
 $page = max(1, (int)($_GET['page'] ?? 1));//no -number
@@ -11,7 +11,8 @@ $totalPages = 1;
 $count = 0;
 $offset = ($page - 1) * $perPage;
 $filter = $_GET['transfer_type'] ?? '';
-//Deposit/Transferto/Transferby/Withdraw/Buycard
+//Deposit/Transfer/Withdraw/Buycard
+$user_phone = '';
 $error = checkuser($usertype);
 
 if(empty($error)){
@@ -19,7 +20,6 @@ if(empty($error)){
     $stmt = $con->prepare("select phonenum from user where email = ?");
     $stmt->bind_param("s", $_SESSION["email"]);
     $stmt->execute();
-    $user_phone = '';
     $stmt->bind_result($user_phone);
     $stmt->fetch();//done get user phonenum
 
@@ -43,7 +43,7 @@ if(empty($error)){
     $totalPages = ceil($count / $perPage);
 }
 $typeIcons = ['Deposit'=>'bi-arrow-down-circle-fill','Withdraw'=>'bi-arrow-up-circle-fill','Transfer'=>'bi-arrow-left-circle-fill','Buycard'=>'bi-sim-fill'];
-include("../src/headerOutSide.php");
+include("../src/header.php");
 ?>
 
 <h2>Transaction History</h2>
@@ -79,12 +79,16 @@ include("../src/headerOutSide.php");
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($data as $tx):
-                    $amtSign = in_array($tx['transfer_type'], ['Deposit','Transfer']) ? '+' : '-';
-                    $amtClass = in_array($tx['transfer_type'], ['Deposit','Transfer']) ? 'text-success' : 'text-danger';
-                    if ($tx['status'] === 'pending') $amtClass = 'text-warning';
+                <?php foreach ($data as $i):
+                    $amtSign = in_array($i['transfer_type'], ['Deposit','Transfer']) ? '+' : '-';
+                    $amtClass = in_array($i['transfer_type'], ['Deposit','Transfer']) ? 'text-success' : 'text-danger';
+                    if($i['transfer_type'] == 'Transfer' && $i['user_phone'] == $user_phone){//=>give money => -money on user
+                        $amtSign = '-';
+                        $amtClass = 'text-danger';
+                    }
+                    if ($i['status'] === 'pending') $amtClass = 'text-warning';
                     $statusBadge = '';
-                    switch ($tx['status']) {
+                    switch ($i['status']) {
                         case 0: 
                             $statusBadge = '<span class="badge bg-success">Completed</span>';
                             break;
@@ -95,22 +99,22 @@ include("../src/headerOutSide.php");
                             $statusBadge = '<span class="badge bg-danger">Cancelled</span>';
                             break;
                         default:
-                            $statusBadge = '<span class="badge bg-secondary">' . $tx['status'] . '</span>';
+                            $statusBadge = '<span class="badge bg-secondary">' . $i['status'] . '</span>';
                     }
                 ?>
                 <tr>
                     <td>
                         <div class="d-flex align-items-center gap-2">
-                            <div class="tx-icon <?= $tx['type'] ?>" style="width:36px;height:36px;font-size:15px">
-                                <i class="bi <?= $typeIcons[$tx['transfer_type']] ?? 'bi-receipt' ?>"></i>
+                            <div class="tx-icon <?= $i['transfer_type'] ?>" style="width:36px;height:36px;font-size:15px">
+                                <i class="bi <?= $typeIcons[$i['transfer_type']] ?? 'bi-receipt' ?>"></i>
                             </div>
-                            <span class="fw-semibold"><?= $tx['type'] ?></span>
+                            <span class="fw-semibold"><?= $i['transfer_type'] ?></span>
                         </div>
                     </td>
-                    <td class="fw-bold <?= $amtClass ?>"><?= $amtSign ?><?= formatMoney($tx['money']) ?></td>
+                    <td class="<?= $amtClass ?>"><?= $amtSign ?><?= formatMoney($i['money']) ?></td>
                     <td><?= $statusBadge ?></td>
-                    <td class="text-muted" style="font-size:13px"><?= date('d/m/Y H:i', strtotime($tx['date_transfer'])) ?></td>
-                    <td><a href="transaction_detail.php?id=<?= $tx['id'] ?>" class="btn btn-sm btn-outline-secondary">View</a></td>
+                    <td class="text-muted" style="font-size:13px"><?= date('d/m/Y H:i', strtotime($i['date_transfer'])) ?></td>
+                    <td><a href="transaction_detail.php?id=<?= $i['id'] ?>" class="btn btn-sm btn-outline-secondary">View</a></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -139,3 +143,4 @@ include("../src/headerOutSide.php");
     </svg>
     <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
 </div>
+<?php include("../src/footer.php"); ?>

@@ -3,7 +3,7 @@ include_once("../modules/db_connection.php");
 include_once("../modules/usertype.php");
 include_once("../modules/isValidDate.php");
 include_once("../modules/formatMoney.php");
-include_once("../modules/generateIdCode.php");
+include_once("../modules/generateCode.php");
 include_once("../modules/getTodayWithdrawCount.php");
 include_once("../modules/isValidCard.php");//this is getting long
 
@@ -111,8 +111,10 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
         }
     }
 }
-include("../src/headerOutSide.php");
+include("../src/header.php");
 ?>
+
+
 
 </div>
 <div id="error-msg" class="error-alert<?= empty($error) ? ' is-invisible' : '' ?>" role="alert">
@@ -122,3 +124,4 @@ include("../src/headerOutSide.php");
     </svg>
     <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
 </div>
+<?php include("../src/footer.php"); ?>

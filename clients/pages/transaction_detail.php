@@ -2,23 +2,24 @@
 include_once("../modules/db_connection.php");
 include_once("../modules/usertype.php");
 include_once("../modules/formatMoney.php");
-include_once("../modules/generateIdCode.php");
+include_once("../modules/generateCode.php");
 
 $usertype = usertype();
-$id = (int)($_GET['id'] ?? 0);
-if ($id == 0) { 
+$id = ($_GET['id'] ?? '');
+if (empty($id)) { 
     header('Location: transactions.php'); 
     exit;
 }
+
 $otherUser = array();
-$phoneCodes = array();
+$phonecard = array();
 $data = array();
 $error = checkuser($usertype);
 
 if (empty($error)){
     $con = connect_db();
     $stmt = $con->prepare("SELECT * FROM history WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt->bind_param("s", $id);
     $stmt->execute();
     $result = $stmt->get_result();
     $data = $result->fetch_all(MYSQLI_ASSOC);//size 1 array
@@ -36,25 +37,23 @@ if (empty($error)){
     }
 
     // Get phone card codes
-    /*
     if ($data['transfer_type'] == 'Buycard') {
-        $stmt = $con->prepare("SELECT * FROM phone_cards WHERE transaction_id = ?");
-        $stmt->bind_param("s", $data['phone_card']);
+        $stmt = $con->prepare("SELECT * FROM phonecard WHERE id = ?");
+        $stmt->bind_param("s", $data['id']);
         if(!$stmt->execute()){
             $error = "Database error: " . $stmt->error;
         } else {
-            $stmt->bind_result($phoneCodes);
+            $stmt->bind_result($phonecard);
             $stmt->fetch();
         }
     }
-    */
     $stmt->close();
     $con->close();
 }
 
 $iconColors = ['Deposit'=>'var(--success)','Withdraw'=>'var(--danger)','Transfer'=>'var(--info)','Buycard'=>'var(--gold)'];
 $typeIcons = ['Deposit'=>'bi-arrow-down-circle-fill','Withdraw'=>'bi-arrow-up-circle-fill','Transfer'=>'bi-arrow-left-circle-fill','Buycard'=>'bi-sim-fill'];
-include("../src/headerOutSide.php");
+include("../src/header.php");
 ?>
 
 <div>
@@ -96,7 +95,7 @@ include("../src/headerOutSide.php");
                         $badge = '<span class="badge bg-danger px-3 py-2">Cancelled</span>';
                         break;
                     default:
-                        $badge = '<span class="badge bg-secondary px-3 py-2">' . $data['status'] . '</span>';
+                        $badge = '<span class="badge bg-secondary px-3 py-2">' . $data['status'] . ' - error in database</span>';
                     }
                 echo $badge;
                 ?>
@@ -106,24 +105,30 @@ include("../src/headerOutSide.php");
 
             <div>
                 <div class="info-row">
-                    <span class="info-label">Transaction Code</span>
-                    <span class="info-value"><code><?= generateTransactionCode($data['id']) ?></code></span>
+                    <span class="info-label">Transaction id</span>
+                    <span class="info-value"><code><?= ($data['id']) ?></code></span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Date init</span>
                     <span class="info-value"><?= date('d/m/Y H:i:s', strtotime($data['date_transfer'])) ?></span>
                 </div>
+                <?php if (!empty($data['date_confirm'])): ?>
                 <div class="info-row">
-                    <span class="info-label">Date Cancelled/Approved</span>
+                    <span class="info-label">Date <?= $data['status'] == 0 ? "Cancelled" : ($data['status'] == 1 ? "Approved" : "You should not be seeing this, please contact the admin to fix") ?></span>
+                    <span class="info-value"><?= date('d/m/Y H:i:s', strtotime($data['date_confirm'])) ?></span>
                     <?php
+                    /*
                     if(!empty($data['date_confirm'])){
                         $dateconfirm = date('d/m/Y H:i:s', strtotime($data['date_confirm']));
                         echo '<span class="info-value">'. $dateconfirm . '</span>';
                     } else {
                         echo '<span class="info-value">The admin has yet to approve</span>';
                     }
+                    */
                     ?>
                 </div>
+                <?php endif; ?>
+
                 <div class="info-row">
                     <span class="info-label">Amount</span>
                     <span class="info-value fw-bold"><?= formatMoney($data['money']) ?></span>
@@ -187,19 +192,29 @@ include("../src/headerOutSide.php");
                 </div>
                 <?php endif; ?>
 
-                <?php if ($data['note']): ?>
+                <?php if (!empty($data['note'])): ?>
                 <div class="info-row">
                     <span class="info-label">Note</span>
                     <span class="info-value"><?= htmlspecialchars($data['note']) ?></span>
                 </div>
                 <?php endif; ?>
 
-                <?php if (!empty($phone_card)): ?>
+                <?php if (!empty($phonecard)): ?>
                 <div class="info-row flex-column">
-                    
+                    <span class="info-label mb-2">Card Codes</span>
+                    <div class="w-100">
+                        <?php foreach ($phonecard as $i => $card): ?>
+                        <div class="d-flex align-items-center justify-content-between p-2 mb-1 rounded" style="background:var(--cream);border:1px solid var(--border)">
+                            <span style="font-size:12px;color:var(--text-muted)">Card <?= $i+1 ?> (<?= htmlspecialchars($card['carrier']) ?>)</span>
+                            <code style="font-size:16px;letter-spacing:3px;font-weight:700"><?= htmlspecialchars($card['code']) ?></code>
+                            <span style="font-size:12px;">Denomination: (<?= formatMoney($card['denomination']) ?>)</span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
                 <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
+<?php include("../src/footer.php"); ?>

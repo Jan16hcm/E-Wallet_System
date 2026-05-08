@@ -3,7 +3,7 @@ include_once("../modules/db_connection.php");
 include_once("../modules/usertype.php");
 include_once("../modules/formatMoney.php");
 include_once("../modules/receipt.php");
-include_once("../modules/generateIdCode.php");
+include_once("../modules/generateCode.php");
 
 $usertype = usertype();
 $step = $_GET['step'] ?? 1;
@@ -187,11 +187,8 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer']) && empt
         }
     }
 }
-include("../src/headerOutSide.php");
+include("../src/header.php");
 ?>
-
-
-
 
 
 <label for="otp_in">Enter OTP here:</label>
@@ -214,6 +211,8 @@ include("../src/headerOutSide.php");
     </svg>
     <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
 </div>
+<?php include("../src/footer.php"); ?>
+
 <script>
 //claude here (not checked)
 // Look up recipient as they type

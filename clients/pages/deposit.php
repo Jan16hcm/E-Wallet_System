@@ -101,7 +101,7 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
         }
     }
 }
-include("../src/headerOutSide.php");
+include("../src/header.php");
 ?>
 
 
@@ -113,3 +113,5 @@ include("../src/headerOutSide.php");
     </svg>
     <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
 </div>
+
+<?php include("../src/footer.php"); ?>
