@@ -100,7 +100,7 @@ function handleLoginRedirect()
             header('Location: ChangePassword.php');
             break;
         case 0:
-            header('Location: WaitingApproval.php');
+            header('Location: Profile.php');
             break;
         case 2:
             header('Location: UpdateInformation.php');
