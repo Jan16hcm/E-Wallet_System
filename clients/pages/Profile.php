@@ -18,6 +18,24 @@ if (!$detect->isMobile() && !$detect->isTablet()) {
 // Ensure session variables are set
 $useremail_session = $_SESSION['email'] ?? '';
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['front'], $_FILES['back']) && $usertype === "2") {
+    if ($_FILES['front']['error'] === UPLOAD_ERR_OK && $_FILES['back']['error'] === UPLOAD_ERR_OK) {
+        $front = file_get_contents($_FILES['front']['tmp_name']);
+        $back = file_get_contents($_FILES['back']['tmp_name']);
+        
+        $con = connect_db();
+        $stmt = $con->prepare("UPDATE `user` SET `front` = ?, `back` = ?, `verified` = 0 WHERE `email` = ?");
+        $stmt->bind_param("sss", $front, $back, $useremail_session);
+        $stmt->execute();
+        $stmt->close();
+        $con->close();
+        
+        $_SESSION['verified'] = 0; 
+        header('Location: Profile.php');
+        exit();
+    }
+}
+
 // Fetch user data from database to ensure we have the latest and complete info
 $con = connect_db();
 $stmt = $con->prepare("SELECT `name`, `email`, `phonenum`, `birth`, `address`, `verified`, `card_num`, `money`, `CVV` FROM `user` WHERE `email` = ?");
@@ -125,6 +143,28 @@ include '../src/header.php';
                     <?php endif; ?>
                 </div>
             </div>
+
+            <?php if ($usertype === "2"): ?>
+            <div class="profile-card" style="margin-bottom: 20px; border-left: 4px solid var(--danger);">
+                <div class="profile-card-header" style="color: var(--danger);">
+                    <i class="fa-solid fa-id-card"></i> Provide ID Card Information
+                </div>
+                <div style="padding: 0 15px 15px 15px;">
+                    <p style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);">The admin has requested additional information. Please re-upload clear, double-sided photos of your ID card.</p>
+                    <form method="POST" enctype="multipart/form-data">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">Front of ID Card</label>
+                            <input type="file" name="front" accept="image/*" required class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark);">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">Back of ID Card</label>
+                            <input type="file" name="back" accept="image/*" required class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark);">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Upload and Submit</button>
+                    </form>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <div class="profile-grid">
                 
