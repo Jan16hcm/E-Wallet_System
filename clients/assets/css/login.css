@@ -14,28 +14,31 @@
   --font-body: "Plus Jakarta Sans", sans-serif;
 }
 
-html,
-body {
-    height: 100%;
-  min-height: 100%;
+html {
+  height: 100%;
   margin: 0;
-  overflow: auto;
 }
 
 body {
+  min-height: 100%;
+  margin: 0;
   display: flex;
   flex-direction: column;
   font-family: var(--font-body);
   background: var(--brand-deep);
   color: var(--text-1);
+  overflow-x: hidden;
 }
 
-footer.bg-white {
+/* Footer stays at bottom */
+footer {
+  flex-shrink: 0;
   background-color: var(--brand-card) !important;
   border-top: 1px solid var(--border-subtle) !important;
   color: var(--text-2) !important;
 }
 
+/* ── PAGE WRAPPER ── */
 .login-page-wrapper {
   flex: 1;
   width: 100%;
@@ -43,12 +46,10 @@ footer.bg-white {
   align-items: center;
   justify-content: center;
   position: relative;
-  /* min-height: calc(100vh - 112px); */
-  min-height: 100vh;
   padding: 16px;
   overflow: hidden;
+  box-sizing: border-box;
 }
-
 .login-page-wrapper::before,
 .login-page-wrapper::after {
   content: "";
@@ -57,26 +58,14 @@ footer.bg-white {
   pointer-events: none;
 }
 .login-page-wrapper::before {
-  top: -120px;
-  left: -120px;
-  width: 480px;
-  height: 480px;
-  background: radial-gradient(
-    circle,
-    rgba(124, 58, 237, 0.18) 0%,
-    transparent 65%
-  );
+  top: -120px; left: -120px;
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 65%);
 }
 .login-page-wrapper::after {
-  bottom: -100px;
-  right: -80px;
-  width: 380px;
-  height: 380px;
-  background: radial-gradient(
-    circle,
-    rgba(200, 75, 143, 0.15) 0%,
-    transparent 65%
-  );
+  bottom: -100px; right: -80px;
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(200,75,143,0.15) 0%, transparent 65%);
 }
 
 /* ── LOGIN BOX ── */
@@ -84,101 +73,84 @@ footer.bg-white {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 960px;
+  max-width: 1080px;       /* PC rộng */
   max-height: 92vh;
-  height: auto;
   background: var(--brand-card);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   box-shadow:
-    0 32px 80px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(124, 58, 237, 0.1);
+    0 32px 80px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(124,58,237,0.1);
   display: flex;
   overflow: hidden;
+}
+
+/* ── IMAGE SIDE (desktop only) ── */
+.login-image-side {
+  width: 45%;
+  flex-shrink: 0;
+  position: relative;
+  /* ẩn mặc định, chỉ hiện khi > 1024px — xử lý bằng max-width bên dưới */
+}
+.login-image-side img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.login-image-side::after {
+  content: "";
+  position: absolute; top: 0; left: 0;
+  width: 60px; height: 100%;
+  background: linear-gradient(to right, var(--brand-card), transparent);
+  pointer-events: none;
 }
 
 /* ── FORM SIDE ── */
 .login-form-side {
   flex: 1;
-  padding: 40px;
+  padding: 48px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   overflow-y: auto;
 }
 
-/* Components form (Labels, Input, Buttons) */
+/* Brand */
 .brand-mark {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 24px;
+  display: flex; align-items: center;
+  gap: 10px; margin-bottom: 24px;
 }
 .brand-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, var(--brand-purple), var(--brand-pink));
-  border-radius: 10px;
-  color: white;
+  border-radius: 10px; color: white;
 }
-/* .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--brand-purple), var(--brand-pink)); border-radius: 10px; display: flex; align-items: center; justify-content: center; } */
-.brand-icon svg {
-  width: 18px;
-  height: 18px;
-  stroke: #fff;
-  fill: none;
-  stroke-width: 2;
-}
+.brand-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
 .brand-name {
   font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text-1);
-  letter-spacing: 0.3px;
+  font-size: 17px; font-weight: 700;
+  color: var(--text-1); letter-spacing: 0.3px;
 }
 .form-title {
   font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 700;
-  margin-bottom: 6px;
+  font-size: 30px; font-weight: 700; margin-bottom: 6px;
 }
-.form-subtitle {
-  font-size: 14px;
-  color: var(--text-3);
-  margin-bottom: 28px;
+.form-subtitle { font-size: 14px; color: var(--text-3); margin-bottom: 28px; }
+.form-label-custom {
+  display: block; font-size: 13px; font-weight: 600;
+  color: var(--text-2); margin-bottom: 7px;
 }
 
-.form-label-custom {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
-  margin-bottom: 7px;
-}
-.input-wrap {
-  position: relative;
-  margin-bottom: 18px;
-}
+/* Input */
+.input-wrap { position: relative; margin-bottom: 18px; }
 .input-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
+  position: absolute; left: 14px; top: 50%;
+  transform: translateY(-50%); pointer-events: none;
 }
-.input-icon svg {
-  width: 17px;
-  height: 17px;
-  stroke: var(--text-3);
-  fill: none;
-  stroke-width: 1.8;
-}
+.input-icon svg { width: 17px; height: 17px; stroke: var(--text-3); fill: none; stroke-width: 1.8; }
 .form-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255,255,255,0.05);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   color: var(--text-1);
@@ -186,259 +158,193 @@ footer.bg-white {
   padding: 13px 14px 13px 42px;
   outline: none;
   transition: 0.2s;
+  box-sizing: border-box;
 }
-.form-input::placeholder {
-  color: var(--text-3);
-}
+.form-input::placeholder { color: var(--text-3); }
 .form-input:focus {
   border-color: var(--brand-purple);
-  background: rgba(124, 58, 237, 0.08);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  background: rgba(124,58,237,0.08);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
 }
 .toggle-pass {
-  position: absolute;
-  right: 13px;
-  top: 50%;
+  position: absolute; right: 13px; top: 50%;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
+  background: none; border: none; cursor: pointer;
 }
-.toggle-pass svg {
-  width: 17px;
-  height: 17px;
-  stroke: var(--text-3);
-  fill: none;
-}
+.toggle-pass svg { width: 17px; height: 17px; stroke: var(--text-3); fill: none; }
+
+/* Error */
 .error-alert {
-  display: flex !important;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  margin-bottom: 16px;
-  background: rgba(248, 113, 113, 0.1);
-  border: 1px solid rgba(248, 113, 113, 0.25);
-  border-radius: 8px;
-  color: #f87171;
-  min-height: 45px;
-  visibility: visible;
-  opacity: 1;
+  display: flex !important; align-items: center;
+  gap: 8px; padding: 10px 14px; margin-bottom: 16px;
+  background: rgba(248,113,113,0.1);
+  border: 1px solid rgba(248,113,113,0.25);
+  border-radius: 8px; color: #f87171;
+  min-height: 45px; visibility: visible; opacity: 1;
   transition: opacity 0.2s ease;
 }
+.error-alert.is-invisible { visibility: hidden !important; opacity: 0; }
 
-.error-alert.is-invisible {
-  visibility: hidden !important;
-  opacity: 0;
-}
+/* Buttons */
 .btn-primary-custom,
 .btn-signup-custom,
 .btn-ghost-custom {
   width: 100%;
   border-radius: var(--radius-md);
-  font-size: 14.5px;
-  font-weight: 600;
+  font-size: 14.5px; font-weight: 600;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: 0.2s;
-  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; transition: 0.2s; margin-bottom: 10px;
 }
 .btn-primary-custom {
   padding: 13px;
   background: linear-gradient(135deg, var(--brand-purple), var(--brand-pink));
-  border: none;
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
+  border: none; color: #fff;
+  box-shadow: 0 4px 20px rgba(124,58,237,0.35);
 }
-.btn-primary-custom:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-.btn-primary-custom svg {
-  width: 18px;
-  height: 18px;
-  stroke: #fff;
-  fill: none;
-}
-
+.btn-primary-custom:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary-custom svg { width: 18px; height: 18px; stroke: #fff; fill: none; }
 .btn-ghost-custom {
-  padding: 12px;
-  background: transparent;
+  padding: 12px; background: transparent;
   border: 1px solid var(--border-subtle);
-  color: var(--text-2);
-  font-weight: 500;
+  color: var(--text-2); font-weight: 500;
 }
-.btn-ghost-custom:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-1);
-}
-
+.btn-ghost-custom:hover { background: rgba(255,255,255,0.05); color: var(--text-1); }
 .btn-signup-custom {
   padding: 12px;
-  background: rgba(124, 58, 237, 0.12);
-  border: 1px solid rgba(124, 58, 237, 0.25);
-  color: #a78bfa;
-  margin-bottom: 0;
+  background: rgba(124,58,237,0.12);
+  border: 1px solid rgba(124,58,237,0.25);
+  color: #a78bfa; margin-bottom: 0;
 }
 .btn-signup-custom:hover {
-  background: rgba(124, 58, 237, 0.2);
-  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(124,58,237,0.2);
+  border-color: rgba(124,58,237,0.4);
 }
-.btn-signup-custom svg {
-  width: 17px;
-  height: 17px;
-  stroke: #a78bfa;
-  fill: none;
-}
+.btn-signup-custom svg { width: 17px; height: 17px; stroke: #a78bfa; fill: none; }
 
 .divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0;
+  display: flex; align-items: center;
+  gap: 12px; margin: 12px 0;
 }
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
+.divider::before, .divider::after {
+  content: ""; flex: 1; height: 1px;
   background: var(--border-subtle);
 }
-.divider span {
-  font-size: 12px;
-  color: var(--text-3);
-  font-weight: 500;
+.divider span { font-size: 12px; color: var(--text-3); font-weight: 500; }
+
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — Typical Device Breakpoints
+══════════════════════════════════════════ */
+
+/* ── Laptop màn hình thấp (chiều cao < 800px) ── */
+@media (max-height: 800px) {
+  .login-box      { max-height: 96vh; }
+  .login-form-side { padding: 30px 40px; }
+  .brand-mark     { margin-bottom: 16px; }
+  .form-title     { font-size: 24px; margin-bottom: 4px; }
+  .form-subtitle  { margin-bottom: 18px; }
+  .input-wrap     { margin-bottom: 12px; }
+  .form-input     { padding: 10px 14px 10px 42px; }
+  .btn-primary-custom { padding: 10px; }
 }
 
-.login-image-side {
-  width: 45%;
-  flex-shrink: 0;
-  position: relative;
-  display: none;
-}
-.login-image-side img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.login-image-side::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 60px;
-  height: 100%;
-  background: linear-gradient(to right, var(--brand-card), transparent);
-  pointer-events: none;
-}
+/* ── [1] Extra small devices (phones, 600px and down) ── */
+@media only screen and (max-width: 600px) {
+  html, body { height: auto; }
 
-/* ── RESPONSIVE BREAKPOINTS ── */
-
-/* 1. Mobile (< 768px):  */
-@media (max-width: 480px) {
-  html,
-  body {
-    height: auto;
-    overflow: auto;
-  }
   .login-page-wrapper {
-    min-height: calc(100vh - 112px);
-    padding: 16px;
-    align-items: flex-start;
+    min-height: 100svh;
+    padding: 20px 16px;
+    align-items: center;
   }
+
+  .login-image-side { display: none; }
+
   .login-box {
+    max-width: 100%;
+    max-height: none;
+    border-radius: 16px;
+  }
+
+  .login-form-side { padding: 32px 20px 28px; overflow-y: visible; }
+
+  .brand-icon  { width: 44px; height: 44px; }
+  .brand-name  { font-size: 18px; }
+
+  .form-title    { font-size: 24px; }
+  .form-subtitle { font-size: 13px; margin-bottom: 20px; }
+
+  .form-label-custom { font-size: 14px; margin-bottom: 8px; }
+  .form-input        { font-size: 16px; padding: 14px 14px 14px 44px; }
+  .input-wrap        { margin-bottom: 20px; }
+
+  .btn-primary-custom { padding: 15px; font-size: 16px; }
+  .btn-ghost-custom,
+  .btn-signup-custom  { padding: 14px; font-size: 15px; }
+
+  .error-alert { font-size: 13px; }
+
+  footer {
+    font-size: 13px;
+    padding: 12px 0 !important;
+  }
+}
+
+/* ── [2] Small devices (portrait tablets and large phones, 600px and up) ── */
+@media only screen and (min-width: 600px) {
+  .login-image-side { display: none; }
+
+  .login-box {
+    max-width: 600px;
     max-height: none;
   }
+
   .login-form-side {
-    padding: 30px 24px;
+    padding: 36px 28px;
     overflow-y: visible;
   }
-  .form-title {
-    font-size: 24px;
-  }
+
+  .form-title { font-size: 26px; }
+  .form-input { font-size: 16px; }
+
+  .btn-primary-custom { padding: 14px; font-size: 15px; }
+  .btn-ghost-custom,
+  .btn-signup-custom  { padding: 13px; font-size: 15px; }
 }
 
-/* 2. Tablet (768px - 991px):  */
-@media (min-width: 641px) and (max-width: 1024px) {
-  html,
-  body {
-    height: auto;
-    overflow: auto;
-  }
-  .login-page-wrapper {
-    min-height: calc(100vh - 112px);
-    padding: 24px;
-  }
+/* ── [3] Medium devices (landscape tablets, 768px and up) ── */
+@media only screen and (min-width: 768px) {
   .login-box {
-    max-height: none;
-    max-width: 600px;
+    max-width: 640px;
   }
+
   .login-form-side {
     padding: 40px;
-    overflow-y: visible;
   }
 }
 
-/* 3. Laptop (992px - 1399px):  */
-/* @media (min-width: 992px) {
-  .login-image-side {
-    display: block;
+/* ── [4] Large devices (laptops/desktops, 992px and up) ── */
+@media only screen and (min-width: 992px) {
+  .login-image-side { display: block; }
+
+  .login-box {
+    max-width: 960px;
+    max-height: 92vh;
   }
+
   .login-form-side {
     padding: 48px;
-  }
-} */
-/* Tối ưu cho màn hình laptop hoặc màn hình có chiều cao thấp */
-@media (max-height: 800px) and (min-width: 1025px) {
-  .login-box {
-    max-height: 95vh; /* Tăng nhẹ không gian chiếm dụng */
-    max-width: 900px;
+    overflow-y: auto;
   }
 
-  .login-form-side {
-    padding: 30px 40px !important; /* Giảm padding trên dưới */
-  }
-
-  .brand-mark {
-    margin-bottom: 16px !important; /* Thu hẹp khoảng cách logo */
-  }
-
-  .form-title {
-    font-size: 22px !important; /* Giảm size tiêu đề */
-    margin-bottom: 4px !important;
-  }
-
-  .form-subtitle {
-    margin-bottom: 20px !important;
-  }
-
-  .input-wrap {
-    margin-bottom: 12px !important; /* Thu hẹp khoảng cách giữa các ô input */
-  }
-
-  .form-input {
-    padding: 10px 14px 10px 42px !important; /* Giảm độ dày input */
-  }
-
-  .btn-primary-custom {
-    padding: 10px !important; /* Thu nhỏ nút bấm */
-  }
+  .form-title { font-size: 30px; }
+  .form-input { font-size: 14.5px; }
 }
-@media (min-width: 1025px) {
-  .login-image-side {
-    display: block; /* Hiện ảnh khi màn hình đủ rộng */
-    width: 45%;
-  }
-}
-/* 4. PC (>= 1400px):  */
-@media (min-width: 1281px) {
+
+/* ── [5] Extra large devices (large laptops and desktops, 1200px and up) ── */
+@media only screen and (min-width: 1200px) {
   .login-box {
     max-width: 1080px;
-  }
-  .form-title {
-    font-size: 30px;
   }
 }
