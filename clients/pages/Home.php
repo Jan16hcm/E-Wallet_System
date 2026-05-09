@@ -8,7 +8,7 @@ if ($usertype != "1") {
     header('Location: Login.php');
     exit();
 }
-$detect = new Detection\MobileDetect;
+$detect = new WP_Rocket_Mobile_Detect;
 
 $is_desktop = false;
 if (!$detect->isMobile() && !$detect->isTablet()) {
