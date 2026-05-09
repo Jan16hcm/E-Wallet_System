@@ -78,7 +78,9 @@ CREATE TABLE `user` (
   `money` decimal(19,4) NOT NULL DEFAULT 0.0000,
   `CVV` varchar(3) DEFAULT NULL,
   `expire` date DEFAULT NULL,
-  `locked_time` datetime DEFAULT NULL COMMENT 'Disable account overtime'
+  `locked_time` datetime DEFAULT NULL COMMENT 'Disable account overtime',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Account registration timestamp',
+  `card_updated_at` datetime DEFAULT NULL COMMENT 'Last time ID card was uploaded/updated'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -86,10 +88,10 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` VALUES
-('0000000000', 'admin@meomeo.com', 'Admin', '2005-01-16', 'TDTU', NULL, NULL, '$2y$10$B6hq495fsonInn5zlBf7mOn.CbplMG7/Y87wCD1go.chQeGWdNk8y', 3, 0, NULL, 0.0000, NULL, NULL, NULL),
-('0909090909', 'user3@gmail.com', 'Le Van C', '1998-02-28', 'Đà Nẵng', NULL, NULL, '$2y$10$BBstCMneuLr2RJoEgEtOUualLHCJtTrC3HVvIPwOg/vYTXwxgATsO', 4, 0, NULL, 150000.0000, NULL, NULL, NULL),
-('0912345678', 'user1@gmail.com', 'Tran Hoang Khai', '1995-05-15', 'Hồ Chí Minh', NULL, NULL, '$2y$10$Wyq/jXyw6jwyxjjvxy1.ceYiYODYEOS34GfitOqthWL1llDPmZlBe', 1, 0, NULL, 5000000.0000, NULL, NULL, NULL),
-('0987654321', 'user2@gmail.com', 'Tran Thi B', '2000-10-20', 'Hà Nội', NULL, NULL, '$2y$10$WdH8txReFwer4lGWxptvpuW6D0L7MdFDTqwhGoWgNmY8m9daATH.K', 0, 0, NULL, 0.0000, NULL, NULL, NULL);
+('0000000000', 'admin@meomeo.com', 'Admin', '2005-01-16', 'TDTU', NULL, NULL, '$2y$10$B6hq495fsonInn5zlBf7mOn.CbplMG7/Y87wCD1go.chQeGWdNk8y', 3, 0, NULL, 0.0000, NULL, NULL, NULL, current_timestamp(), NULL),
+('0909090909', 'user3@gmail.com', 'Le Van C', '1998-02-28', 'Đà Nẵng', NULL, NULL, '$2y$10$BBstCMneuLr2RJoEgEtOUualLHCJtTrC3HVvIPwOg/vYTXwxgATsO', 4, 0, NULL, 150000.0000, NULL, NULL, NULL, current_timestamp(), NULL),
+('0912345678', 'user1@gmail.com', 'Tran Hoang Khai', '1995-05-15', 'Hồ Chí Minh', NULL, NULL, '$2y$10$Wyq/jXyw6jwyxjjvxy1.ceYiYODYEOS34GfitOqthWL1llDPmZlBe', 1, 0, NULL, 5000000.0000, NULL, NULL, NULL, current_timestamp(), NULL),
+('0987654321', 'user2@gmail.com', 'Tran Thi B', '2000-10-20', 'Hà Nội', NULL, NULL, '$2y$10$WdH8txReFwer4lGWxptvpuW6D0L7MdFDTqwhGoWgNmY8m9daATH.K', 0, 0, NULL, 0.0000, NULL, NULL, NULL, current_timestamp(), NULL);
 
 --
 -- Indexes for dumped tables
