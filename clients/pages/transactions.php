@@ -180,25 +180,27 @@ $username = $_SESSION['name'] ?? 'User';
                             </div>
                         </div>
                         
-                        <div class="tx-card" style="flex: 1; display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px;">
-                            <?php if(!empty($tx['card_num'])): ?>
-                                <i class="fa-solid fa-credit-card"></i> <?= htmlspecialchars($tx['card_num']) ?>
-                            <?php elseif(!empty($tx['receiver_phone']) && $is_sender): ?>
-                                <i class="fa-solid fa-user"></i> <?= $tx['receiver_phone'] ?>
-                            <?php endif; ?>
-                        </div>
+                        <div class="tx-item-details" style="flex: 4; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                            <div class="tx-card" style="flex: 1; display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px;">
+                                <?php if(!empty($tx['card_num'])): ?>
+                                    <i class="fa-solid fa-credit-card"></i> <?= htmlspecialchars($tx['card_num']) ?>
+                                <?php elseif(!empty($tx['receiver_phone']) && $is_sender): ?>
+                                    <i class="fa-solid fa-user"></i> <?= $tx['receiver_phone'] ?>
+                                <?php endif; ?>
+                            </div>
 
-                        <div class="tx-status" style="flex: 0.8; display: flex; justify-content: center;">
-                            <span class="status-badge status-<?= $display_status ?>"><?= $status_label ?></span>
-                        </div>
+                            <div class="tx-status" style="flex: 0.8; display: flex; justify-content: center;">
+                                <span class="status-badge status-<?= $display_status ?>"><?= $status_label ?></span>
+                            </div>
 
-                        <div class="tx-date" style="flex: 1; text-align: right; color: var(--text-muted); font-size: 13px;">
-                            <?= date('d M, Y', strtotime($tx['date_transfer'])) ?><br>
-                            <span style="font-size: 11px;"><?= date('g:i A', strtotime($tx['date_transfer'])) ?></span>
-                        </div>
+                            <div class="tx-date" style="flex: 1; text-align: right; color: var(--text-muted); font-size: 13px;">
+                                <?= date('d M, Y', strtotime($tx['date_transfer'])) ?><br>
+                                <span style="font-size: 11px;"><?= date('g:i A', strtotime($tx['date_transfer'])) ?></span>
+                            </div>
 
-                        <div class="tx-amount <?= $is_pos ? 'pos' : '' ?>" style="flex: 1.2; text-align: right; font-weight: 700; white-space: nowrap; color: <?= $icon_color ?>;">
-                            <?= $amount_prefix ?><?= number_format($tx['money'], 0, ',', '.') ?> ₫
+                            <div class="tx-amount <?= $is_pos ? 'pos' : '' ?>" style="flex: 1.2; text-align: right; font-weight: 700; white-space: nowrap; color: <?= $icon_color ?>;">
+                                <?= $amount_prefix ?><?= number_format($tx['money'], 0, ',', '.') ?> ₫
+                            </div>
                         </div>
                     </div>
                     <?php endforeach; ?>

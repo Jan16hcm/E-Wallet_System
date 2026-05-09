@@ -1,364 +1,241 @@
 <?php
-include_once("../modules/db_connection.php");
-include_once("../modules/usertype.php");
-include_once("../modules/isValidDate.php");
-include_once("../modules/formatMoney.php");
-include_once("../modules/generateCode.php");
-include_once("../modules/getTodayWithdrawCount.php");
-include_once("../modules/isValidCard.php");//this is getting long
+require_once("../modules/db_connection.php");
+require_once("../modules/usertype.php");
+require_once("../modules/isValidDate.php");
+require_once("../modules/formatMoney.php");
+require_once("../modules/generateCode.php");
+require_once("../modules/getTodayWithdrawCount.php");
+require_once("../modules/isValidCard.php");
 
 $usertype = usertype();
-$card_num = '';//String
+if ($usertype != "1") {
+    header('Location: Login.php');
+    exit();
+}
+
+$card_num = '';
 $expire = '';
 $cvv = '';
 $amount = 0;
 $note = '';
+$error = '';
 $success = false;
 $pendingApproval = false;
-$error = checkuser($usertype);
+$username = $_SESSION['name'] ?? 'User';
+$current_date = strtoupper(date('l, F j'));
 
-if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv']) && 
-    isset($_POST['amount']) && $_SERVER['REQUEST_METHOD'] == 'POST' && empty($error)) {
+$con = connect_db();
+$stmt = $con->prepare("SELECT phonenum, money FROM user WHERE email = ?");
+$stmt->bind_param("s", $_SESSION['email']);
+$stmt->execute();
+$stmt->bind_result($selfPhone, $selfamount);
+$stmt->fetch();
+$stmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $card_num = trim($_POST['card_num'] ?? '');
     $expire = trim($_POST['expire'] ?? '');
     $cvv = trim($_POST['cvv'] ?? '');
-    $amount = str_replace(',', '', $_POST['amount'] ?? '');
+    $amount_str = str_replace(',', '', $_POST['amount'] ?? '');
+    $amount = floatval($amount_str);
     $note = trim($_POST['note'] ?? '');
 
-    if (empty($_POST['card_num'])) {
-        $error = 'Please enter the card number';
-    } else if (empty($_POST['expire'])) {
-        $error = 'Please the expiration date';
-    } else if (empty($_POST['cvv'])) {
-        $error = 'Please enter the cvv number';
-    } else if (empty($_POST['amount'])) {
-        $error = 'Please enter the amount to withdraw';
-    } else if (!is_numeric($amount)) {
-        $error = 'This is not a valid number to withdraw';
+    if (empty($card_num) || empty($expire) || empty($cvv) || $amount <= 0) {
+        $error = 'Please fill in all required fields correctly.';
     } else if (getTodayWithdrawCount($_SESSION['email']) >= 2) {
-        $error = 'You can only make 2 withdrawals per day. Please try again tomorrow';
+        $error = 'Daily withdrawal limit reached (max 2). Please try again tomorrow.';
+    } else if ($amount % 50000 != 0) {
+        $error = 'Withdrawal amount must be a multiple of 50,000 VND.';
     } else {
-        $amount = floatval($amount);
         $date_error = isValidDate($expire);
         $valid_error = isValidWithdrawCard($card_num, $expire, $cvv);
         
-        if ($amount <= 0) {
-            //put link to deposit page here -----------------
-            $error = 'Please visit the <a href="deposit.php">deposit page</a> if you want to deposit';
-        } else if ($amount % 50000 != 0) {
-            $error = 'Withdrawal amount must be a multiple of 50,000 VND.';
-        } else if (!empty($date_error)) {
+        if (!empty($date_error)) {
             $error = $date_error;
         } else if (!empty($valid_error)) {
             $error = $valid_error;
         } else {
-            $totalDeduct = $amount*1.05;//5% fee
-            $selfamount = 0;
-            $selfPhone = '';
-            $con = connect_db();
-            $withd = $con->prepare("SELECT phonenum, money FROM user where email = ?");
-            $withd->bind_param("s", $_SESSION["email"]);
-
-            if(!$withd->execute()){
-                $error = 'Error in database, please try again later';
+            $totalDeduct = $amount * 1.05; // 5% fee
+            if ($selfamount < $totalDeduct) {
+                $error = 'Insufficient balance. You need ' . number_format($totalDeduct, 0, ',', '.') . ' ₫ (incl. 5% fee).';
             } else {
-                $withd->bind_result($selfPhone, $selfamount);
-                if (!$withd->fetch()) {
-                    //Bound variable (selfPhone) keep it last successfully fetched values - they are not reset to null automatically
-                    $error = 'User account not found';
-                }
-                $withd->free_result();
-            }
+                $status = ($amount > 5000000) ? 1 : 0; // 0: Completed, 1: Pending
+                $type = "Withdraw";
+                $now = date('Y-m-d H:i:s');
+                $id = generateIdCode($selfPhone, 3);
 
-            if (!empty($selfPhone)) {
-                if ($selfamount < $totalDeduct) {
-                    $error = 'Insufficient balance. You need ' . formatMoney($totalDeduct) . ' (including 5% fee) but have ' . formatMoney($selfamount);
-                } else {
-                    $status = $amount > 5000000 ? 2 : 1; //5 milion need approve
-                    $transfer_type = "Withdraw";
-                    $selfFeeBear = 1;//int for bool
-                    //selfFeeBear is true because 5% fee is applied to user who withdraw
-                    $id = generateIdCode($selfPhone, 3);
-                    $date = date('Y-m-d H:i:s'); // current date/time
+                $con->begin_transaction();
+                try {
+                    $stmt = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, card_num, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $selfFeeBear = 1;
+                    $stmt->bind_param("sssssdsii", $id, $selfPhone, $type, $card_num, $now, $amount, $note, $status, $selfFeeBear);
+                    $stmt->execute();
 
-                    $withd = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $withd->bind_param("sssssssdsii", $id, $selfPhone, $transfer_type, $card_num, $expire, $cvv, $date, $totalDeduct, $note, $status, $selfFeeBear);
-
-                    if(!$withd->execute()){
-                        $error = 'Failed to save in withdrawal history';
-                    } else if ($status == 1) {
-                        $withd = $con->prepare("update user set money = money - ? where phonenum = ?");
-                        $withd->bind_param("ds", $totalDeduct, $selfPhone);
-
-                        if(!$withd->execute()){
-                            $error = 'Failed to update user balance, cancelled the withdrawal';
-                            //write cancel to history
-                            $status = 0;
-                            $canceldate = date('Y-m-d H:i:s');
-                            $withd = $con->prepare("UPDATE history SET status = ?, date_confirm = ? where id = ?");
-                            $withd->bind_param("iss", $status, $canceldate, $id);
-                            if(!$withd->execute()){
-                                $error = 'Failed to update user balance, failed cancelled the withdrawal. It seem like god want you to have free money';
-                                //i don't know how to handle this case
-                            }
-                        } else {
-                            //complete success
-                            //should show something on screen
-                            $success = true;
-                        }
+                    if ($status == 0) {
+                        $stmt = $con->prepare("UPDATE user SET money = money - ? WHERE phonenum = ?");
+                        $stmt->bind_param("ds", $totalDeduct, $selfPhone);
+                        $stmt->execute();
+                        $success = true;
+                        $_SESSION['money'] -= $totalDeduct;
                     } else {
-                        // $status == 2: large withdrawal, pending admin approval
                         $pendingApproval = true;
                     }
+                    $con->commit();
+                } catch (Exception $e) {
+                    $con->rollback();
+                    $error = 'Transaction failed: ' . $e->getMessage();
                 }
             }
-            $withd->close();
-            $con->close();
         }
     }
 }
-include("../src/header.php");
+$con->close();
 ?>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-<style>
-  body { background: #f8f9fa; }
-  .page-wrapper { max-width: 560px; margin: 48px auto; padding: 0 16px; }
-  .card-panel {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(0,0,0,.08);
-    padding: 32px;
-  }
-  .page-title { font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
-  .page-sub   { font-size: 14px; color: #6c757d; margin-bottom: 28px; }
-  .form-label { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
-  .form-control, .form-select {
-    border-radius: 10px;
-    border: 1.5px solid #e5e7eb;
-    font-size: 14px;
-    padding: 10px 14px;
-    transition: border-color .2s;
-  }
-  .form-control:focus { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
-  .input-icon-wrap { position: relative; }
-  .input-icon-wrap .bi {
-    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-    color: #9ca3af; font-size: 15px;
-  }
-  .input-icon-wrap .form-control { padding-left: 40px; }
-  .btn-withdraw {
-    background: linear-gradient(135deg, #ef4444, #f97316);
-    color: #fff; border: none; border-radius: 10px;
-    padding: 12px; font-size: 15px; font-weight: 600;
-    width: 100%; margin-top: 8px; cursor: pointer;
-    transition: opacity .2s;
-  }
-  .btn-withdraw:hover { opacity: .9; }
-  .divider { border-top: 1px solid #f0f0f0; margin: 20px 0; }
-  .fee-note {
-    background: #fff7ed; border-radius: 10px;
-    padding: 14px 16px; font-size: 13px; color: #c2410c; margin-bottom: 24px;
-  }
-  .limit-note {
-    background: #fafafa; border: 1px solid #e5e7eb; border-radius: 10px;
-    padding: 14px 16px; font-size: 13px; color: #6b7280; margin-bottom: 24px;
-  }
-  .success-box { text-align: center; padding: 32px 0; }
-  .success-box .check-icon {
-    width: 64px; height: 64px; border-radius: 50%;
-    background: #dcfce7; display: inline-flex;
-    align-items: center; justify-content: center; font-size: 28px;
-    color: #16a34a; margin-bottom: 16px;
-  }
-  .pending-box { text-align: center; padding: 32px 0; }
-  .pending-box .clock-icon {
-    width: 64px; height: 64px; border-radius: 50%;
-    background: #fef9c3; display: inline-flex;
-    align-items: center; justify-content: center; font-size: 28px;
-    color: #a16207; margin-bottom: 16px;
-  }
-  .error-alert {
-    display: flex; align-items: center; gap: 8px;
-    background: #fef2f2; color: #b91c1c;
-    border: 1px solid #fecaca; border-radius: 10px;
-    padding: 10px 14px; font-size: 13px; margin-bottom: 18px;
-  }
-  .error-alert.is-invisible { display: none; }
-  #feePreview {
-    background: #f9fafb; border-radius: 10px;
-    border: 1px solid #e5e7eb; padding: 14px 16px;
-    font-size: 13px; margin-bottom: 18px; display: none;
-  }
-</style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdraw Money - Antigravity Wallet</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/home.css">
+    <link rel="stylesheet" href="../assets/css/profile.css">
+    <link rel="stylesheet" href="../assets/css/transaction.css">
+    <link rel="stylesheet" href="../assets/css/withdraw.css">
+</head>
+<body>
+<script>
+    if (localStorage.getItem("theme") !== "dark") { document.body.classList.add("light-theme"); }
+</script>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<div class="page-wrapper">
-  <div class="card-panel">
-
-    <?php if ($success): ?>
-    <!-- ── Success ── -->
-    <div class="success-box">
-      <div class="check-icon"><i class="bi bi-check-lg"></i></div>
-      <h5 class="fw-bold mb-1" style="color:#1a1a2e">Withdrawal Successful!</h5>
-      <p class="text-muted" style="font-size:14px">
-        <strong><?= htmlspecialchars(formatMoney($amount)) ?></strong> withdrawn
-        (total deducted: <strong><?= htmlspecialchars(formatMoney($amount * 1.05)) ?></strong> incl. 5% fee).
-      </p>
-      <div class="d-flex gap-2 justify-content-center mt-3">
-        <a href="withdraw.php"    class="btn btn-outline-secondary btn-sm">Withdraw Again</a>
-        <a href="Home.php"        class="btn btn-primary btn-sm">Dashboard</a>
-        <a href="transactions.php" class="btn btn-outline-secondary btn-sm">View History</a>
-      </div>
-    </div>
-
-    <?php elseif ($pendingApproval): ?>
-    <!-- ── Pending approval (>5M VND) ── -->
-    <div class="pending-box">
-      <div class="clock-icon"><i class="bi bi-hourglass-split"></i></div>
-      <h5 class="fw-bold mb-1" style="color:#1a1a2e">Pending Admin Approval</h5>
-      <p class="text-muted" style="font-size:14px">
-        Withdrawals over 5,000,000 VND require admin approval.<br>
-        Your request for <strong><?= htmlspecialchars(formatMoney($amount)) ?></strong> has been submitted.
-      </p>
-      <div class="d-flex gap-2 justify-content-center mt-3">
-        <a href="Home.php"        class="btn btn-primary btn-sm">Dashboard</a>
-        <a href="transactions.php" class="btn btn-outline-secondary btn-sm">View History</a>
-      </div>
-    </div>
-
-    <?php else: ?>
-    <!-- ── Withdraw Form ── -->
-    <div class="page-title"><i class="bi bi-arrow-up-circle-fill me-2" style="color:#ef4444"></i>Withdraw Money</div>
-    <div class="page-sub">Transfer funds from your wallet to a bank card</div>
-
-    <div class="fee-note">
-      <i class="bi bi-exclamation-triangle-fill me-1"></i>
-      A <strong>5% fee</strong> applies to all withdrawals. Amounts must be multiples of 50,000 VND.
-      Withdrawals over 5,000,000 VND require admin approval.
-    </div>
-
-    <div class="limit-note">
-      <i class="bi bi-info-circle me-1"></i>
-      You may withdraw up to <strong>2 times per day</strong>. Only card <code>111111</code> is accepted.
-    </div>
-
-    <div id="error-msg" class="error-alert<?= empty($error) ? ' is-invisible' : '' ?>" role="alert">
-      <svg viewBox="0 0 24 24" width="16" height="16">
-        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <span><?= !empty($error) ? $error : '&nbsp;' ?></span>
-    </div>
-
-    <form method="POST" action="" autocomplete="off">
-
-      <!-- Card Number -->
-      <div class="mb-3">
-        <label class="form-label">Card Number <span class="text-danger">*</span></label>
-        <div class="input-icon-wrap">
-          <i class="bi bi-credit-card"></i>
-          <input type="text" name="card_num" class="form-control" placeholder="6-digit card number"
-                 maxlength="6" pattern="\d{6}"
-                 value="<?= htmlspecialchars($card_num) ?>" required>
+<div class="dashboard-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <div class="user-profile-card">
+            <button class="theme-toggle" id="themeToggleBtn"><i class="fa-solid fa-moon"></i></button>
+            <div class="avatar"><?= strtoupper(substr($username, 0, 2)) ?></div>
+            <div class="date-text"><?= $current_date ?></div>
+            <div class="welcome-text">Welcome back,<br><?= $username ?>!</div>
         </div>
-      </div>
+        <nav class="nav-menu">
+            <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+            <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+            <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+            <a href="withdraw.php" class="nav-link active"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+            <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+            <a href="transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+            <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+            <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+        </nav>
+    </aside>
 
-      <!-- Expiry & CVV -->
-      <div class="row g-3 mb-3">
-        <div class="col-7">
-          <label class="form-label">Expiry Date <span class="text-danger">*</span></label>
-          <div class="input-icon-wrap">
-            <i class="bi bi-calendar3"></i>
-            <input type="text" name="expire" class="form-control" placeholder="MM/DD/YYYY"
-                   value="<?= htmlspecialchars($expire) ?>" required>
-          </div>
+    <main class="main-content">
+        <div class="mobile-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar" style="width: 40px; height: 40px; margin: 0; font-size: 16px;"><?= strtoupper(substr($username, 0, 2)) ?></div>
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Withdraw</div>
+                    <div style="font-size: 15px; font-weight: 700;"><?= $username ?></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="theme-toggle" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);"><i class="fa-solid fa-moon"></i></button>
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn"><i class="fa-solid fa-bars"></i></button>
+            </div>
         </div>
-        <div class="col-5">
-          <label class="form-label">CVV <span class="text-danger">*</span></label>
-          <div class="input-icon-wrap">
-            <i class="bi bi-shield-lock"></i>
-            <input type="text" name="cvv" class="form-control" placeholder="3 digits"
-                   maxlength="3" pattern="\d{3}"
-                   value="<?= htmlspecialchars($cvv) ?>" required>
-          </div>
+
+        <div class="withdraw-container">
+            <?php if (!$success && !$pendingApproval): ?>
+                <div class="header-actions" style="margin-bottom: 32px;">
+                    <div class="header-welcome">
+                        <div class="date-text"><?= $current_date ?></div>
+                        <h1 style="font-size: 28px; font-weight: 800; color: var(--text-main); margin: 0;">Withdraw Money</h1>
+                    </div>
+                </div>
+
+                <?php if ($error): ?>
+                    <div class="alert alert-danger" style="border-radius: 12px; margin-bottom: 24px;">
+                        <i class="fa-solid fa-circle-exclamation" style="margin-right: 8px;"></i> <?= $error ?>
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST" id="withdrawForm">
+                    <div class="widget" style="padding: 32px; border-radius: 24px;">
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 700;">Card Number</label>
+                            <input type="text" name="card_num" placeholder="6-digit card number" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= htmlspecialchars($card_num) ?>" required>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                            <div class="form-group">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 700;">Expiry Date</label>
+                                <input type="text" name="expire" placeholder="dd/mm/yyyy" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= htmlspecialchars($expire) ?>" required>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 700;">CVV</label>
+                                <input type="text" name="cvv" placeholder="3 digits" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= htmlspecialchars($cvv) ?>" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 700;">Amount (VND)</label>
+                            <input type="text" name="amount" id="amountInput" placeholder="Multiples of 50,000" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= $amount > 0 ? number_format($amount, 0, ',', '.') : '' ?>" required>
+                        </div>
+
+                        <div id="feePreview" class="fee-preview">
+                            <!-- JS populated -->
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 700;">Note (Optional)</label>
+                            <textarea name="note" rows="2" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);"><?= htmlspecialchars($note) ?></textarea>
+                        </div>
+
+                        <div class="alert alert-info" style="font-size: 13px; background: var(--bg-body); border-color: var(--border-color); margin-bottom: 24px;">
+                            <i class="fa-solid fa-circle-info"></i> Max 2 withdrawals per day. 5% fee applies.
+                        </div>
+
+                        <button type="submit" class="btn" style="width: 100%; padding: 16px; border-radius: 16px; background: var(--accent-blue); color: white; border: none; font-weight: 700; font-size: 18px; cursor: pointer;">
+                            Withdraw Now
+                        </button>
+                    </div>
+                </form>
+
+            <?php else: ?>
+                <!-- Result State -->
+                <div class="widget" style="padding: 40px; border-radius: 32px; text-align: center;">
+                    <div class="success-icon" style="background: <?= $pendingApproval ? '#f59e0b' : '#10b981' ?>20; color: <?= $pendingApproval ? '#f59e0b' : '#10b981' ?>; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 24px;">
+                        <i class="fa-solid <?= $pendingApproval ? 'fa-clock' : 'fa-check' ?>"></i>
+                    </div>
+                    <h2 style="font-weight: 800; color: var(--text-main);"><?= $pendingApproval ? 'Pending Approval' : 'Withdrawal Successful!' ?></h2>
+                    <p style="color: var(--text-muted); margin-bottom: 32px;"><?= $pendingApproval ? 'Withdrawals over 5,000,000 VND require admin approval.' : 'Your request has been processed successfully.' ?></p>
+
+                    <div class="summary-card" style="margin-bottom: 32px; text-align: left;">
+                        <div class="summary-row"><span style="color: var(--text-muted);">Amount</span><span><?= number_format($amount, 0, ',', '.') ?> ₫</span></div>
+                        <div class="summary-row"><span style="color: var(--text-muted);">Fee (5%)</span><span><?= number_format($amount * 0.05, 0, ',', '.') ?> ₫</span></div>
+                        <div class="summary-total"><span>Total Deducted</span><span><?= number_format($amount * 1.05, 0, ',', '.') ?> ₫</span></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <a href="withdraw.php" class="btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); text-decoration: none; text-align: center; padding: 12px; border-radius: 12px; font-weight: 600;">Withdraw More</a>
+                        <a href="transactions.php" class="btn" style="background: var(--accent-blue); color: white; text-decoration: none; text-align: center; padding: 12px; border-radius: 12px; font-weight: 600;">View History</a>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
-      </div>
-
-      <!-- Amount -->
-      <div class="mb-3">
-        <label class="form-label">Amount (VND) <span class="text-danger">*</span></label>
-        <div class="input-icon-wrap">
-          <i class="bi bi-cash-stack"></i>
-          <input type="text" name="amount" id="amountInput" class="form-control"
-                 placeholder="e.g. 500,000 (multiples of 50,000)"
-                 value="<?= $amount > 0 ? htmlspecialchars(number_format($amount, 0, '.', ',')) : '' ?>"
-                 required>
-        </div>
-      </div>
-
-      <!-- Fee preview -->
-      <div id="feePreview">
-        <div class="d-flex justify-content-between mb-1">
-          <span class="text-muted">Withdrawal amount</span>
-          <span id="previewAmount" class="fw-semibold">—</span>
-        </div>
-        <div class="d-flex justify-content-between mb-1">
-          <span class="text-muted">Fee (5%)</span>
-          <span id="previewFee" class="fw-semibold text-danger">—</span>
-        </div>
-        <hr class="my-2">
-        <div class="d-flex justify-content-between">
-          <span class="fw-bold">Total deducted</span>
-          <span id="previewTotal" class="fw-bold" style="color:#1a1a2e">—</span>
-        </div>
-      </div>
-
-      <!-- Note -->
-      <div class="mb-4">
-        <label class="form-label">Note <span class="text-muted fw-normal">(optional)</span></label>
-        <textarea name="note" class="form-control" rows="2"
-                  placeholder="Add a note for this withdrawal..."><?= htmlspecialchars($note) ?></textarea>
-      </div>
-
-      <button type="submit" class="btn-withdraw">
-        <i class="bi bi-arrow-up-circle me-2"></i>Withdraw Funds
-      </button>
-    </form>
-
-    <div class="divider"></div>
-    <div class="text-center" style="font-size:13px;color:#6c757d">
-      Want to add funds instead?
-      <a href="deposit.php" class="text-decoration-none" style="color:#3b82f6">Go to Deposit</a>
-    </div>
-    <?php endif; ?>
-
-  </div>
+    </main>
 </div>
 
-<?php include("../src/footer.php"); ?>
+<div class="mobile-bottom-nav">
+    <a href="Home.php" class="nav-item"><i class="fa-solid fa-house"></i><span>Home</span></a>
+    <a href="transactions.php" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></a>
+    <a href="Buycard.php" class="nav-item scan-btn"><div class="scan-circle"><i class="fa-solid fa-mobile-screen"></i></div><span>Phone Card</span></a>
+    <a href="transfer.php" class="nav-item"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Transfer</span></a>
+    <a href="withdraw.php" class="nav-item active"><i class="fa-solid fa-user"></i><span>Profile</span></a>
+</div>
 
-<script>
-const amountInput = document.getElementById('amountInput');
-const feePreview = document.getElementById('feePreview');
-
-if (amountInput) {
-    amountInput.addEventListener('input', function () {
-        let raw = this.value.replace(/[^0-9]/g, '');
-        if (!raw) { 
-            feePreview.style.display = 'none'; 
-            this.value = ''; 
-            return; 
-        }
-        const num = parseInt(raw, 10);
-        this.value = num.toLocaleString('vi-VN');
-
-        const fee = num*0.05;
-        const total = num + fee;
-        const fmt = v => v.toLocaleString('vi-VN') + ' VND';
-
-        document.getElementById('previewAmount').textContent = fmt(num);
-        document.getElementById('previewFee').textContent = fmt(fee);
-        document.getElementById('previewTotal').textContent = fmt(total);
-        feePreview.style.display = 'block';
-    });
-}
-</script>
+<script src="../assets/js/home.js"></script>
+<script src="../assets/js/withdraw.js"></script>
+</body>
+</html>
