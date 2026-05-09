@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+date_default_timezone_set('Asia/Ho_Chi_Minh');
 //include this file at the start of every php
 // require_once("../modules/db_connection.php");
 function connect_db()
@@ -20,6 +21,7 @@ function connect_db()
         die("Service unavailable"); // message chung chung cho user
     }
     $con->set_charset("utf8mb4");
+    $con->query("SET time_zone = '+07:00'");
     return $con;
 }
 ?>
