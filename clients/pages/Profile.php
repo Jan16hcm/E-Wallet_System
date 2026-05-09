@@ -1,7 +1,7 @@
 <?php
 require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
-require_once '../../vendor/autoload.php';
+require_once ('../../vendor/Mobile_Detect.php');
 
 $usertype = (string)usertype(); // 3 == admin, 2 = Request additional information, -1 = first login 
 if ($usertype != "0" && $usertype != "1" && $usertype != "2") {
@@ -9,7 +9,7 @@ if ($usertype != "0" && $usertype != "1" && $usertype != "2") {
     exit();
 }
 
-$detect = new Detection\MobileDetect;
+$detect = new WP_Rocket_Mobile_Detect;
 $is_desktop = false;
 if (!$detect->isMobile() && !$detect->isTablet()) {
     $is_desktop = true;
