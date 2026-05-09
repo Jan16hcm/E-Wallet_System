@@ -3,7 +3,7 @@ require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
 // require_once ('../../vendor/Mobile_Detect.php');
 
-$usertype = (string)usertype(); // 3 == admin, 2 = Request additional information, -1 = first login 
+$usertype = (string) usertype(); // 3 == admin, 2 = Request additional information, -1 = first login 
 if ($usertype != "0" && $usertype != "1" && $usertype != "2") {
     header('Location: Login.php');
     exit();
@@ -22,15 +22,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['front'], $_FILES['ba
     if ($_FILES['front']['error'] === UPLOAD_ERR_OK && $_FILES['back']['error'] === UPLOAD_ERR_OK) {
         $front = file_get_contents($_FILES['front']['tmp_name']);
         $back = file_get_contents($_FILES['back']['tmp_name']);
-        
+
         $con = connect_db();
-        $stmt = $con->prepare("UPDATE `user` SET `front` = ?, `back` = ?, `verified` = 0 WHERE `email` = ?");
-        $stmt->bind_param("sss", $front, $back, $useremail_session);
+        $now = date('Y-m-d H:i:s');
+        $stmt = $con->prepare("UPDATE `user` SET `front` = ?, `back` = ?, `verified` = 0, `card_updated_at` = ? WHERE `email` = ?");
+        $stmt->bind_param("ssss", $front, $back, $now, $useremail_session);
         $stmt->execute();
         $stmt->close();
         $con->close();
-        
-        $_SESSION['verified'] = 0; 
+
+        $_SESSION['verified'] = 0;
         header('Location: Profile.php');
         exit();
     }
@@ -68,7 +69,8 @@ include '../src/header.php';
 ?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/home.css">
 <link rel="stylesheet" href="../assets/css/profile.css">
 
@@ -84,22 +86,25 @@ include '../src/header.php';
         </div>
 
         <nav class="nav-menu">
-
-            <?php if($usertype != "0") { ?>
-
-            <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
-            <a href="Profile.php" class="nav-link active"><i class="fa-solid fa-user"></i> Profile</a>
-            <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
-            <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-            <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-            <a href="transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
-            <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
-            <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
-
-            <?php } else { ?>
+            <?php if ($usertype === "0" || $usertype === "2") { ?>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="Profile.php" class="nav-link active"><i class="fa-solid fa-user"></i> Profile</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+                <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+            <?php } else { ?>
+                <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+                <a href="Profile.php" class="nav-link active"><i class="fa-solid fa-user"></i> Profile</a>
+                <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+                <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+                <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+                <a href="transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+                <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+                <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
             <?php } ?>
-
         </nav>
     </aside>
 
@@ -114,7 +119,8 @@ include '../src/header.php';
                     <div style="font-size: 15px; font-weight: 700;"><?= $username ?></div>
                 </div>
             </div>
-            <button class="theme-toggle" style="position: relative; top: 0; right: 0; border: 1px solid var(--border-color);">
+            <button class="theme-toggle"
+                style="position: relative; top: 0; right: 0; border: 1px solid var(--border-color);">
                 <i class="fa-solid fa-moon"></i>
             </button>
         </div>
@@ -127,7 +133,7 @@ include '../src/header.php';
                 <div class="profile-info">
                     <h1><?= $username ?></h1>
                     <p><i class="fa-solid fa-envelope"></i> <?= $useremail ?></p>
-                    
+
                     <?php if ($usertype === "1"): ?>
                         <div class="verified-badge badge-success">
                             <i class="fa-solid fa-circle-check"></i> Verified Account
@@ -145,29 +151,34 @@ include '../src/header.php';
             </div>
 
             <?php if ($usertype === "2"): ?>
-            <div class="profile-card" style="margin-bottom: 20px; border-left: 4px solid var(--danger);">
-                <div class="profile-card-header" style="color: var(--danger);">
-                    <i class="fa-solid fa-id-card"></i> Provide ID Card Information
+                <div class="profile-card" style="margin-bottom: 20px; border-left: 4px solid var(--danger);">
+                    <div class="profile-card-header" style="color: var(--danger);">
+                        <i class="fa-solid fa-id-card"></i> Provide ID Card Information
+                    </div>
+                    <div style="padding: 0 15px 15px 15px;">
+                        <p style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);">The admin has requested
+                            additional information. Please re-upload clear, double-sided photos of your ID card.</p>
+                        <form method="POST" enctype="multipart/form-data">
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">Front
+                                    of ID Card</label>
+                                <input type="file" name="front" accept="image/*" required class="form-control"
+                                    style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark);">
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">Back
+                                    of ID Card</label>
+                                <input type="file" name="back" accept="image/*" required class="form-control"
+                                    style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark);">
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">Upload and Submit</button>
+                        </form>
+                    </div>
                 </div>
-                <div style="padding: 0 15px 15px 15px;">
-                    <p style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);">The admin has requested additional information. Please re-upload clear, double-sided photos of your ID card.</p>
-                    <form method="POST" enctype="multipart/form-data">
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">Front of ID Card</label>
-                            <input type="file" name="front" accept="image/*" required class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark);">
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">Back of ID Card</label>
-                            <input type="file" name="back" accept="image/*" required class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark);">
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Upload and Submit</button>
-                    </form>
-                </div>
-            </div>
             <?php endif; ?>
 
             <div class="profile-grid">
-                
+
                 <div class="profile-card">
                     <div class="profile-card-header">
                         <i class="fa-solid fa-address-card"></i> Personal Information
@@ -205,43 +216,47 @@ include '../src/header.php';
                             <span class="info-label">Verification Level</span>
                             <span class="info-value">
                                 <?php
-                                if ($usertype === "1") echo "Fully Verified (Level 2)";
-                                if ($usertype === "0") echo "Pending Review (Level 1)";
+                                if ($usertype === "1")
+                                    echo "Fully Verified (Level 2)";
+                                if ($usertype === "0")
+                                    echo "Pending Review (Level 1)";
+                                if ($usertype === "2")
+                                    echo "Waiting for Updates";
                                 ?>
                                 <?php if ($usertype === "0") { ?>
-                                <span class="info-label"><b>Waiting for Verification</b></span>
-                                <?php }?>
+                                    <span class="info-label"><b>Waiting for Verification</b></span>
+                                <?php } ?>
                             </span>
                         </div>
                         <div style="margin-top: 10px;">
-                            <a href="ChangePassword.php" class="btn btn-outline" style="width: 100%; text-align: center; display: block; text-decoration: none;">
+                            <a href="ChangePassword.php" class="btn btn-outline"
+                                style="width: 100%; text-align: center; display: block; text-decoration: none;">
                                 Change Password
                             </a>
                         </div>
                     </div>
                 </div>
-                
-                <?php 
-                    if($cvv != '')
-                    {
-                ?>
-                <div class="card-mockup-wrapper">
-                    <div class="card-mockup">
-                        <div class="card-balance-label">Available Balance</div>
-                        <div class="card-balance-value"><?= $money ?> ₫</div>
-                        
-                        <div class="card-details">
-                            <div>
-                                <div class="card-balance-label">Card Number</div>
-                                <div class="card-num">•••• •••• •••• <?= substr($card_num, -4) ?></div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div class="card-balance-label">CVV</div>
-                                <div class="card-cvv"><?= $cvv ?></div>
+
+                <?php
+                if ($cvv != '') {
+                    ?>
+                    <div class="card-mockup-wrapper">
+                        <div class="card-mockup">
+                            <div class="card-balance-label">Available Balance</div>
+                            <div class="card-balance-value"><?= $money ?> ₫</div>
+
+                            <div class="card-details">
+                                <div>
+                                    <div class="card-balance-label">Card Number</div>
+                                    <div class="card-num">•••• •••• •••• <?= substr($card_num, -4) ?></div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="card-balance-label">CVV</div>
+                                    <div class="card-cvv"><?= $cvv ?></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 <?php } ?>
             </div>
         </div>
@@ -295,10 +310,21 @@ include '../src/header.php';
             });
         });
     });
+    document.addEventListener('DOMContentLoaded', function() {
+        const restrictedLinks = document.querySelectorAll('.restricted-feature');
+
+        restrictedLinks.forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.preventDefault(); 
+                
+                alert("This feature is only available for verified accounts. Please wait for verification or update your information.");
+            });
+        });
+    });
 </script>
 
 <?php
-    include '../src/footer.php';
+include '../src/footer.php';
 // if ($is_desktop) {
 // } else {
 //     ?>
