@@ -4,9 +4,9 @@ include_once("../modules/handleFailedLogin.php");
 include_once("../modules/verifypass.php");
 include_once("../modules/usertype.php");
 
-$error = $_SESSION['login_error'] ?? '';
+$error = $_SESSION['error'] ?? '';
 $e_or_p = $_SESSION['login_e_or_p'] ?? '';
-unset($_SESSION['login_error']);
+unset($_SESSION['error']);
 
 $pass = '';
 $lock = 0;
@@ -46,7 +46,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
-        $_SESSION['login_error'] = 'Invalid request';
+        $_SESSION['error'] = 'Invalid request';
         header('Location: ' . $_SERVER['PHP_SELF']);
         exit();
     }
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
         }
     }
 
-    $_SESSION['login_error'] = $error;
+    $_SESSION['error'] = $error;
     $_SESSION['login_e_or_p'] = $e_or_p;
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit();
@@ -216,6 +216,7 @@ include("../src/headerOutSide.php");
 </main>
 
 <script>
+    alert("<?php echo $error ?>");
     document.addEventListener('DOMContentLoaded', function () {
         const btnLogin = document.getElementById('btn-login');
         const errorMsg = document.getElementById('error-msg');
