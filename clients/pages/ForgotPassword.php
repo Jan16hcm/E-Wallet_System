@@ -34,6 +34,8 @@ wrong password many times, please contact the administrator for support'
                     $otp = substr($otp_str, 0, 6);
                     $_SESSION['reset_otp'] = $otp;
                     $_SESSION['reset_email_pending'] = $email;
+                    $_SESSION['reset_expire_ts'] = time() + 60;
+                    $_SESSION['reset_display_email'] = $email;
                     if (sendOTPEmail($email, $row['name'], $otp)) {
                         echo json_encode(['success' => true, 'message' => 'OTP sent successfully.']);
                     } else {
@@ -48,6 +50,8 @@ wrong password many times, please contact the administrator for support'
             $fake_mail = "dummy@gmail.com";
             $_SESSION['reset_email_pending'] = $fake_mail; // Chap het cac attacker by Khai hehehe
             $_SESSION['reset_otp'] = $otp;
+            $_SESSION['reset_expire_ts'] = time() + 60;
+            $_SESSION['reset_display_email'] = $_POST['email'];
             sendOTPEmail($fake_mail, 'test', $otp); // Fake to avoid timing attack
             echo json_encode(['success' => true, 'message' => 'OTP sent successfully.']);
         }
@@ -95,6 +99,22 @@ wrong password many times, please contact the administrator for support'
     exit();
 }
 
+$pendingOtp = false;
+$pendingDisplayEmail = '';
+$pendingTimeLeft = 0;
+
+if (!empty($_SESSION['reset_email_pending']) && !empty($_SESSION['reset_otp']) && !empty($_SESSION['reset_expire_ts'])) {
+    $remaining = $_SESSION['reset_expire_ts'] - time();
+    if ($remaining > 0) {
+        $pendingOtp = true;
+        $pendingTimeLeft = $remaining;
+        $pendingDisplayEmail = $_SESSION['reset_display_email'] ?? '';
+    } else {
+        unset($_SESSION['reset_otp'], $_SESSION['reset_email_pending'], $_SESSION['reset_expire_ts'], $_SESSION['reset_display_email']);
+    }
+}
+
+
 include("../src/headerOutSide.php");
 ?>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -116,7 +136,7 @@ include("../src/headerOutSide.php");
         <p class="form-subtitle">Enter your email to receive a 6-digit verification code.</p>
 
         <form id="forgotForm" method="POST">
-            <div id="email-section">
+            <div id="email-section" style="display: <?= $pendingOtp ? 'none' : 'block' ?>;">
                 <div class="input-wrap">
                     <label class="form-label-custom">Your Registered Email</label>
                     <input type="email" id="email" class="form-control" placeholder="name@example.com" required>
@@ -124,10 +144,12 @@ include("../src/headerOutSide.php");
                 <button type="button" id="btn-send-otp" class="btn-primary-custom">Send Code</button>
             </div>
 
-            <div id="otp-section" style="display: none;">
+            <div id="otp-section" style="display: <?= $pendingOtp ? 'block' : 'none' ?>;">
                 <label class="form-label-custom">Enter 6-Digit OTP</label>
-                <p style="text-align: center; font-size: 14px; margin-bottom: 15px; color: var(--text-3);">
-                    Code sent to <strong id="display-email" style="color: var(--primary);"></strong>
+                <p id="display-email-text"
+                    style="text-align: center; font-size: 14px; margin-bottom: 15px; color: var(--text-3);">
+                    Please check the email address <strong id="display-email" style="color: var(--primary);"></strong>
+                    for instructions to reset your password.
                 </p>
                 <div class="otp-container">
                     <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
@@ -164,6 +186,11 @@ include("../src/headerOutSide.php");
         const errorMsg = document.getElementById('error-msg');
         const errText = document.getElementById('err-text');
 
+        // PHP-injected state for page-refresh persistence
+        const pendingOtp = <?= $pendingOtp ? 'true' : 'false' ?>;
+        const pendingTimeLeft = <?= (int) $pendingTimeLeft ?>;
+        const pendingDisplayEmail = "<?= addslashes($pendingDisplayEmail) ?>";
+
         const showError = (msg) => {
             errText.innerText = msg;
             errorMsg.style.visibility = 'visible';
@@ -178,11 +205,13 @@ include("../src/headerOutSide.php");
 
         let countdownInterval;
 
-        const startCountdown = () => {
+        const startCountdown = (initialSeconds) => {
             clearInterval(countdownInterval);
-            let timeLeft = 60;
+            let timeLeft = initialSeconds || 60;
             const timerElement = document.getElementById('otp-timer');
-            timerElement.innerText = `01:00`;
+            const m0 = Math.floor(timeLeft / 60);
+            const s0 = timeLeft % 60;
+            timerElement.innerText = `0${m0}:${s0 < 10 ? '0' : ''}${s0}`;
             timerElement.style.color = 'var(--primary)';
 
             countdownInterval = setInterval(() => {
@@ -200,6 +229,13 @@ include("../src/headerOutSide.php");
         };
 
         hideError();
+
+        // Restore OTP view on page refresh if a pending session exists
+        if (pendingOtp) {
+            document.getElementById('display-email').innerText = pendingDisplayEmail;
+            document.querySelector('.otp-input').focus();
+            startCountdown(pendingTimeLeft);
+        }
 
         emailInput.addEventListener('input', hideError);
 
@@ -229,7 +265,7 @@ include("../src/headerOutSide.php");
                         otpSection.style.display = 'block';
                         hideError();
                         document.querySelector('.otp-input').focus();
-                        startCountdown();
+                        startCountdown(60);
                     } else {
                         showError(data.message);
                     }
