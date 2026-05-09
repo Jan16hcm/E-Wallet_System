@@ -1,19 +1,19 @@
 <?php
 require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
-require_once ('../../vendor/Mobile_Detect.php');
+// require_once ('../../vendor/Mobile_Detect.php');
 
 $usertype = usertype();//3 == admin, 2 = Request additional information, -1 = first login 
 if ($usertype != "1") {
     header('Location: Login.php');
     exit();
 }
-$detect = new WP_Rocket_Mobile_Detect;
+// $detect = new WP_Rocket_Mobile_Detect;
 
-$is_desktop = false;
-if (!$detect->isMobile() && !$detect->isTablet()) {
-    $is_desktop = true;
-}
+// $is_desktop = false;
+// if (!$detect->isMobile() && !$detect->isTablet()) {
+//     $is_desktop = true;
+// }
 
 $useremail = htmlspecialchars($_SESSION['email'], ENT_QUOTES, 'UTF-8');
 $username = htmlspecialchars($_SESSION['name'], ENT_QUOTES, 'UTF-8');
@@ -322,14 +322,7 @@ include '../src/header.php';
 </script>
 
 <?php
-if ($is_desktop) {
     include '../src/footer.php';
-} else {
-    ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
-
-    </html>
-    <?php
-}
-?>
+// if ($is_desktop) {
+// } else {
+//     ?>
