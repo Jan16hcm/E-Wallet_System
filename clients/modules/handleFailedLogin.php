@@ -33,6 +33,10 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
         return ['Wrong password', -4];
     }
 
+    if ($user_type === 4 && $attem_num < 6) {
+        return ['This account has been disabled, please contact the hotline 18001008', -1];
+    }
+
     if ($attem_num === 3 && !empty($locked_time)) {
         $locked_time_obj = new DateTime($locked_time);
         $time_passed = $time->getTimestamp() - $locked_time_obj->getTimestamp();
