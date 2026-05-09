@@ -8,7 +8,7 @@ if ($usertype != "0" && $usertype != "1" && $usertype != "2") {
     header('Location: Login.php');
     exit();
 }
-$error = $_SESSION["error"];
+$error = $_SESSION["error"] ?? '';
 unset($_SESSION["error"]);
 // $detect = new WP_Rocket_Mobile_Detect;
 // $is_desktop = false;
@@ -283,9 +283,9 @@ include '../src/header.php';
         <span>Profile</span>
     </a>
 </div>
-<script>
-    alert("<?php echo $error ?>");
-</script>
+<?php if(!empty($error)) { ?>
+<script> alert (<?= $error ?>)</script>
+<?php } ?>
 <script src="../assets/js/profile.js"></script>
 <?php
 include '../src/footer.php';

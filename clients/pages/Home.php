@@ -8,7 +8,7 @@ if ($usertype != "1") {
     header('Location: Login.php');
     exit();
 }
-$error = $_SESSION["error"];
+$error = $_SESSION["error"] ?? '';
 unset($_SESSION["error"]);
 // $detect = new WP_Rocket_Mobile_Detect;
 
@@ -344,8 +344,11 @@ include '../src/header.php';
         <span>Password</span>
     </a>
 </div>
+<?php if(!empty($error)) { ?>
+<script> alert (<?= $error ?>)</script>
+<?php } ?>
 <script>
-    alert("<?php echo $error ?>");
+    
     // Pass PHP data to home.js
     window.chartData = {
         daily: <?= json_encode(array_values($daily_data)) ?>,
