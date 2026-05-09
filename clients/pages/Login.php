@@ -103,7 +103,7 @@ function handleLoginRedirect()
             header('Location: Profile.php');
             break;
         case 2:
-            header('Location: UpdateInformation.php');
+            header('Location: Profile.php');
             break;
         case 3:
             header('Location: Admin_dashboard.php');
