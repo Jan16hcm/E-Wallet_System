@@ -31,8 +31,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
     } elseif ($action === 'cancel' && $phone) {
-        $stmt = $con->prepare("UPDATE `user` SET `verified` = 4 WHERE `phonenum` = ?");
-        $stmt->bind_param("s", $phone);
+        $stmt = $con->prepare('SELECT `verified` FROM `user` WHERE `phonenum` = ?');
+        $stmt->bind_param('s', $phone);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $subverified = -1;
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $subverified = $row['verified'] ?? -1;
+        }
+        $stmt->close();
+
+        $stmt = $con->prepare("UPDATE `user` SET `subverified` = ?, `verified` = 4 WHERE `phonenum` = ?");
+        $stmt->bind_param("is", $subverified, $phone);
         $stmt->execute();
         $stmt->close();
     } elseif ($action === 'request_info' && $phone) {
@@ -46,9 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $result = $stmt->get_result();
         $verified = -1;
-        if($result && $result->num_rows > 0) {
+        if($result->num_rows > 0) {
             $row = $result->fetch_assoc();
-            $verified = $row['subverified'] ?? -1;
+            $verified = $row['subverified'];
         }
         $stmt->close();
         
@@ -62,9 +73,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $result = $stmt->get_result();
         $subverified = -1;
-        if($result && $result->num_rows > 0) {
+        if($result->num_rows > 0) {
             $row = $result->fetch_assoc();
-            $subverified = $row['verified'] ?? -1;
+            $subverified = $row['verified'];
         }
         $stmt->close();
         
@@ -131,10 +142,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 
-// Fetch Lists
-$pending_accounts = $con->query("SELECT * FROM `user` WHERE `verified` IN (-1, 0) AND `phonenum` != '0000000000' ORDER BY `phonenum` DESC")->fetch_all(MYSQLI_ASSOC);
-$active_accounts = $con->query("SELECT * FROM `user` WHERE `verified` = 1 AND `phonenum` != '0000000000' ORDER BY `phonenum` DESC")->fetch_all(MYSQLI_ASSOC);
-$disabled_accounts = $con->query("SELECT * FROM `user` WHERE `verified` = 4 ORDER BY `phonenum` DESC")->fetch_all(MYSQLI_ASSOC);
+
+// Pending: verified -1 (just registered), 0 (submitted ID), 2 (needs more info)
+$pending_accounts = $con->query("SELECT * FROM `user` WHERE `verified` IN (-1, 0, 2) AND `phonenum` != '0000000000' ORDER BY GREATEST(`created_at`, COALESCE(`card_updated_at`, `created_at`)) DESC")->fetch_all(MYSQLI_ASSOC);
+// Active: sort descending by account creation date
+$active_accounts = $con->query("SELECT * FROM `user` WHERE `verified` = 1 AND `phonenum` != '0000000000' ORDER BY `created_at` DESC")->fetch_all(MYSQLI_ASSOC);
+// Disabled (admin blocked / rejected): sort descending by creation date
+$disabled_accounts = $con->query("SELECT * FROM `user` WHERE `verified` = 4 ORDER BY `created_at` DESC")->fetch_all(MYSQLI_ASSOC);
+// Locked (too many failed logins): sort descending by lock time
 $locked_accounts = $con->query("SELECT * FROM `user` WHERE (`abnormal_login` >= 6 OR `locked_time` IS NOT NULL) AND `verified` != 3 ORDER BY `locked_time` DESC")->fetch_all(MYSQLI_ASSOC);
 $pending_tx = $con->query("SELECT * FROM `history` WHERE `money` > 5000000 AND `status` = 2 AND `transfer_type` IN ('Withdraw', 'Transfer') ORDER BY `date_transfer` DESC")->fetch_all(MYSQLI_ASSOC);
 
@@ -274,6 +289,25 @@ include '../src/header.php';
                         <div>
                             <strong><?= htmlspecialchars($u['name'] ?: 'Unknown') ?></strong>
                             <div style="font-size: 12px; color: var(--text-muted);"><?= htmlspecialchars($u['phonenum']) ?></div>
+                            <?php if ($u['verified'] == 2): ?>
+                                <div style="margin-top: 4px;">
+                                    <span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: rgba(251,146,60,0.15); color: var(--warning); border: 1px solid var(--warning);">
+                                        <i class="fa-solid fa-circle-exclamation"></i> Needs Info
+                                    </span>
+                                </div>
+                            <?php elseif ($u['verified'] == -1): ?>
+                                <div style="margin-top: 4px;">
+                                    <span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid #818cf8;">
+                                        <i class="fa-solid fa-user-plus"></i> New Account
+                                    </span>
+                                </div>
+                            <?php else: ?>
+                                <div style="margin-top: 4px;">
+                                    <span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: rgba(234,179,8,0.15); color: #facc15; border: 1px solid #facc15;">
+                                        <i class="fa-solid fa-id-card"></i> ID Submitted
+                                    </span>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div>
@@ -440,7 +474,7 @@ include '../src/header.php';
                 <input type="hidden" name="phone" value="<?= htmlspecialchars($user_details['phonenum']) ?>">
                 <input type="hidden" name="tab" value="<?= htmlspecialchars($active_tab) ?>">
                 <input type="hidden" name="search" value="<?= htmlspecialchars($search_query) ?>">
-                <button type="submit" name="action" value="verify" class="btn btn-outline" style="width: 100%; border-color: var(--success); color: var(--success);">
+                <button type="submit" name="action" value="unlock" class="btn btn-outline" style="width: 100%; border-color: var(--success); color: var(--success);">
                     <i class="fa-solid fa-unlock"></i> Unblock Account
                 </button>
             </form>
