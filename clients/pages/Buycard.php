@@ -47,20 +47,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
             // Insert transaction
             $status = 1; //no need approve in Buycard
             $transfer_type = "Buycard";
-            $selfFeeBear = $fee != 0;//bool
+            $selfFeeBear = $fee != 0 ? 1 : 0;//bool, store as int
             //selfFeeBear is true because transaction fees may be updated in the future 
             $id = generateIdCode($selfPhone, 4);
             $date = date('Y-m-d H:i:s'); // current date/time
-            $stmt = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, $date, ?, ?, $status, $selfFeeBear)");
-            $stmt->bind_param("ssssssds", $id, $selfPhone, $transfer_type, $total, $note);
-            
+            $stmt = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssdsii", $id, $selfPhone, $transfer_type, $date, $total, $note, $status, $selfFeeBear);
+        
             if(!$stmt->execute()){
                 $error = 'Failed to save in transfer history';
             } else {
                 // Generate card codes
                 $carrierCode = $carriers[$carrier];
                 for ($i = 0; $i < $quantity; $i++) {
-                    $code = generateCardCode($carrierCode);//return int
+                    $code = generateCardCode($selfPhone, $carrierCode);//return int
                     $codes[$i] = $code;
                     //phonecard primary key: id, code; denomination = float
 
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
                     //write cancel to history
                     $status = 0;
                     $canceldate = date('Y-m-d H:i:s');
-                    $stmt = $con->prepare("update history status = ?, date_confirm = ? where id = ?");
+                    $stmt = $con->prepare("UPDATE history SET status = ?, date_confirm = ? where id = ?");
                     $stmt->bind_param("iss", $status, $canceldate, $id);
                     
                     if(!$stmt->execute()){
