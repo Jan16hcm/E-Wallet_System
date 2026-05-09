@@ -115,6 +115,8 @@ ALTER TABLE `user`
   ADD PRIMARY KEY (`phonenum`);
 ALTER TABLE `user` 
   ADD UNIQUE (`email`);
+ALTER TABLE `user` 
+  ADD `subverified` tinyint(1) NOT NULL DEFAULT -1 COMMENT '-1:firstRegist\r\n0:False\r\n1:True\r\n2:Request additional information\r\n4:DisableAccount';
 --
 -- Constraints for dumped tables
 --
