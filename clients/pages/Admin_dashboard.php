@@ -41,13 +41,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
     } elseif ($action === 'unlock' && $phone) {
-        $stmt = $con->prepare("UPDATE `user` SET `abnormal_login` = 0, `locked_time` = NULL WHERE `phonenum` = ?");
-        $stmt->bind_param("s", $phone);
+        $stmt = $con->prepare('SELECT `subverified` FROM `user` WHERE `phonenum` = ?');
+        $stmt->bind_param('s', $phone);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $verified = -1;
+        if($result && $result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $verified = $row['subverified'] ?? -1;
+        }
+        $stmt->close();
+        
+        $stmt = $con->prepare("UPDATE `user` SET `verified` = ?, `subverified` = -1, `abnormal_login` = 0, `locked_time` = NULL WHERE `phonenum` = ?");
+        $stmt->bind_param("is", $verified, $phone);
         $stmt->execute();
         $stmt->close();
     } elseif ($action === 'block' && $phone) {
-        $stmt = $con->prepare("UPDATE `user` SET `verified` = 4 WHERE `phonenum` = ?");
-        $stmt->bind_param("s", $phone);
+        $stmt = $con->prepare('SELECT `verified` FROM `user` WHERE `phonenum` = ?');
+        $stmt->bind_param('s', $phone);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $subverified = -1;
+        if($result && $result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $subverified = $row['verified'] ?? -1;
+        }
+        $stmt->close();
+        
+        $stmt = $con->prepare("UPDATE `user` SET `subverified` = ?, `verified` = 4 WHERE `phonenum` = ?");
+        $stmt->bind_param("is", $subverified, $phone);
         $stmt->execute();
         $stmt->close();
     } elseif ($action === 'approve_tx' && $tx_id) {
