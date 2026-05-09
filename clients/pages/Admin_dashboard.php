@@ -1,14 +1,14 @@
 <?php
 require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
-require_once '../../vendor/autoload.php';
+require_once ('../../vendor/Mobile_Detect.php');
 
 $usertype = usertype(); 
 if ($usertype != "3") {
     header('Location: Login.php');
     exit();
 }
-$detect = new Detection\MobileDetect;
+$detect = new WP_Rocket_Mobile_Detect;
 $is_desktop = false;
 if (!$detect->isMobile() && !$detect->isTablet()) {
     $is_desktop = true;

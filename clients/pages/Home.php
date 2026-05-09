@@ -1,7 +1,7 @@
 <?php
 require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
-require_once '../../vendor/autoload.php';
+require_once ('../../vendor/Mobile_Detect.php');
 
 $usertype = usertype();//3 == admin, 2 = Request additional information, -1 = first login 
 if ($usertype != "1") {
