@@ -3,7 +3,7 @@ require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
 $usertype = usertype(); 
 if ($usertype != "3") {
-    header('Location: Login.php');
+    header('Location: ../pages/Login.php');
     exit();
 }
 // $detect = new WP_Rocket_Mobile_Detect;
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Redirect to prevent form resubmission
     $redirect_tab = $_POST['tab'] ?? 'pending';
     $redirect_search = $_POST['search'] ?? '';
-    $url = 'Admin_dashboard.php?tab=' . urlencode($redirect_tab);
+    $url = '../pages/Admin_dashboard.php?tab=' . urlencode($redirect_tab);
     if ($redirect_search) $url .= '&search=' . urlencode($redirect_search);
     header('Location: ' . $url);
     exit();
