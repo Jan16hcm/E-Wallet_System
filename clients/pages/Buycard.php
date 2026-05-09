@@ -1,283 +1,497 @@
 <?php
-include_once("../modules/db_connection.php");
-include_once("../modules/usertype.php");
-include_once("../modules/formatMoney.php");
-include_once("../modules/isValidCard.php");
-include_once("../modules/generateCode.php");
+require_once("../modules/db_connection.php");
+require_once("../modules/usertype.php");
+require_once("../modules/formatMoney.php");
+require_once("../modules/generateCode.php");
 
 $usertype = usertype();
-$error = checkuser($usertype);
-$fee = 0; //No fee for phone cards yet
-$carrier = '';
-$denomination = 0;
-$quantity = 0;
-$note = '';
-$carriers = CARRIERS;//['Viettel'=>'11111','Mobifone'=>'22222','Vinaphone'=>'33333']
-$denoms = CARD_DENOMINATIONS;//[10000, 20000, 50000, 100000]
-$codes = array();
-$user_money = 0;
-$total = 0;
-$id = '';
+if ($usertype != "1") {
+    header('Location: Login.php');
+    exit();
+}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
-    $carrier = trim($_POST['carrier'] ?? '');
+$error = '';
+$success_data = null;
+$username = $_SESSION['name'] ?? 'User';
+$current_date = strtoupper(date('l, F j'));
+
+// Use defined constants or defaults
+$carriers_list = defined('CARRIERS') ? CARRIERS : ['Viettel'=>'11111','Mobifone'=>'22222','Vinaphone'=>'33333'];
+$denoms_list = defined('CARD_DENOMINATIONS') ? CARD_DENOMINATIONS : [10000, 20000, 50000, 100000];
+
+$con = connect_db();
+
+// Get current balance
+$user_phone = '';
+$current_balance = 0;
+$stmt = $con->prepare("SELECT phonenum, money FROM user WHERE email = ?");
+$stmt->bind_param("s", $_SESSION['email']);
+$stmt->execute();
+$stmt->bind_result($user_phone, $current_balance);
+$stmt->fetch();
+$stmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $carrier = $_POST['carrier'] ?? '';
     $denomination = (int)($_POST['denomination'] ?? 0);
-    $quantity = (int)($_POST['quantity'] ?? 0);
+    $quantity = (int)($_POST['quantity'] ?? 1);
     $note = trim($_POST['note'] ?? '');
+    $fee = 0; // Current fee is 0
 
-    if (!array_key_exists($carrier, $carriers)) {
-        $error = 'Please select a valid carrier';
-    } elseif (!in_array($denomination, $denoms)) {
-        $error = 'Please select a valid denomination';
+    if (!array_key_exists($carrier, $carriers_list)) {
+        $error = 'Please select a valid carrier.';
+    } elseif (!in_array($denomination, $denoms_list)) {
+        $error = 'Please select a valid denomination.';
     } elseif ($quantity < 1 || $quantity > 5) {
-        $error = 'You can buy between 1 and 5 cards at a time';
+        $error = 'You can buy between 1 and 5 cards at a time.';
     } else {
-        $total = ($denomination + $fee)*$quantity;
-        $selfPhone = '';
-        $con = connect_db();
-        $stmt = $con->prepare("SELECT phonenum, money FROM user where email = ?");
-        $stmt->bind_param("s", $_SESSION['email']); 
-        $stmt->execute();
-        $stmt->bind_result($selfPhone, $user_money);
-        $stmt->fetch();//done get user phonenum, money
+        $total_cost = $denomination * $quantity;
         
-        if ($user_money < $total) {
-            $error = 'Insufficient balance. You need ' . formatMoney($total) . ' but have ' . formatMoney($user_money);
+        if ($current_balance < $total_cost) {
+            $error = 'Insufficient balance. You need ' . number_format($total_cost, 0, ',', '.') . ' ₫.';
         } else {
-            // Insert transaction
-            $status = 1; //no need approve in Buycard
-            $transfer_type = "Buycard";
-            $selfFeeBear = $fee != 0;//bool
-            //selfFeeBear is true because transaction fees may be updated in the future 
-            $id = generateIdCode($selfPhone, 4);
-            $date = date('Y-m-d H:i:s'); // current date/time
-            $stmt = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, $date, ?, ?, $status, $selfFeeBear)");
-            $stmt->bind_param("ssssssds", $id, $selfPhone, $transfer_type, $total, $note);
-            
-            if(!$stmt->execute()){
-                $error = 'Failed to save in transfer history';
-            } else {
-                // Generate card codes
-                $carrierCode = $carriers[$carrier];
+            // Start transaction
+            $con->begin_transaction();
+            try {
+                $history_id = generateIdCode($user_phone, 4);
+                $now = date('Y-m-d H:i:s');
+                $status = 0; // Completed immediately
+                $type = "Buy Card";
+
+                // 1. Insert into history
+                $stmt = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, date_transfer, money, note, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssssdsi", $history_id, $user_phone, $type, $now, $total_cost, $note, $status);
+                $stmt->execute();
+
+                // 2. Generate and Insert card codes
+                $codes = [];
+                $carrier_code = $carriers_list[$carrier];
+                $stmt_card = $con->prepare("INSERT INTO phonecard (id, code, carrier, denomination) VALUES (?, ?, ?, ?)");
                 for ($i = 0; $i < $quantity; $i++) {
-                    $code = generateCardCode($carrierCode);//return int
-                    $codes[$i] = $code;
-                    //phonecard primary key: id, code; denomination = float
-
-                    $stmt->prepare("INSERT INTO phonecard (id, code, carrier, denomination) VALUES (?,?,?,?)");
-                    $stmt->bind_param("sisd", $id, $code, $carrier, $denomination);
-                    if(!$stmt->execute()){
-                        $error = "Failed to save in phone card history at card number " . ($i + 1) . ". ";
-                        $total = $denomination*$i;
-                        break;
-                    }
+                    $card_code = generateCardCode($carrier_code);
+                    $codes[] = $card_code;
+                    $stmt_card->bind_param("sssd", $history_id, $card_code, $carrier, $denomination);
+                    $stmt_card->execute();
                 }
-                // Deduct balance
-                $stmt->prepare("UPDATE user SET money = money - ? WHERE phonenum = ?");
-                $stmt->bind_param("ds", $total, $selfPhone);
-                if(!$stmt->execute()){
-                    //write cancel to history
-                    $status = 0;
-                    $canceldate = date('Y-m-d H:i:s');
-                    $stmt = $con->prepare("update history status = ?, date_confirm = ? where id = ?");
-                    $stmt->bind_param("iss", $status, $canceldate, $id);
-                    
-                    if(!$stmt->execute()){
-                        if($total != ($denomination + $fee)*$quantity) {//only buy less card than expected
-                            $error .= 'Failed to update user balance, failed to cancel the transaction to buy card.';
-                            //i don't know how to handle this case
-                        } else {
-                            $error = 'Failed to update user balance, failed to cancel the transaction to buy card. It seem like god want you to have free money';
-                            //i don't know how to handle this case
-                        }
-                    } else {
-                        $error .= 'Failed to update user balance, cancelled the transferal';
-                        //add more error to string
-                    }
-                } else {
-                    //complete success
 
-                }
+                // 3. Deduct balance
+                $stmt_upd = $con->prepare("UPDATE user SET money = money - ? WHERE phonenum = ?");
+                $stmt_upd->bind_param("ds", $total_cost, $user_phone);
+                $stmt_upd->execute();
+
+                $con->commit();
+
+                // Success data for UI
+                $success_data = [
+                    'id' => $history_id,
+                    'carrier' => $carrier,
+                    'denomination' => $denomination,
+                    'quantity' => $quantity,
+                    'total' => $total_cost,
+                    'fee' => $fee,
+                    'codes' => $codes,
+                    'new_balance' => $current_balance - $total_cost
+                ];
+                
+                // Update session money
+                $_SESSION['money'] = $current_balance - $total_cost;
+                $current_balance = $_SESSION['money'];
+
+            } catch (Exception $e) {
+                $con->rollback();
+                $error = 'Transaction failed: ' . $e->getMessage();
             }
         }
-        $stmt->close();
-        $con->close();
     }
 }
-include("../src/header.php");
+$con->close();
 ?>
-
-<h2>Buy Phone Cards</h2>
-<p>Purchase scratch cards for Viettel, Mobifone, Vinaphone</p>
-
-<?php if (empty($error)): ?>
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <h4 style="font-family:'Playfair Display',serif;color:var(--navy);margin-top:12px">Purchase Successful!</h4>
-        <div class="info-row"><span class="info-label">Carrier</span><span class="info-value fw-bold"><?= htmlspecialchars($carrier) ?></span></div>
-        <div class="info-row"><span class="info-label">Denomination</span><span class="info-value"><?= formatMoney($denomination) ?> x <?= $quantity ?></span></div>
-        <div class="info-row"><span class="info-label">Total Paid</span><span class="info-value fw-bold text-danger"><?= formatMoney($total) ?></span></div>
-        <div class="info-row"><span class="info-label">Fee</span><span class="info-value"><?= formatMoney($fee) ?></span></div>
-        <div class="info-row"><span class="info-label">New Balance</span><span class="info-value fw-bold text-success"><?= formatMoney($user_money) ?></span></div>
-        <div class="divider"></div>
-        <h6 class="mb-3" style="font-family:'Playfair Display',serif;color:var(--navy)">Your Card Code <?php $quantity > 1 ? "" : "s" ?></h6>
-        <?php foreach ($codes as $i => $code): ?>
-        <div class="d-flex align-items-center justify-content-between p-2 mb-2 rounded" style="background:var(--cream);border:1px solid var(--border)">
-            <span style="font-size:12px;color:var(--text-muted)">Card <?= $i+1 ?></span>
-            <code style="font-size:20px;letter-spacing:4px;font-weight:700;color:var(--navy)"><?= htmlspecialchars($code) ?></code>
-            <button class="btn btn-sm btn-outline-secondary" onclick="copyCode('<?= $code ?>')">
-                <i class="bi bi-copy"></i>
-            </button>
-        </div>
-        <?php endforeach; ?>
-        <div class="mt-4 d-flex gap-2 justify-content-center">
-            <a href="transaction_detail.php?id=<?= $id ?>" class="btn btn-outline-secondary">View Receipt</a>
-            <a href="Buycard.php" class="btn btn-primary">Buy More</a>
-        </div>
-    </div>
-</div>
-
-<?php else: ?>
-
-<div class="row g-4">
-    <div class="col-lg-6">
-        <div class=""><i class="bi bi-sim-fill text-gold fs-5" style="color:var(--gold)"></i>
-            <h5>Card Details</h5>
-        </div>
-
-        <?php if ($error): ?>
-            <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-
-        <form method="POST" action="" id="cardForm">
-            <div class="mb-3">
-                <label class="">Mobile Carrier <span class="text-danger">*</span></label>
-                <div class="row g-2">
-                    <?php foreach ($carriers as $name => $code): ?>
-                    <div class="col-4">
-                        <input type="radio" name="carrier" value="<?= $name ?>" id="carrier_<?= $name ?>" class="btn-check" <?= ($_POST['carrier'] ?? '') === $name ? 'checked' : '' ?> required>
-                        <label class="btn btn-outline-secondary w-100 fw-semibold" for="carrier_<?= $name ?>"><?= $name ?></label>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="">Denomination<span class="text-danger">*</span></label>
-                <div class="row g-2">
-                    <?php foreach ($denoms as $d): ?>
-                    <div class="col-6">
-                        <input type="radio" name="denomination" value="<?= $d ?>" id="denom_<?= $d ?>" class="btn-check" <?= (int)($_POST['denomination'] ?? 0) === $d ? 'checked' : '' ?> required>
-                        <label class="btn btn-outline-secondary w-100 fw-semibold" for="denom_<?= $d ?>"><?= formatMoney($d) ?></label>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <label class="">Quantity (1-5) <span class="text-danger">*</span></label>
-                <select name="quantity" class="form-select" id="quantity">
-                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                    <option value="<?= $i ?>" <?= (int)($_POST['quantity'] ?? 1) === $i ? 'selected' : '' ?>><?= $i ?></option>
-                    <?php endfor; ?>
-                </select>
-            </div>
-
-            <!-- Total preview -->
-            <div class="p-3 rounded mb-4" style="background:var(--cream);border:1px solid var(--border)">
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted" style="font-size:13px">Unit Price</span>
-                    <span id="unitPrice" class="fw-semibold">—</span>
-                </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted" style="font-size:13px">Quantity</span>
-                    <span id="qty" class="fw-semibold">—</span>
-                </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted" style="font-size:13px">Transaction Fee</span>
-                    <span class="text-success fw-semibold"><?= formatMoney($fee) ?></span>
-                </div>
-                <div class="divider my-2"></div>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-bold">Total</span>
-                    <span id="total" class="fw-bold" style="color:var(--navy);font-size:16px">—</span>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-bag-check-fill me-2"></i>Purchase Cards
-            </button>
-        </form>
-    </div>
-</div>
-
-<div class="col-lg-6">
-    <div class="">
-        <i class="bi bi-wallet2 text-navy fs-5"></i><h5>Your Balance</h5>
-    </div>
-
-    <div class="text-center">
-        <div style="font-size:28px;font-family:'Playfair Display',serif;color:var(--navy)"><?= formatMoney($user_money) ?></div>
-    </div>
-
-    <div class=""><i class="bi bi-table text-navy fs-5">
-        </i><h5>Available Carriers</h5>
-    </div>
-
-    <div class="p-0">
-        <table class="">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Carrier</th>
-                    <th>Code</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Viettel</td>
-                    <td><code>11111</code></td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>Mobifone</td>
-                    <td><code>22222</code></td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>Vinaphone</td>
-                    <td><code>33333</code></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-<?php endif; ?>
-<?php include("../src/footer.php"); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy Phone Card - Antigravity Wallet</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/home.css">
+    <link rel="stylesheet" href="../assets/css/profile.css">
+    <link rel="stylesheet" href="../assets/css/transaction.css">
+    <style>
+        .buycard-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .carrier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .carrier-option {
+            cursor: pointer;
+        }
+        .carrier-option input {
+            display: none;
+        }
+        .carrier-card {
+            background: var(--bg-surface);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .carrier-option input:checked + .carrier-card {
+            border-color: var(--accent-blue);
+            background: var(--accent-blue)10;
+        }
+        .carrier-logo {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--accent-blue);
+        }
+        .denom-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .denom-option {
+            cursor: pointer;
+        }
+        .denom-option input {
+            display: none;
+        }
+        .denom-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .denom-option input:checked + .denom-card {
+            background: var(--text-main);
+            color: var(--bg-surface);
+            border-color: var(--text-main);
+        }
+        .summary-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .summary-total {
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+            margin-top: 12px;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--accent-blue);
+        }
+        .success-animation {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #10b98120;
+            color: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 16px;
+        }
+        .card-code-display {
+            background: linear-gradient(135deg, var(--bg-surface), var(--bg-body));
+            border: 1px dashed var(--accent-blue);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .code-text {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--text-main);
+        }
+        .copy-btn {
+            background: var(--accent-blue)10;
+            color: var(--accent-blue);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .copy-btn:hover {
+            background: var(--accent-blue);
+            color: white;
+        }
+    </style>
+</head>
+<body>
 <script>
-function copyCode(code) {
-    navigator.clipboard.writeText(code).then(() => {
-        alert('Code copied: ' + code);
-    });
-}
-
-function updateTotal() {
-    const denom = document.querySelector('input[name="denomination"]:checked');
-    const qty = document.getElementById('quantity');
-    const unit = document.getElementById('unitPrice');
-    const qtyEl = document.getElementById('qty');
-    const total = document.getElementById('total');
-
-    if (denom && qty) {
-        const d = parseInt(denom.value);
-        const q = parseInt(qty.value);
-        unit.textContent  = new Intl.NumberFormat('vi-VN').format(d) + ' VND';
-        qtyEl.textContent = q;
-        total.textContent = new Intl.NumberFormat('vi-VN').format(d * q) + ' VND';
+    if (localStorage.getItem("theme") !== "dark") {
+        document.body.classList.add("light-theme");
     }
-}
-
-document.querySelectorAll('input[name="denomination"]').forEach(el => el.addEventListener('change', updateTotal));
-document.getElementById('quantity')?.addEventListener('change', updateTotal);
 </script>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="user-profile-card">
+            <button class="theme-toggle" id="themeToggleBtn">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <div class="avatar"><?= strtoupper(substr($username, 0, 2)) ?></div>
+            <div class="date-text"><?= $current_date ?></div>
+            <div class="welcome-text">Welcome back,<br><?= $username ?>!</div>
+        </div>
+
+        <nav class="nav-menu">
+            <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+            <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+            <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+            <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+            <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+            <a href="transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+            <a href="Buycard.php" class="nav-link active"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+            <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="mobile-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar" style="width: 40px; height: 40px; margin: 0; font-size: 16px;">
+                    <?= strtoupper(substr($username, 0, 2)) ?>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Buy Card</div>
+                    <div style="font-size: 15px; font-weight: 700;"><?= $username ?></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="theme-toggle" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="buycard-container">
+            <?php if (!$success_data): ?>
+                <div class="header-actions" style="margin-bottom: 32px;">
+                    <div class="header-welcome">
+                        <div class="date-text"><?= $current_date ?></div>
+                        <h1 style="font-size: 28px; font-weight: 800; color: var(--text-main); margin: 0;">Buy Phone Card</h1>
+                    </div>
+                </div>
+
+                <?php if ($error): ?>
+                    <div class="alert alert-danger" style="margin-bottom: 24px; border-radius: 12px;">
+                        <i class="fa-solid fa-circle-exclamation" style="margin-right: 8px;"></i> <?= $error ?>
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST" id="buyCardForm">
+                    <div class="widget" style="padding: 32px; border-radius: 24px;">
+                        <label style="display: block; margin-bottom: 16px; font-weight: 700; font-size: 16px;">1. Select Carrier</label>
+                        <div class="carrier-grid">
+                            <?php foreach ($carriers_list as $name => $code): ?>
+                                <label class="carrier-option">
+                                    <input type="radio" name="carrier" value="<?= $name ?>" required>
+                                    <div class="carrier-card">
+                                        <div class="carrier-logo">
+                                            <i class="fa-solid fa-tower-broadcast"></i>
+                                        </div>
+                                        <div style="font-weight: 700; color: var(--text-main);"><?= $name ?></div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">Code: <?= $code ?></div>
+                                    </div>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <label style="display: block; margin-bottom: 16px; font-weight: 700; font-size: 16px;">2. Select Denomination</label>
+                        <div class="denom-grid">
+                            <?php foreach ($denoms_list as $d): ?>
+                                <label class="denom-option">
+                                    <input type="radio" name="denomination" value="<?= $d ?>" required>
+                                    <div class="denom-card">
+                                        <?= number_format($d, 0, ',', '.') ?> ₫
+                                    </div>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 700;">Quantity</label>
+                                <select name="quantity" class="form-control" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);">
+                                    <?php for($i=1; $i<=5; $i++): ?>
+                                        <option value="<?= $i ?>"><?= $i ?> card<?= $i>1 ? 's' : '' ?></option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 700;">Transaction Fee</label>
+                                <div style="padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: #10b981; font-weight: 700;">
+                                    0 ₫
+                                </div>
+                            </div>
+                        </div>
+
+                        <label style="display: block; margin-bottom: 8px; font-weight: 700;">Note (Optional)</label>
+                        <input type="text" name="note" placeholder="Message or reminder..." style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main); margin-bottom: 24px;">
+
+                        <div class="summary-card">
+                            <div class="summary-row">
+                                <span style="color: var(--text-muted);">Current Balance</span>
+                                <span><?= number_format($current_balance, 0, ',', '.') ?> ₫</span>
+                            </div>
+                            <div class="summary-total">
+                                <span>Total Payable</span>
+                                <span id="totalDisplay">0 ₫</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn" style="width: 100%; margin-top: 32px; background: var(--accent-blue); color: white; padding: 16px; border-radius: 16px; font-size: 18px; font-weight: 700; border: none; cursor: pointer;">
+                            Confirm Purchase
+                        </button>
+                    </div>
+                </form>
+
+            <?php else: ?>
+                <!-- Success State -->
+                <div class="widget" style="padding: 40px; border-radius: 32px; max-width: 600px; margin: 0 auto;">
+                    <div class="success-animation">
+                        <div class="success-icon">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h2 style="font-weight: 800; color: var(--text-main);">Purchase Successful!</h2>
+                        <p style="color: var(--text-muted);">Your card codes have been generated.</p>
+                    </div>
+
+                    <div style="margin-bottom: 32px;">
+                        <label style="display: block; margin-bottom: 12px; font-weight: 700; font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Card Codes</label>
+                        <?php foreach ($success_data['codes'] as $idx => $code): ?>
+                            <div class="card-code-display">
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Card <?= $idx + 1 ?> (<?= $success_data['carrier'] ?>)</div>
+                                    <div class="code-text" id="code-<?= $idx ?>"><?= $code ?></div>
+                                </div>
+                                <button class="copy-btn" onclick="copyCode('<?= $code ?>', this)">Copy</button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="summary-card" style="margin-bottom: 32px;">
+                        <div class="summary-row">
+                            <span style="color: var(--text-muted);">Denomination</span>
+                            <span><?= number_format($success_data['denomination'], 0, ',', '.') ?> ₫ x <?= $success_data['quantity'] ?></span>
+                        </div>
+                        <div class="summary-row">
+                            <span style="color: var(--text-muted);">Transaction ID</span>
+                            <span class="code-badge"><?= $success_data['id'] ?></span>
+                        </div>
+                        <div class="summary-total">
+                            <span>Total Paid</span>
+                            <span><?= number_format($success_data['total'], 0, ',', '.') ?> ₫</span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <a href="Buycard.php" class="btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); text-decoration: none; text-align: center; padding: 12px; border-radius: 12px; font-weight: 600;">Buy More</a>
+                        <a href="transactions.php" class="btn" style="background: var(--accent-blue); color: white; text-decoration: none; text-align: center; padding: 12px; border-radius: 12px; font-weight: 600;">View History</a>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </main>
+</div>
+
+<div class="mobile-bottom-nav">
+    <a href="Home.php" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+    </a>
+    <a href="transactions.php" class="nav-item">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>History</span>
+    </a>
+    <a href="Buycard.php" class="nav-item scan-btn active">
+        <div class="scan-circle">
+            <i class="fa-solid fa-mobile-screen"></i>
+        </div>
+        <span>Phone Card</span>
+    </a>
+    <a href="transfer.php" class="nav-item">
+        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+        <span>Transfer</span>
+    </a>
+    <a href="Profile.php" class="nav-item">
+        <i class="fa-solid fa-user"></i>
+        <span>Profile</span>
+    </a>
+</div>
+
+<script src="../assets/js/home.js"></script>
+<script>
+    const form = document.getElementById('buyCardForm');
+    if (form) {
+        const denomInputs = form.querySelectorAll('input[name="denomination"]');
+        const quantitySelect = form.querySelector('select[name="quantity"]');
+        const totalDisplay = document.getElementById('totalDisplay');
+
+        function updateTotal() {
+            const selectedDenom = form.querySelector('input[name="denomination"]:checked');
+            const qty = parseInt(quantitySelect.value);
+            if (selectedDenom) {
+                const total = parseInt(selectedDenom.value) * qty;
+                totalDisplay.innerText = new Intl.NumberFormat('vi-VN').format(total) + ' ₫';
+            }
+        }
+
+        denomInputs.forEach(input => input.addEventListener('change', updateTotal));
+        quantitySelect.addEventListener('change', updateTotal);
+    }
+
+    function copyCode(code, btn) {
+        navigator.clipboard.writeText(code).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied!';
+            btn.style.background = '#10b981';
+            btn.style.color = 'white';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.background = '';
+                btn.style.color = '';
+            }, 2000);
+        });
+    }
+</script>
+</body>
+</html>
