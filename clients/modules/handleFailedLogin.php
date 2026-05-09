@@ -68,10 +68,10 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
     }
     if ($new_attem >= 6) {
         $updateQuery = $isEmail
-            ? "UPDATE `user` SET `abnormal_login` = ?, `locked_time` = ?, `verified` = 4 WHERE `email` = ?"
-            : "UPDATE `user` SET `abnormal_login` = ?, `locked_time` = ?, `verified` = 4 WHERE `phonenum` = ?";
+            ? "UPDATE `user` SET `abnormal_login` = ?, `locked_time` = ?, `subverified` = ? , `verified` = 4 WHERE `email` = ?"
+            : "UPDATE `user` SET `abnormal_login` = ?, `locked_time` = ?, `subverified` = ? , `verified` = 4 WHERE `phonenum` = ?";
         $stmt = $con->prepare($updateQuery);
-        $stmt->bind_param("iss", $new_attem, $new_locked_time, $e_or_p);
+        $stmt->bind_param("isis", $new_attem, $new_locked_time, $user_type ,$e_or_p);
         $stmt->execute();
         $stmt->close();
         return ['Account has been locked...', -1];
