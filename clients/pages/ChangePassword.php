@@ -107,7 +107,7 @@ include("../src/headerOutSide.php");
                 <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
             </div>
 
-            <?php if (!$normalreset): ?>
+            <?php if (!$normalreset && $_SESSION['forgotPass'] === false): ?>
                 <div class="alert-custom info-vibrant">
                     <i class="bi bi-shield-check"></i>
                     <span><strong>First Login:</strong> Please set a permanent password to secure your account.</span>
