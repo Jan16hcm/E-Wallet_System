@@ -27,16 +27,11 @@ function generateIdCode(String $phonenum, int $type) {
         return str_pad('C' . $code, 32, '0', STR_PAD_RIGHT);
     //}
 }
-function generateCardCode(String $phonenum, string $carrierCode) {
-    //return int phone card code (10-digit sequence with the first 5 digits being the carrier code)
-    //can get duplicate
-    //date("z")	The day of the year (starting from 0)	0 through 365
-    //date("L") Whether it's a leap year 1 if it is a leap year, 0 otherwise.
-    ///*
-    $number = (intval(date("z")) + intval(date("H")) + intval(date("m")) + intval(date("s")) + intval(date("y")) + intval(date("L"))) . "";
-    //number max = 365 + 23 + 59 + 59 + 99 + 1 = 606
-    return (int)($carrierCode . substr($phonenum, 2, 2) . str_pad($number, 3, '9', STR_PAD_LEFT));
-    //*/
+function generateCardCode(string $carrierCode) {
+    // Return a 10-digit sequence: first 5 are carrier code, next 5 are random
+    $randomPart = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
+    return $carrierCode . $randomPart;
+}
     /*
     $count = 0;
     $con = connect_db();
@@ -76,5 +71,5 @@ function generateCardCode(String $phonenum, string $carrierCode) {
     $con->close();
     return $count;
     */
-}
+
 ?>

@@ -1,220 +1,239 @@
 <?php
-include_once("../modules/db_connection.php");
-include_once("../modules/usertype.php");
-include_once("../modules/formatMoney.php");
-include_once("../modules/generateCode.php");
+require_once("../modules/db_connection.php");
+require_once("../modules/usertype.php");
+require_once("../modules/formatMoney.php");
 
 $usertype = usertype();
-$id = ($_GET['id'] ?? '');
-if (empty($id)) { 
-    header('Location: transactions.php'); 
+if ($usertype != "1") {
+    header('Location: Login.php');
+    exit();
+}
+
+$id = $_GET['id'] ?? '';
+if (empty($id)) {
+    header('Location: transactions.php');
     exit;
 }
 
-$otherUser = array();
-$phonecard = array();
-$data = array();
-$error = checkuser($usertype);
+$con = connect_db();
 
-if (empty($error)){
-    $con = connect_db();
-    $stmt = $con->prepare("SELECT * FROM history WHERE id = ?");
-    $stmt->bind_param("s", $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $data = $result->fetch_all(MYSQLI_ASSOC);//size 1 array
+// 1. Get transaction main data
+$stmt = $con->prepare("SELECT * FROM history WHERE id = ?");
+$stmt->bind_param("s", $id);
+$stmt->execute();
+$data = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-    // Get receiver info
-    if ($data['transfer_type'] == 'Transfer') {
-        $stmt = $con->prepare("SELECT name, email FROM user WHERE phonenum = ?");
-        $stmt->bind_param("s", $data['receiver_phone']);
-        if(!$stmt->execute()){
-            $error = "Database error: " . $stmt->error;
-        } else {
-            $stmt->bind_result($otherUser);
-            $stmt->fetch();
-        }
-    }
-
-    // Get phone card codes
-    if ($data['transfer_type'] == 'Buycard') {
-        $stmt = $con->prepare("SELECT * FROM phonecard WHERE id = ?");
-        $stmt->bind_param("s", $data['id']);
-        if(!$stmt->execute()){
-            $error = "Database error: " . $stmt->error;
-        } else {
-            $stmt->bind_result($phonecard);
-            $stmt->fetch();
-        }
-    }
-    $stmt->close();
-    $con->close();
+if (!$data) {
+    header('Location: transactions.php');
+    exit;
 }
 
-$iconColors = ['Deposit'=>'var(--success)','Withdraw'=>'var(--danger)','Transfer'=>'var(--info)','Buycard'=>'var(--gold)'];
-$typeIcons = ['Deposit'=>'bi-arrow-down-circle-fill','Withdraw'=>'bi-arrow-up-circle-fill','Transfer'=>'bi-arrow-left-circle-fill','Buycard'=>'bi-sim-fill'];
-include("../src/header.php");
+// Check if user is authorized to see this transaction
+// (Must be sender or recipient)
+$user_phone = '';
+$stmt = $con->prepare("SELECT phonenum FROM user WHERE email = ?");
+$stmt->bind_param("s", $_SESSION["email"]);
+$stmt->execute();
+$stmt->bind_result($user_phone);
+$stmt->fetch();
+$stmt->close();
+
+if ($data['user_phone'] != $user_phone && $data['receiver_phone'] != $user_phone) {
+    header('Location: transactions.php');
+    exit;
+}
+
+// 2. Get other user info if it's a transfer
+$otherUser = null;
+if (!empty($data['receiver_phone'])) {
+    $target_phone = ($data['user_phone'] == $user_phone) ? $data['receiver_phone'] : $data['user_phone'];
+    $stmt = $con->prepare("SELECT name, email, phonenum FROM user WHERE phonenum = ?");
+    $stmt->bind_param("s", $target_phone);
+    $stmt->execute();
+    $otherUser = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+}
+
+// 3. Get phone card codes if it's a buy card transaction
+$phonecards = [];
+if ($data['transfer_type'] == 'Buy Card') {
+    $stmt = $con->prepare("SELECT * FROM phonecard WHERE id = ?");
+    $stmt->bind_param("s", $id);
+    $stmt->execute();
+    $phonecards = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+}
+
+$con->close();
+
+$current_date = strtoupper(date('l, F j'));
+$username = $_SESSION['name'] ?? 'User';
+
+$is_sender = ($data['user_phone'] == $user_phone);
+$is_pos = ($data['transfer_type'] == 'Deposit' || (!$is_sender && $data['transfer_type'] == 'Transfer'));
+$icon_color = $is_pos ? '#10b981' : '#ef4444';
+$amount_prefix = $is_pos ? '+' : '-';
+$status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unknown';
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Detail - Antigravity Wallet</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/home.css">
+    <link rel="stylesheet" href="../assets/css/profile.css">
+    <link rel="stylesheet" href="../assets/css/transaction.css">
+</head>
+<body>
+<script>
+    if (localStorage.getItem("theme") !== "dark") {
+        document.body.classList.add("light-theme");
+    }
+</script>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<div>
-    <div>
-        <h2>Transaction Detail</h2>
-        <p><?= $data['transfer_type'] ?></p>
-    </div>
-    <a href="transactions.php" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-2"></i>Back to History
-    </a>
-</div>
+<div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="user-profile-card">
+            <button class="theme-toggle" id="themeToggleBtn">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <div class="avatar"><?= strtoupper(substr($username, 0, 2)) ?></div>
+            <div class="date-text"><?= $current_date ?></div>
+            <div class="welcome-text">Welcome back,<br><?= $username ?>!</div>
+        </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <div>
-            <div class="text-center py-4">
-                <div style="width:64px;height:64px;border-radius:20px;background:<?= $iconColors[$data['transfer_type']] ?? '#ccc' ?>22;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:<?= $iconColors[$data['transfer_type']] ?? '#ccc' ?>">
-                    <i class="bi <?= $typeIcons[$data['transfer_type']] ?? 'bi-receipt' ?>"></i>
+        <nav class="nav-menu">
+            <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+            <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+            <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+            <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+            <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+            <a href="transactions.php" class="nav-link active"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+            <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+            <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="mobile-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar" style="width: 40px; height: 40px; margin: 0; font-size: 16px;">
+                    <?= strtoupper(substr($username, 0, 2)) ?>
                 </div>
-                <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px"><?= $data['transfer_type'] ?></div>
-                <?php
-                $amtSign  = in_array($data['transfer_type'], ['Deposit','Transfer']) ? '+' : '-';
-                $amtColor = in_array($data['transfer_type'], ['Deposit','Transfer']) ? 'var(--success)' : 'var(--danger)';
-                if ($data['status'] == 2) $amtColor = 'var(--warning)';
-                ?>
-                <div style="font-size:36px;font-family:'Playfair Display',serif;font-weight:700;color:<?= $amtColor ?>;margin:8px 0">
-                    <?= $amtSign ?><?= formatMoney($data['money']) ?>
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Detail</div>
+                    <div style="font-size: 15px; font-weight: 700;"><?= $username ?></div>
                 </div>
-                <?php
-                $badge = '';
-                switch ($data['status']) {
-                    case 0: 
-                        $badge = '<span class="badge bg-success px-3 py-2">Completed</span>';
-                        break;
-                    case 1:
-                        $badge = '<span class="badge bg-warning text-dark px-3 py-2">Pending</span>';
-                        break;
-                    case 2:
-                        $badge = '<span class="badge bg-danger px-3 py-2">Cancelled</span>';
-                        break;
-                    default:
-                        $badge = '<span class="badge bg-secondary px-3 py-2">' . $data['status'] . ' - error in database</span>';
-                    }
-                echo $badge;
-                ?>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="theme-toggle" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="header-actions" style="margin-bottom: 20px;">
+            <div class="header-welcome">
+                <div class="date-text"><?= $current_date ?></div>
+                <h1 style="font-size: 28px; font-weight: 800; color: var(--text-main); margin: 0;">Transaction Details</h1>
+            </div>
+        </div>
+
+        <div class="detail-card">
+<?php
+            // Status Logic for Detail View
+            $display_status = $data['status'];
+            if ($data['transfer_type'] == 'Deposit' || $data['transfer_type'] == 'Buy Card') {
+                $display_status = 0; // Always show Completed
+            }
+            $status_label = ['Completed', 'Pending', 'Cancelled'][$display_status] ?? 'Unknown';
+            ?>
+            <div class="detail-header">
+                <div class="detail-icon" style="background: <?= $icon_color ?>20; color: <?= $icon_color ?>;">
+                    <i class="fa-solid <?= $is_pos ? 'fa-arrow-down' : 'fa-arrow-up' ?>"></i>
+                </div>
+                <div class="detail-amount"><?= $amount_prefix ?><?= number_format($data['money'], 0, ',', '.') ?> ₫</div>
+                <div class="detail-status status-<?= $display_status ?>"><?= $status_label ?></div>
             </div>
 
-            <div class="divider my-0"></div>
-
-            <div>
+            <div class="info-grid">
                 <div class="info-row">
-                    <span class="info-label">Transaction id</span>
-                    <span class="info-value"><code><?= ($data['id']) ?></code></span>
+                    <span class="info-label">Transaction ID</span>
+                    <span class="info-value code-badge"><?= htmlspecialchars($data['id']) ?></span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Date init</span>
-                    <span class="info-value"><?= date('d/m/Y H:i:s', strtotime($data['date_transfer'])) ?></span>
+                    <span class="info-label">Type</span>
+                    <span class="info-value"><?= htmlspecialchars($data['transfer_type']) ?></span>
                 </div>
-                <?php if (!empty($data['date_confirm'])): ?>
                 <div class="info-row">
-                    <span class="info-label">Date <?= $data['status'] == 0 ? "Cancelled" : ($data['status'] == 1 ? "Approved" : "You should not be seeing this, please contact the admin to fix") ?></span>
-                    <span class="info-value"><?= date('d/m/Y H:i:s', strtotime($data['date_confirm'])) ?></span>
-                    <?php
-                    /*
-                    if(!empty($data['date_confirm'])){
-                        $dateconfirm = date('d/m/Y H:i:s', strtotime($data['date_confirm']));
-                        echo '<span class="info-value">'. $dateconfirm . '</span>';
-                    } else {
-                        echo '<span class="info-value">The admin has yet to approve</span>';
-                    }
-                    */
-                    ?>
+                    <span class="info-label">Date & Time</span>
+                    <span class="info-value"><?= date('d M Y, g:i A', strtotime($data['date_transfer'])) ?></span>
                 </div>
-                <?php endif; ?>
-
-                <div class="info-row">
-                    <span class="info-label">Amount</span>
-                    <span class="info-value fw-bold"><?= formatMoney($data['money']) ?></span>
-                </div>
-
-                <?php if ($data['selfFeeBear']): ?>
-                <div class="info-row">
-                    <span class="info-label">Fee 5% paid by yourself: </span>
-                    <span class="info-value"><?= formatMoney($data['money']*0.05) ?></span>
-                </div>
-                <?php endif; ?>
-
-                <?php if ($data['card_num']): ?>
-                <div class="info-row">
-                    <span class="info-label">Card Number</span>
-                    <span class="info-value"><code><?= $data['card_num'] ?></code></span>
-                </div>
-                <?php endif; ?>
-
-                <?php if (!empty($otherUser)): ?>
-                    <div class="info-row">
-                    <?php if ($data['selfFeeBear']): ?>
-                        <span class="info-label">Fee 5% paid by yourself: </span>
-                    <?php else: ?>
-                        <span class="info-label">Fee 5% paid by <?= htmlspecialchars($otherUser['name']) ?>: </span>
-                    <?php endif; ?>
-                        <span class="info-value"><?= formatMoney($data['money']*0.05) ?></span>
-                    </div>
-                <div class="info-row">
-                    <span class="info-label">Recipient</span>
-                    <span class="info-value">
-                        <strong><?= htmlspecialchars($otherUser['name']) ?></strong>
-                        <div style="font-size:12px;color:var(--text-muted)"><?= htmlspecialchars($otherUser['phonenum']) ?></div>
-                    </span>
-                </div>
-                <?php else: ?>
-                    <div class="info-row">
-                    <?php if ($data['selfFeeBear']): ?>
-                        <span class="info-label">Fee 5%: </span>
-                        <span class="info-value"><?= formatMoney($data['money']*0.05) ?></span>
-                    <?php else: ?>
-                        <span class="info-label">No fee:>: </span>
-                        <span class="info-value">0</span>
-                    <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-
                 
+                <?php if ($data['transfer_type'] == 'Transfer'): ?>
+                    <div class="info-row">
+                        <span class="info-label"><?= $is_sender ? 'Recipient' : 'Sender' ?></span>
+                        <span class="info-value">
+                            <?= htmlspecialchars($otherUser['name'] ?? 'Unknown User') ?><br>
+                            <span style="font-size: 12px; font-weight: normal; color: var(--text-muted);"><?= htmlspecialchars($otherUser['phonenum'] ?? '') ?></span>
+                        </span>
+                    </div>
+                <?php endif; ?>
+
                 <?php if (!empty($data['card_num'])): ?>
-                <div class="info-row">
-                    <span class="info-label">Card number</span>
-                    <span class="info-value"><?= $data['card_num'] ?></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Expiration date</span>
-                    <span class="info-value"><?= $data['expire'] ?></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">CVV</span>
-                    <span class="info-value"><?= $data['CVV'] ?></span>
-                </div>
+                    <div class="info-row">
+                        <span class="info-label">Account / Card</span>
+                        <span class="info-value"><?= htmlspecialchars($data['card_num']) ?></span>
+                    </div>
                 <?php endif; ?>
 
                 <?php if (!empty($data['note'])): ?>
-                <div class="info-row">
-                    <span class="info-label">Note</span>
-                    <span class="info-value"><?= htmlspecialchars($data['note']) ?></span>
-                </div>
+                    <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                        <span class="info-label">Message / Note</span>
+                        <div style="background: var(--bg-body); padding: 12px; border-radius: 12px; width: 100%; font-size: 14px; border: 1px solid var(--border-color);">
+                            <?= nl2br(htmlspecialchars($data['note'])) ?>
+                        </div>
+                    </div>
                 <?php endif; ?>
 
-                <?php if (!empty($phonecard)): ?>
-                <div class="info-row flex-column">
-                    <span class="info-label mb-2">Card Codes</span>
-                    <div class="w-100">
-                        <?php foreach ($phonecard as $i => $card): ?>
-                        <div class="d-flex align-items-center justify-content-between p-2 mb-1 rounded" style="background:var(--cream);border:1px solid var(--border)">
-                            <span style="font-size:12px;color:var(--text-muted)">Card <?= $i+1 ?> (<?= htmlspecialchars($card['carrier']) ?>)</span>
-                            <code style="font-size:16px;letter-spacing:3px;font-weight:700"><?= htmlspecialchars($card['code']) ?></code>
-                            <span style="font-size:12px;">Denomination: (<?= formatMoney($card['denomination']) ?>)</span>
-                        </div>
+                <?php if (!empty($phonecards)): ?>
+                    <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 10px;">
+                        <span class="info-label">Purchased Card Codes</span>
+                        <?php foreach ($phonecards as $card): ?>
+                            <div class="scratch-card" style="width: 100%;">
+                                <div>
+                                    <div style="font-weight: 700; color: var(--text-main);"><?= htmlspecialchars($card['carrier']) ?></div>
+                                    <div style="font-size: 12px; color: var(--text-muted);"><?= number_format($card['denomination'], 0, ',', '.') ?> ₫</div>
+                                </div>
+                                <div class="code-badge" style="font-size: 16px; letter-spacing: 1px; color: var(--accent-blue); background: white;">
+                                    <?= htmlspecialchars($card['code']) ?>
+                                </div>
+                            </div>
                         <?php endforeach; ?>
                     </div>
-                </div>
                 <?php endif; ?>
             </div>
+
+            <a href="transactions.php" class="btn" style="width: 100%; margin-top: 32px; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 600; padding: 12px; border-radius: 12px; text-decoration: none; display: block; text-align: center;">
+                <i class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i> Back to History
+            </a>
         </div>
-    </div>
+    </main>
 </div>
-<?php include("../src/footer.php"); ?>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<script src="../assets/js/home.js"></script>
+<script src="../assets/js/transaction.js"></script>
+</body>
+</html>

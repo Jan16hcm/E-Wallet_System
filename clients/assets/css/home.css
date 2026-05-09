@@ -101,15 +101,18 @@ body {
   position: relative;
 }
 
-.theme-toggle {
+.user-profile-card .theme-toggle {
   position: absolute;
   top: 16px;
   right: 16px;
+}
+
+.theme-toggle {
   background: var(--bg-body);
   border: none;
   color: var(--text-muted);
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
@@ -548,26 +551,21 @@ footer {
 
   .sidebar-toggle-btn {
     display: flex;
-    position: fixed;
-    bottom: 90px;
-    right: 16px;
-    width: 56px;
-    height: 56px;
-    background: var(--accent-blue);
-    color: white;
-    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
     justify-content: center;
     align-items: center;
-    font-size: 24px;
-    border: none;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5);
-    z-index: 1000;
+    font-size: 16px;
     cursor: pointer;
+    transition: 0.3s ease;
   }
 
   .sidebar-toggle-btn:active {
-    transform: scale(0.9);
-    background: var(--accent-purple);
+    background: var(--bg-surface-hover);
   }
 
   /* Main content */
@@ -740,26 +738,21 @@ footer {
 
   .sidebar-toggle-btn {
     display: flex;
-    position: fixed;
-    bottom: 90px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
-    background: var(--accent-blue);
-    color: white;
-    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
     justify-content: center;
     align-items: center;
-    font-size: 26px;
-    border: none;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5);
-    z-index: 1000;
+    font-size: 16px;
     cursor: pointer;
+    transition: 0.3s ease;
   }
 
   .sidebar-toggle-btn:active {
-    transform: scale(0.9);
-    background: var(--accent-purple);
+    background: var(--bg-surface-hover);
   }
 
   body {
@@ -911,7 +904,7 @@ footer {
 }
 
 /* ── [4] Large devices (laptops/desktops, 992px and up) ── */
-@media only screen and (min-width: 1025px) {
+@media only screen and (min-width: 992px) {
   .sidebar {
     position: relative !important;
     left: 0 !important;
@@ -950,11 +943,27 @@ footer {
 
   .dashboard-grid {
     grid-template-columns: repeat(3, 1fr) !important;
-    gap: 20px;
+    gap: 24px;
+  }
+
+  .balance-widget {
+    grid-column: span 2;
+  }
+
+  .transfer-widget {
+    grid-column: span 1;
   }
 
   .transactions-widget {
     grid-column: span 2;
+  }
+
+  .earnings-widget {
+    grid-column: span 1;
+  }
+
+  .spending-widget {
+    grid-column: span 3;
   }
 }
 

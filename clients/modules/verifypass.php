@@ -1,5 +1,5 @@
 <?php
-    require_once("db_connection.php");
+    require_once("db_connection.php"); 
     function verifypass(String $pass, String $e_or_p, bool $isEmail) {
         $con = connect_db();
         if($isEmail) {

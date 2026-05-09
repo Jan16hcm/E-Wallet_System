@@ -8,7 +8,7 @@
         }
         // Check for warnings/errors from parsing
         $errors = DateTime::getLastErrors();
-        if ($errors['warning_count'] > 0 || $errors['error_count'] > 0) {
+        if ($errors && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {
             return 'Invalid date';
         }
         // Ensure the formatted date matches exactly (prevents partial matches)

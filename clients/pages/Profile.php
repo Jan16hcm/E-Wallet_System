@@ -8,7 +8,8 @@ if ($usertype != "0" && $usertype != "1" && $usertype != "2") {
     header('Location: Login.php');
     exit();
 }
-
+$error = $_SESSION["error"] ?? '';
+unset($_SESSION["error"]);
 // $detect = new WP_Rocket_Mobile_Detect;
 // $is_desktop = false;
 // if (!$detect->isMobile() && !$detect->isTablet()) {
@@ -55,6 +56,7 @@ $stmt->close();
 $con->close();
 
 $username = htmlspecialchars($user_data['name'], ENT_QUOTES, 'UTF-8');
+
 $useremail = htmlspecialchars($user_data['email'], ENT_QUOTES, 'UTF-8');
 $userphone = htmlspecialchars($user_data['phonenum'], ENT_QUOTES, 'UTF-8');
 $userbirth = htmlspecialchars($user_data['birth'], ENT_QUOTES, 'UTF-8');
@@ -74,8 +76,10 @@ include '../src/header.php';
 <link rel="stylesheet" href="../assets/css/home.css">
 <link rel="stylesheet" href="../assets/css/profile.css">
 
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="dashboard-wrapper">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="user-profile-card">
             <button class="theme-toggle" id="themeToggleBtn">
                 <i class="fa-solid fa-moon"></i>
@@ -119,10 +123,14 @@ include '../src/header.php';
                     <div style="font-size: 15px; font-weight: 700;"><?= $username ?></div>
                 </div>
             </div>
-            <button class="theme-toggle"
-                style="position: relative; top: 0; right: 0; border: 1px solid var(--border-color);">
-                <i class="fa-solid fa-moon"></i>
-            </button>
+            <div style="display: flex; gap: 8px;">
+                <button class="theme-toggle" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
         </div>
 
         <div class="profile-container">
@@ -237,27 +245,15 @@ include '../src/header.php';
                     </div>
                 </div>
 
-                <?php
-                if ($cvv != '') {
-                    ?>
+                
                     <div class="card-mockup-wrapper">
                         <div class="card-mockup">
                             <div class="card-balance-label">Available Balance</div>
                             <div class="card-balance-value"><?= $money ?> ₫</div>
 
-                            <div class="card-details">
-                                <div>
-                                    <div class="card-balance-label">Card Number</div>
-                                    <div class="card-num">•••• •••• •••• <?= substr($card_num, -4) ?></div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div class="card-balance-label">CVV</div>
-                                    <div class="card-cvv"><?= $cvv ?></div>
-                                </div>
-                            </div>
                         </div>
                     </div>
-                <?php } ?>
+                
             </div>
         </div>
     </main>
@@ -287,42 +283,10 @@ include '../src/header.php';
         <span>Profile</span>
     </a>
 </div>
-
-<script>
-    // Theme Toggle Logic
-    const themeToggleBtns = document.querySelectorAll('.theme-toggle');
-    const body = document.body;
-
-    themeToggleBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            body.classList.toggle('light-theme');
-
-            themeToggleBtns.forEach(b => {
-                const icon = b.querySelector('i');
-                if (icon) {
-                    if (body.classList.contains('light-theme')) {
-                        icon.classList.replace('fa-moon', 'fa-sun');
-                    } else {
-                        icon.classList.replace('fa-sun', 'fa-moon');
-                    }
-                }
-            });
-        });
-    });
-    document.addEventListener('DOMContentLoaded', function() {
-        const restrictedLinks = document.querySelectorAll('.restricted-feature');
-
-        restrictedLinks.forEach(link => {
-            link.addEventListener('click', function(event) {
-                event.preventDefault(); 
-                
-                alert("This feature is only available for verified accounts. Please wait for verification or update your information.");
-            });
-        });
-    });
-</script>
-
+<?php if(!empty($error)) { ?>
+<script> alert (<?= $error ?>)</script>
+<?php } ?>
+<script src="../assets/js/profile.js"></script>
 <?php
 include '../src/footer.php';
 // if ($is_desktop) {

@@ -1,146 +1,257 @@
 <?php
-include_once("../modules/db_connection.php");
-include_once("../modules/usertype.php");
-include_once("../modules/formatMoney.php");
-include_once("../modules/generateCode.php");
+require_once("../modules/db_connection.php");
+require_once("../modules/usertype.php");
+require_once("../modules/formatMoney.php");
 
 $usertype = usertype();
-$page = max(1, (int)($_GET['page'] ?? 1));//no -number
-$perPage = max(1, (int)($_GET['perPage'] ?? 20));
-$totalPages = 1;
-$count = 0;
-$offset = ($page - 1) * $perPage;
-$filter = $_GET['transfer_type'] ?? '';
-//Deposit/Transfer/Withdraw/Buycard
-$user_phone = '';
-$error = checkuser($usertype);
-
-if(empty($error)){
-    $con = connect_db();
-    $stmt = $con->prepare("select phonenum from user where email = ?");
-    $stmt->bind_param("s", $_SESSION["email"]);
-    $stmt->execute();
-    $stmt->bind_result($user_phone);
-    $stmt->fetch();//done get user phonenum
-
-    $stmt = $con->prepare("SELECT COUNT(*) FROM history WHERE user_phone = ?");
-    $stmt->bind_param("s", $user_phone);
-    $stmt->execute();
-    $count = 0;
-    $stmt->bind_result($count);
-    $stmt->fetch();//get count for page showing done
-
-    $stmt = $con->prepare("SELECT * FROM history WHERE user_phone = ? 
-                            UNION
-                            SELECT * FROM history WHERE receiver_phone = ? AND status = 1
-                            ORDER BY date_transfer DESC LIMIT $perPage OFFSET $offset");
-    $stmt->bind_param("ss", $user_phone, $user_phone);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $data = $result->fetch_all(MYSQLI_ASSOC);//get all data related to user done
-    $stmt->close();
-    $con->close(); 
-    $totalPages = ceil($count / $perPage);
+if ($usertype != "1") {
+    header('Location: Login.php');
+    exit();
 }
-$typeIcons = ['Deposit'=>'bi-arrow-down-circle-fill','Withdraw'=>'bi-arrow-up-circle-fill','Transfer'=>'bi-arrow-left-circle-fill','Buycard'=>'bi-sim-fill'];
-include("../src/header.php");
+$error = checkuser($usertype);
+if(!empty($error)){
+    $_SESSION['error'] = $error;
+    header('Location: Login.php');
+    exit();
+}
+$page = max(1, (int)($_GET['page'] ?? 1));
+$perPage = 10;
+$offset = ($page - 1) * $perPage;
+$filter = $_GET['type'] ?? '';
+
+$con = connect_db();
+$user_phone = '';
+$stmt = $con->prepare("SELECT phonenum FROM user WHERE email = ?");
+$stmt->bind_param("s", $_SESSION["email"]);
+$stmt->execute();
+$stmt->bind_result($user_phone);
+$stmt->fetch();
+$stmt->close();
+
+$where = "(user_phone = ? OR (receiver_phone = ? AND status = 0))";
+$params = [$user_phone, $user_phone];
+$types = "ss";
+
+if (!empty($filter)) {
+    $where .= " AND transfer_type = ?";
+    $params[] = $filter;
+    $types .= "s";
+}
+
+$count_stmt = $con->prepare("SELECT COUNT(*) FROM history WHERE $where");
+$count_stmt->bind_param($types, ...$params);
+$count_stmt->execute();
+$count_stmt->bind_result($totalCount);
+$count_stmt->fetch();
+$count_stmt->close();
+
+$totalPages = ceil($totalCount / $perPage);
+
+$query = "SELECT * FROM history WHERE $where ORDER BY date_transfer DESC LIMIT ? OFFSET ?";
+$params_final = array_merge($params, [$perPage, $offset]);
+$types_final = $types . "ii";
+
+$stmt = $con->prepare($query);
+$stmt->bind_param($types_final, ...$params_final);
+$stmt->execute();
+$result = $stmt->get_result();
+$transactions = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+$con->close();
+
+$current_date = strtoupper(date('l, F j'));
+$username = $_SESSION['name'] ?? 'User';
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History - Antigravity Wallet</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/home.css">
+    <link rel="stylesheet" href="../assets/css/profile.css">
+    <link rel="stylesheet" href="../assets/css/transaction.css">
+</head>
+<body>
+<script>
+    if (localStorage.getItem("theme") !== "dark") {
+        document.body.classList.add("light-theme");
+    }
+</script>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<h2>Transaction History</h2>
-
-<?php if (empty($error)): ?> 
-<!-- Filter Tabs -->
-<div class="d-flex gap-2 flex-wrap">
-    <?php
-    $tabs = ['' => 'All', 'Deposit' => 'Deposits', 'Withdraw' => 'Withdrawals', 'Transfer' => 'Transfers', 'Buycard' => 'Phone Cards'];
-    foreach ($tabs as $key => $label):
-    ?>
-    <a href="?type=<?= $key ?>" class="btn btn-sm <?= $filter == $key ? 'btn-primary' : 'btn-outline-secondary' ?>">
-    <?= $label ?></a>
-    <?php endforeach; ?>
-</div>
-
-<div>
-    <?php if (empty($data)): ?>
-    <div class="text-center text-muted py-5">
-        <i class="bi bi-inbox d-block mb-2"></i>
-        No transactions found.
-    </div>
-    <?php else: ?>
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($data as $i):
-                    $amtSign = in_array($i['transfer_type'], ['Deposit','Transfer']) ? '+' : '-';
-                    $amtClass = in_array($i['transfer_type'], ['Deposit','Transfer']) ? 'text-success' : 'text-danger';
-                    if($i['transfer_type'] == 'Transfer' && $i['user_phone'] == $user_phone){//=>give money => -money on user
-                        $amtSign = '-';
-                        $amtClass = 'text-danger';
-                    }
-                    if ($i['status'] === 'pending') $amtClass = 'text-warning';
-                    $statusBadge = '';
-                    switch ($i['status']) {
-                        case 0: 
-                            $statusBadge = '<span class="badge bg-success">Completed</span>';
-                            break;
-                        case 1:
-                            $statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
-                            break;
-                        case 2:
-                            $statusBadge = '<span class="badge bg-danger">Cancelled</span>';
-                            break;
-                        default:
-                            $statusBadge = '<span class="badge bg-secondary">' . $i['status'] . '</span>';
-                    }
-                ?>
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="tx-icon <?= $i['transfer_type'] ?>" style="width:36px;height:36px;font-size:15px">
-                                <i class="bi <?= $typeIcons[$i['transfer_type']] ?? 'bi-receipt' ?>"></i>
-                            </div>
-                            <span class="fw-semibold"><?= $i['transfer_type'] ?></span>
-                        </div>
-                    </td>
-                    <td class="<?= $amtClass ?>"><?= $amtSign ?><?= formatMoney($i['money']) ?></td>
-                    <td><?= $statusBadge ?></td>
-                    <td class="text-muted" style="font-size:13px"><?= date('d/m/Y H:i', strtotime($i['date_transfer'])) ?></td>
-                    <td><a href="transaction_detail.php?id=<?= $i['id'] ?>" class="btn btn-sm btn-outline-secondary">View</a></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    <?php if ($totalPages > 1): ?>
-    <div class="d-flex justify-content-between align-items-center p-3 border-top">
-        <span class="text-muted" style="font-size:13px">Showing <?= count($data) ?> of <?= $count ?> transactions</span>
-        <div class="d-flex gap-1">
-            <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-            <a href="?type=<?= $filter ?>&page=<?= $p ?>&perPage=<?= $perPage ?>" class="btn btn-sm <?= $p == $page ? 'btn-primary' : 'btn-outline-secondary' ?>"><?= $p ?></a>
-            <?php endfor; ?>
+<div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="user-profile-card">
+            <button class="theme-toggle" id="themeToggleBtn">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <div class="avatar"><?= strtoupper(substr($username, 0, 2)) ?></div>
+            <div class="date-text"><?= $current_date ?></div>
+            <div class="welcome-text">Welcome back,<br><?= $username ?>!</div>
         </div>
-    </div>
-    <?php endif; ?>
-    <?php endif; ?>
-<?php endif; ?>
 
+        <nav class="nav-menu">
+            <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+            <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+            <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+            <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+            <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+            <a href="transactions.php" class="nav-link active"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+            <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+            <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="mobile-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar" style="width: 40px; height: 40px; margin: 0; font-size: 16px;">
+                    <?= strtoupper(substr($username, 0, 2)) ?>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">History</div>
+                    <div style="font-size: 15px; font-weight: 700;"><?= $username ?></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="theme-toggle" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="header-actions" style="margin-bottom: 20px;">
+            <div class="header-welcome">
+                <div class="date-text"><?= $current_date ?></div>
+                <h1 style="font-size: 28px; font-weight: 800; color: var(--text-main); margin: 0;">Transaction History</h1>
+            </div>
+        </div>
+
+        <div class="filter-container">
+            <a href="transactions.php" class="filter-btn <?= empty($filter) ? 'active' : '' ?>">All Activity</a>
+            <a href="?type=Deposit" class="filter-btn <?= $filter == 'Deposit' ? 'active' : '' ?>">Deposits</a>
+            <a href="?type=Transfer" class="filter-btn <?= $filter == 'Transfer' ? 'active' : '' ?>">Transfers</a>
+            <a href="?type=Withdraw" class="filter-btn <?= $filter == 'Withdraw' ? 'active' : '' ?>">Withdrawals</a>
+            <a href="?type=Buy Card" class="filter-btn <?= $filter == 'Buy Card' ? 'active' : '' ?>">Service Payments</a>
+        </div>
+
+        <div class="widget" style="padding: 0; overflow: hidden;">
+            <div class="tx-list">
+                <?php if (empty($transactions)): ?>
+                    <div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="fa-solid fa-folder-open" style="font-size: 40px; margin-bottom: 16px; opacity: 0.3;"></i>
+                        <p>No transactions found in this period.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($transactions as $tx): 
+                        $is_sender = ($tx['user_phone'] == $user_phone);
+                        $is_pos = ($tx['transfer_type'] == 'Deposit' || (!$is_sender && $tx['transfer_type'] == 'Transfer'));
+                        $icon_class = $is_pos ? 'fa-arrow-down' : 'fa-arrow-up';
+                        $icon_color = $is_pos ? '#10b981' : '#ef4444';
+                        $amount_prefix = $is_pos ? '+' : '-';
+                        
+                        // Status Logic
+                        $display_status = $tx['status'];
+                        if ($tx['transfer_type'] == 'Deposit' || $tx['transfer_type'] == 'Buy Card') {
+                            $display_status = 0; // Always show Completed
+                        }
+                        $status_label = ['Completed', 'Pending', 'Cancelled'][$display_status] ?? 'Unknown';
+                    ?>
+                    <div class="tx-item" onclick="window.location.href='transaction_detail.php?id=<?= $tx['id'] ?>'" style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
+                        <div class="tx-left" style="flex: 1.5; display: flex; align-items: center; gap: 12px;">
+                            <div class="tx-icon-img" style="background: <?= $icon_color ?>20; color: <?= $icon_color ?>; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                <i class="fa-solid <?= $icon_class ?>"></i>
+                            </div>
+                            <div>
+                                <div class="tx-name" style="font-weight: 600; color: var(--text-main);"><?= htmlspecialchars($tx['transfer_type']) ?></div>
+                                <?php if(!empty($tx['note'])): ?>
+                                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <?= htmlspecialchars($tx['note']) ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        
+                        <div class="tx-card" style="flex: 1; display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px;">
+                            <?php if(!empty($tx['card_num'])): ?>
+                                <i class="fa-solid fa-credit-card"></i> <?= htmlspecialchars($tx['card_num']) ?>
+                            <?php elseif(!empty($tx['receiver_phone']) && $is_sender): ?>
+                                <i class="fa-solid fa-user"></i> <?= $tx['receiver_phone'] ?>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="tx-status" style="flex: 0.8; display: flex; justify-content: center;">
+                            <span class="status-badge status-<?= $display_status ?>"><?= $status_label ?></span>
+                        </div>
+
+                        <div class="tx-date" style="flex: 1; text-align: right; color: var(--text-muted); font-size: 13px;">
+                            <?= date('d M, Y', strtotime($tx['date_transfer'])) ?><br>
+                            <span style="font-size: 11px;"><?= date('g:i A', strtotime($tx['date_transfer'])) ?></span>
+                        </div>
+
+                        <div class="tx-amount <?= $is_pos ? 'pos' : '' ?>" style="flex: 1.2; text-align: right; font-weight: 700; white-space: nowrap; color: <?= $icon_color ?>;">
+                            <?= $amount_prefix ?><?= number_format($tx['money'], 0, ',', '.') ?> ₫
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <?php if ($totalPages > 1): ?>
+            <div class="pagination">
+                <?php if ($page > 1): ?>
+                    <a href="?type=<?= $filter ?>&page=<?= $page - 1 ?>" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+                <?php endif; ?>
+
+                <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                    <a href="?type=<?= $filter ?>&page=<?= $p ?>" class="page-link <?= $p == $page ? 'active' : '' ?>"><?= $p ?></a>
+                <?php endfor; ?>
+
+                <?php if ($page < $totalPages): ?>
+                    <a href="?type=<?= $filter ?>&page=<?= $page + 1 ?>" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+    </main>
 </div>
-<div id="error-msg" class="error-alert<?= empty($error) ? ' is-invisible' : '' ?>" role="alert">
-    <svg viewBox="0 0 24 24" width="16" height="16">
-        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
-        <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-    </svg>
-    <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="mobile-bottom-nav">
+    <a href="Home.php" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+    </a>
+    <a href="transactions.php" class="nav-item active">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>History</span>
+    </a>
+    <a href="Buycard.php" class="nav-item scan-btn">
+        <div class="scan-circle">
+            <i class="fa-solid fa-mobile-screen"></i>
+        </div>
+        <span>Phone Card</span>
+    </a>
+    <a href="transfer.php" class="nav-item">
+        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+        <span>Transfer</span>
+    </a>
+    <a href="Profile.php" class="nav-item">
+        <i class="fa-solid fa-user"></i>
+        <span>Profile</span>
+    </a>
 </div>
-<?php include("../src/footer.php"); ?>
+
+<script src="../assets/js/home.js"></script>
+<script src="../assets/js/transaction.js"></script>
+</body>
+</html>
