@@ -5,18 +5,14 @@
     define('CREDIT_CARDS', [
         '111111' => ['expire' => '10/10/2022', 'cvv' => '411', 'limit' => null,    'always_fail' => false],
         '222222' => ['expire' => '11/11/2022', 'cvv' => '443', 'limit' => 1000000, 'always_fail' => false],
-        '333333' => ['expire' => '12/12/2022', 'cvv' => '577', 'limit' => null,    'always_fail' => true],
-    ]);
-    define('CARRIERS', [
-        'Viettel'  => '11111',
-        'Mobifone' => '22222',
-        'Vinaphone'=> '33333',
-    ]);
+        '333333' => ['expire' => '12/12/2022', 'cvv' => '577', 'limit' => null,    'always_fail' => true]]);
+    
+    define('CARRIERS', ['Viettel'=>'11111','Mobifone'=>'22222','Vinaphone'=>'33333']);
     define('CARD_DENOMINATIONS', [10000, 20000, 50000, 100000]);
 
     function isValidDepositCard(string $card_num, string $expire, string $cvv, float $amount){
     //return error string, empty string if success
-    // Format check
+    //Format check
         if (!preg_match('/^\d{6}$/', $card_num)) {
             return 'Card number must be exactly 6 digits';
         }

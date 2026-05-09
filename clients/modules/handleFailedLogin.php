@@ -20,6 +20,7 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
     $res->execute();
     $real_res = $res->get_result();
     if ($real_res->num_rows === 0) {
+        password_verify('dummy', '$2y$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012'); // Avoid Timing Attack
         return ['Invalid email/phone number or password', -2];
     }
     $row = $real_res->fetch_assoc();
@@ -30,6 +31,10 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
 
     if ($user_type === 3) { // Admin never locked
         return ['Wrong password', -4];
+    }
+
+    if ($user_type === 4 && $attem_num < 6) {
+        return ['This account has been disabled, please contact the hotline 18001008', -1];
     }
 
     if ($attem_num === 3 && !empty($locked_time)) {
@@ -62,17 +67,18 @@ function handleFailedLogin(DateTime $time, string $e_or_p, bool $isEmail)
     $stmt->execute();
     $stmt->close();
 
-    if ($new_attem >= 6) {
-        $updateQuery = $isEmail ? "UPDATE `user` SET `verified` = 4 WHERE `email` = ?"
-        : "UPDATE `user` SET `verified` = 4 WHERE phonenum = ?";
-        $stmt = $con->prepare($updateQuery);
-        $stmt->bind_param("s", $e_or_p);
-        $stmt->execute();
-        $stmt->close();
-        return ['Account has been locked due to entering the wrong password many times, please contact the administrator for support.', -1];
-    }
     if ($new_attem == 3) {
         return ['Account is currently locked, please try again in 60 seconds', 0];
+    }
+    if ($new_attem >= 6) {
+        $updateQuery = $isEmail
+            ? "UPDATE `user` SET `abnormal_login` = ?, `locked_time` = ?, `subverified` = ? , `verified` = 4 WHERE `email` = ?"
+            : "UPDATE `user` SET `abnormal_login` = ?, `locked_time` = ?, `subverified` = ? , `verified` = 4 WHERE `phonenum` = ?";
+        $stmt = $con->prepare($updateQuery);
+        $stmt->bind_param("isis", $new_attem, $new_locked_time, $user_type ,$e_or_p);
+        $stmt->execute();
+        $stmt->close();
+        return ['Account has been locked...', -1];
     }
 
     return ['Invalid email/phone number or password', -4];

@@ -2,9 +2,9 @@
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require '../vendor/PHPMailer-master/src/Exception.php';
-require '../vendor/PHPMailer-master/src/PHPMailer.php';
-require '../vendor/PHPMailer-master/src/SMTP.php';
+require '../../vendor/PHPMailer-master/src/Exception.php';
+require '../../vendor/PHPMailer-master/src/PHPMailer.php';
+require '../../vendor/PHPMailer-master/src/SMTP.php';
 
 function sendEmail($recipientEmail, $recipientName, $subject, $content, $altBody = '')
 {

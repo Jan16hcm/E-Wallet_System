@@ -14,23 +14,46 @@
   --font-body: "Plus Jakarta Sans", sans-serif;
 }
 
-html,
-body {
+html {
   height: 100%;
-  min-height: 100%;
   margin: 0;
-  overflow: auto;
 }
 
 body {
+  min-height: 100%;
+  margin: 0;
   display: flex;
   flex-direction: column;
   font-family: var(--font-body);
   background: var(--brand-deep);
   color: var(--text-1);
+  overflow-x: hidden;
 }
 
-footer.bg-white {
+/* Main content area pushes footer to bottom */
+.container.py-5 {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 40px !important;
+}
+
+/* Row cần full width trong flex container */
+.container.py-5 > .row {
+  width: 100%;
+}
+
+/* Form card chiếm nhiều width hơn */
+.container .col-md-6 {
+  flex: 0 0 83.333%;
+  max-width: 83.333%;
+}
+
+/* Footer stays at bottom */
+footer {
+  flex-shrink: 0;
   background-color: var(--brand-card) !important;
   border-top: 1px solid var(--border-subtle) !important;
   color: var(--text-2) !important;
@@ -206,7 +229,10 @@ footer.bg-white {
   font-size: 14.5px;
   padding: 13px 14px 13px 42px;
   outline: none;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
 }
 .form-input::placeholder {
@@ -235,7 +261,9 @@ textarea.form-input {
   border-radius: var(--radius-md);
   padding: 12px 14px;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
   margin-bottom: 18px;
   box-sizing: border-box;
 }
@@ -331,7 +359,9 @@ textarea.form-input {
   border: none;
   color: #fff;
   box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
   margin-top: 6px;
   font-family: var(--font-body);
 }
@@ -364,7 +394,9 @@ textarea.form-input {
   background: transparent;
   border: 1px solid var(--border-subtle);
   color: var(--text-2);
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
   margin-top: 10px;
   font-family: var(--font-body);
 }
@@ -393,7 +425,6 @@ textarea.form-input {
   font-weight: 500;
 }
 
-
 /* ── STEP INDICATOR (optional) ── */
 .step-dots {
   display: flex;
@@ -404,7 +435,9 @@ textarea.form-input {
   height: 4px;
   border-radius: 2px;
   background: var(--border-subtle);
-  transition: width 0.3s, background 0.3s;
+  transition:
+    width 0.3s,
+    background 0.3s;
 }
 .step-dot.active {
   background: linear-gradient(90deg, var(--brand-purple), var(--brand-pink));
@@ -449,7 +482,10 @@ textarea.form-input {
   font-size: 14.5px;
   padding: 13px 14px !important;
   outline: none;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
 }
 .form-control::placeholder {
   color: var(--text-3) !important;
@@ -484,20 +520,30 @@ textarea.form-input {
 
 /* Bootstrap btn override */
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand-purple), var(--brand-pink)) !important;
+  background: linear-gradient(
+    135deg,
+    var(--brand-purple),
+    var(--brand-pink)
+  ) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   font-size: 14.5px !important;
   font-weight: 600 !important;
   padding: 13px !important;
   box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35) !important;
-  transition: opacity 0.2s, transform 0.2s !important;
+  transition:
+    opacity 0.2s,
+    transform 0.2s !important;
   font-family: var(--font-body);
 }
 .btn-primary:hover:not(:disabled) {
   opacity: 0.9 !important;
   transform: translateY(-1px) !important;
-  background: linear-gradient(135deg, var(--brand-purple), var(--brand-pink)) !important;
+  background: linear-gradient(
+    135deg,
+    var(--brand-purple),
+    var(--brand-pink)
+  ) !important;
 }
 .btn-primary:disabled {
   opacity: 0.5 !important;
@@ -524,77 +570,134 @@ textarea.form-input {
 }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 480px) {
-  html, body {
-    height: auto;
-    overflow: auto;
+
+/* ── [1] Extra small devices (phones, 600px and down) ── */
+@media only screen and (max-width: 600px) {
+  .container.py-5 {
+    padding: 20px 8px 32px !important;
   }
-  .register-page-wrapper {
-    padding: 16px;
-    align-items: flex-start;
+
+  /* Form card chiếm full width trên mobile */
+  .container .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
   }
-  .register-form-side {
-    padding: 28px 20px;
-  }
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .form-title {
-    font-size: 22px;
-  }
+
   .container .bg-white {
-    padding: 24px 16px !important;
+    border-radius: 16px !important;
+    padding: 28px 20px !important;
+    border: none !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
+    margin-bottom: 24px;
   }
-}
 
-@media (min-width: 641px) and (max-width: 1024px) {
-  html, body {
-    height: auto;
-    overflow: auto;
+  .container .bg-white h2 {
+    font-size: 24px;
+    margin-bottom: 20px !important;
   }
-  .register-page-wrapper {
-    padding: 24px;
-  }
-  .register-box {
-    max-width: 640px;
-  }
-  .register-form-side {
-    padding: 40px;
-  }
-}
 
-@media (max-height: 800px) and (min-width: 1025px) {
-  .register-form-side {
-    padding: 28px 40px !important;
+  /* Grid 2 cột chuyển thành 1 cột */
+  .row .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
   }
-  .brand-mark {
+
+  /* QUAN TRỌNG: font 16px để iOS không tự zoom */
+  .form-label {
+    font-size: 14px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .form-control {
+    font-size: 16px !important;
+    padding: 13px 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .form-control[type="file"] {
+    font-size: 14px !important;
+    padding: 10px 12px !important;
+  }
+
+  .mb-3 {
     margin-bottom: 14px !important;
   }
-  .form-title {
-    font-size: 22px !important;
-    margin-bottom: 4px !important;
-  }
-  .form-subtitle {
-    margin-bottom: 18px !important;
-  }
-  .input-wrap {
-    margin-bottom: 12px !important;
-  }
-  .form-input,
-  .form-control {
-    padding: 10px 14px 10px 42px !important;
-  }
-  .btn-primary-custom,
+
+  /* Nút bấm (Touch Targets) */
   .btn-primary {
-    padding: 10px !important;
+    padding: 14px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
+    margin-top: 10px;
+  }
+
+  .text-center.mt-3 {
+    margin-top: 14px !important;
+  }
+
+  /* Thông báo lỗi */
+  .alert-danger,
+  .alert-success {
+    font-size: 13px !important;
+    padding: 10px 12px !important;
+    line-height: 1.4;
+  }
+
+  /* Footer trên mobile */
+  footer {
+    font-size: 13px;
+    padding: 12px 0 !important;
   }
 }
 
-@media (min-width: 1281px) {
-  .register-box {
-    max-width: 1080px;
+/* ── [2] Small devices (portrait tablets and large phones, 600px and up) ── */
+@media only screen and (min-width: 600px) {
+  .container.py-5 {
+    padding: 24px 16px !important;
   }
+
+  .container .bg-white {
+    padding: 32px 28px !important;
+  }
+
+  /* Vẫn giữ 1 cột cho tablet nhỏ */
+  .row .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+/* ── [3] Medium devices (landscape tablets, 768px and up) ── */
+@media only screen and (min-width: 768px) {
+  .container .bg-white {
+    padding: 36px 32px !important;
+  }
+
+  /* 2 cột cho file upload trên tablet landscape */
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+  }
+}
+
+/* ── [4] Large devices (laptops/desktops, 992px and up) ── */
+@media only screen and (min-width: 992px) {
+  .container .bg-white {
+    padding: 40px 36px !important;
+  }
+
+  .register-box {
+    max-width: 960px;
+  }
+
   .form-title {
     font-size: 30px;
+  }
+}
+
+/* ── [5] Extra large devices (large laptops and desktops, 1200px and up) ── */
+@media only screen and (min-width: 1200px) {
+  .register-box {
+    max-width: 1080px;
   }
 }

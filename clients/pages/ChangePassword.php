@@ -8,16 +8,25 @@ $oldPass = '';
 $normalreset = true;//reset_via_otp => false
 $newPass1 = '';
 $newPass2 = '';
-$error = '';
+$error = $_SESSION['change_error'] ?? '';
+unset($_SESSION['change_error']);
 
 if ($usertype == -1 || (isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === true)) {
     $normalreset = false;
 }
-
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($_POST['newPass2'])) {
-    $oldPass = $_POST['oldPass'] ?? '';
-    $newPass1 = $_POST['newPass1'] ?? '';
-    $newPass2 = $_POST['newPass2'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        $_SESSION['change_error'] = 'Invalid request';
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit();
+    }
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    $oldPass = trim($_POST['oldPass'] ?? '');
+    $newPass1 = trim($_POST['newPass1'] ?? '');
+    $newPass2 = trim($_POST['newPass2'] ?? '');
 
     if (empty($_POST['oldPass']) && $normalreset) {
         $error = 'Please enter the old password';
@@ -40,29 +49,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($
                 $hash = password_hash($newPass1, PASSWORD_DEFAULT);
                 $con = connect_db();
                 $email_for_update = isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === true
-                    ? $_SESSION['reset_email_final'] // SESSIon in ForgotPassword.php
+                    ? $_SESSION['reset_email_final'] // Session in ForgotPassword.php
                     : $_SESSION['email'];
-                $result = $con->prepare('UPDATE `user` SET `pass` = ?, verified = 1 WHERE `email` = ?');
-                $result->bind_param('ss', $hash, $_SESSION['email']);
+                $sqlQuery = $usertype === -1 ? "UPDATE `user` SET `pass` = ?, `verified` = 0 WHERE `email` = ?"
+                    : "UPDATE `user` SET `pass` = ? WHERE `email` = ?";
+                $result = $con->prepare($sqlQuery);
+                //change password does not mean the user is verified, admin need to verify manually
+                $result->bind_param('ss', $hash, $email_for_update);
                 if (!$result->execute()) {
                     $error = 'Failed to update to new password';
+                    $result->close();
+                    $con->close();
                 } else {
                     $result->close();
                     $con->close();
-                    if ($_SESSION['forgotPass'] === true) {
+                    if (isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === true) {
+                        session_regenerate_id(true);
                         session_unset();
                         session_destroy();
                         header('Location: Login.php');
                         exit();
                     } else {
-                        header('Location: Home.php');
+                        session_regenerate_id(true);
+                        header('Location: Home.php');//change password
+                        exit();
                     }
-                    exit();
+
                 }
 
             }
         }
     }
+    $_SESSION['change_error'] = $error;
+    header('Location: ChangePassword.php');
+    exit();
 }
 include("../src/headerOutSide.php");
 ?>
@@ -73,10 +93,7 @@ include("../src/headerOutSide.php");
     <div class="auth-box">
         <div class="brand-mark">
             <div class="brand-icon">
-                <svg viewBox="0 0 24 24">
-                    <path
-                        d="M19 7h-1V6a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V10a3 3 0 0 0-3-3ZM5 5h10a1 1 0 0 1 1 1v1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm14 14H5a1 1 0 0 1-1-1V9h15v1h-3a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3h3v1a1 1 0 0 1-1 1Zm3-6v2h-3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h3v2Z" />
-                </svg>
+                <i class="fa-solid fa-wallet fs-4"></i>
             </div>
             <span class="brand-name">MeoMeo Wallet</span>
         </div>
@@ -98,7 +115,8 @@ include("../src/headerOutSide.php");
             <?php endif; ?>
         </div>
 
-        <form method="POST" action="">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <?php if ($normalreset): ?>
                 <div class="form-group">
                     <label class="form-label-custom">CURRENT PASSWORD</label>
@@ -110,8 +128,7 @@ include("../src/headerOutSide.php");
                                     stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                         </div>
-                        <input type="password" name="oldPass" class="form-input" placeholder="Enter current password"
-                            value="<?= isset($_POST['oldPass']) ? htmlspecialchars($_POST['oldPass']) : '' ?>">
+                        <input type="password" name="oldPass" class="form-input" placeholder="Enter current password">
                         <button type="button" class="btn-toggle-pwd" onclick="togglePwd(this)"><i
                                 class="bi bi-eye"></i></button>
                     </div>
@@ -128,8 +145,7 @@ include("../src/headerOutSide.php");
                                 stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </div>
-                    <input type="password" name="newPass1" class="form-input" placeholder="New password"
-                        value="<?php isset($_POST['newPass1']) ? htmlspecialchars($_POST['newPass1']) : '' ?>">
+                    <input type="password" name="newPass1" class="form-input" placeholder="New password">
                     <button type="button" class="btn-toggle-pwd" onclick="togglePwd(this)"><i
                             class="bi bi-eye"></i></button>
                 </div>
@@ -145,8 +161,7 @@ include("../src/headerOutSide.php");
                                 stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </div>
-                    <input type="password" name="newPass2" class="form-input" placeholder="Repeat new password"
-                        value="<?php isset($_POST['newPass2']) ? htmlspecialchars($_POST['newPass2']) : '' ?>">
+                    <input type="password" name="newPass2" class="form-input" placeholder="Repeat new password">
                     <button type="button" class="btn-toggle-pwd" onclick="togglePwd(this)"><i
                             class="bi bi-eye"></i></button>
                 </div>
@@ -180,7 +195,6 @@ include("../src/headerOutSide.php");
         }
     }
 
-    // Ẩn error khi user bắt đầu nhập lại
     const errorBox = document.getElementById('error-box');
     if (errorBox) {
         ['oldPass', 'newPass1', 'newPass2'].forEach(fieldName => {
@@ -189,7 +203,6 @@ include("../src/headerOutSide.php");
         });
     }
 
-    // Auto-focus vào ô bị lỗi
     <?php if (!empty($error)): ?>
         <?php if (empty($_POST['oldPass']) && $normalreset): ?>
             document.querySelector('[name="oldPass"]')?.focus();

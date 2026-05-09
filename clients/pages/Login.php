@@ -40,7 +40,18 @@ if (!empty($e_or_p)) {
     }
     $stmt->close();
 }
+// Khi render form, generate token: Avoid Attacker create fake web rồi login được vào web thiệt giống như thầy Mạnh thực hành
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        $_SESSION['login_error'] = 'Invalid request';
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit();
+    }
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
     $e_or_p = $_POST['e_or_p'];
     $pass = $_POST['pass'];
     $isEmail = str_contains($e_or_p, '@');
@@ -67,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_submit'])) {
                 $stmt->bind_param("s", $e_or_p);
                 $stmt->execute();
                 $stmt->close();
-                handleLoginRedirect();         
+                handleLoginRedirect();
             } else {
                 $lock = handleFailedLogin(new DateTime(), $e_or_p, $isEmail);
                 $error = $lock[0];
@@ -89,7 +100,7 @@ function handleLoginRedirect()
             header('Location: ChangePassword.php');
             break;
         case 0:
-            header('Location: WaitingApproval.php');
+            header('Location: Profile.php');
             break;
         case 2:
             header('Location: UpdateInformation.php');
@@ -114,7 +125,7 @@ include("../src/headerOutSide.php");
 
 <main class="login-page-wrapper">
     <form action="" method="POST" novalidate class="w-100 d-flex justify-content-center">
-
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
         <div class="login-box">
 
             <div class="login-form-side">
@@ -207,7 +218,6 @@ include("../src/headerOutSide.php");
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const btnLogin = document.getElementById('btn-login');
-        const btnText = document.getElementById('btn-text');
         const errorMsg = document.getElementById('error-msg');
 
         let seconds = <?php echo (int) $lock_seconds; ?>;
@@ -216,12 +226,11 @@ include("../src/headerOutSide.php");
             const timer = setInterval(() => {
                 seconds--;
                 if (seconds >= 1) {
-                    btnText.innerText = `Locked (${seconds}s)`;
                     if (errorMsg.querySelector('span')) {
                         errorMsg.querySelector('span').innerText = `Account is currently locked, please try again in ${seconds} seconds`;
                     }
                 } else {
-                    clearInterval(timer);    
+                    clearInterval(timer);
                     errorMsg.classList.add('is-invisible');
                 }
             }, 1000);

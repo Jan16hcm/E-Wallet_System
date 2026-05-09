@@ -43,7 +43,13 @@ wrong password many times, please contact the administrator for support'
                 $update_stmt->close();
             }
         } else {
-            echo json_encode(['success' => false, 'message' => 'Email address not found.']);
+            $otp_str = str_shuffle('0123456789');
+            $otp = substr($otp_str, 0, 6);
+            $fake_mail = "dummy@gmail.com";
+            $_SESSION['reset_email_pending'] = $fake_mail; // Chap het cac attacker by Khai hehehe
+            $_SESSION['reset_otp'] = $otp;
+            sendOTPEmail($fake_mail, 'test', $otp); // Fake to avoid timing attack
+            echo json_encode(['success' => true, 'message' => 'OTP sent successfully.']);
         }
         $stmt->close();
     }
@@ -120,6 +126,9 @@ include("../src/headerOutSide.php");
 
             <div id="otp-section" style="display: none;">
                 <label class="form-label-custom">Enter 6-Digit OTP</label>
+                <p style="text-align: center; font-size: 14px; margin-bottom: 15px; color: var(--text-3);">
+                    Code sent to <strong id="display-email" style="color: var(--primary);"></strong>
+                </p>
                 <div class="otp-container">
                     <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
                     <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
@@ -129,7 +138,10 @@ include("../src/headerOutSide.php");
                     <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
                 </div>
                 <button type="button" id="btn-verify-otp" class="btn-primary-custom">Verify OTP</button>
-                <p style="text-align: center; margin-top: 15px;">
+                <p style="text-align: center; margin-top: 15px; font-size: 14px; color: var(--text-2);">
+                    Time remaining: <span id="otp-timer" style="font-weight: bold; color: var(--primary);">01:00</span>
+                </p>
+                <p style="text-align: center; margin-top: 10px;">
                     <a href="javascript:void(0)" id="back-to-email"
                         style="color: var(--text-3); font-size: 13px; text-decoration: none;">Change Email</a>
                 </p>
@@ -164,6 +176,29 @@ include("../src/headerOutSide.php");
             errorMsg.style.opacity = '0';
         };
 
+        let countdownInterval;
+
+        const startCountdown = () => {
+            clearInterval(countdownInterval);
+            let timeLeft = 60;
+            const timerElement = document.getElementById('otp-timer');
+            timerElement.innerText = `01:00`;
+            timerElement.style.color = 'var(--primary)';
+
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    timerElement.innerText = "Expired";
+                    timerElement.style.color = "red";
+                } else {
+                    const m = Math.floor(timeLeft / 60);
+                    const s = timeLeft % 60;
+                    timerElement.innerText = `0${m}:${s < 10 ? '0' : ''}${s}`;
+                }
+            }, 1000);
+        };
+
         hideError();
 
         emailInput.addEventListener('input', hideError);
@@ -174,6 +209,10 @@ include("../src/headerOutSide.php");
                 return;
             }
 
+            const originalText = btnSendOtp.innerText;
+            btnSendOtp.innerText = 'Sending...';
+            btnSendOtp.disabled = true;
+
             fetch('ForgotPassword.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -181,19 +220,33 @@ include("../src/headerOutSide.php");
             })
                 .then(res => res.json())
                 .then(data => {
+                    btnSendOtp.innerText = originalText;
+                    btnSendOtp.disabled = false;
+
                     if (data.success) {
                         emailSection.style.display = 'none';
+                        document.getElementById('display-email').innerText = emailInput.value;
                         otpSection.style.display = 'block';
                         hideError();
                         document.querySelector('.otp-input').focus();
+                        startCountdown();
                     } else {
                         showError(data.message);
                     }
+                })
+                .catch(err => {
+                    btnSendOtp.innerText = originalText;
+                    btnSendOtp.disabled = false;
+                    showError("An error occurred. Please try again.");
                 });
         });
 
         btnVerifyOtp.addEventListener('click', function () {
             const code = Array.from(document.querySelectorAll('.otp-input')).map(i => i.value).join('');
+
+            const originalText = btnVerifyOtp.innerText;
+            btnVerifyOtp.innerText = 'Verifying...';
+            btnVerifyOtp.disabled = true;
 
             fetch('ForgotPassword.php', {
                 method: 'POST',
@@ -202,15 +255,24 @@ include("../src/headerOutSide.php");
             })
                 .then(res => res.json())
                 .then(data => {
+                    btnVerifyOtp.innerText = originalText;
+                    btnVerifyOtp.disabled = false;
+
                     if (data.success) {
                         window.location.href = 'ChangePassword.php';
                     } else {
                         showError(data.message);
                     }
+                })
+                .catch(err => {
+                    btnVerifyOtp.innerText = originalText;
+                    btnVerifyOtp.disabled = false;
+                    showError("An error occurred. Please try again.");
                 });
         });
 
         backToEmail.addEventListener('click', () => {
+            clearInterval(countdownInterval);
             otpSection.style.display = 'none';
             emailSection.style.display = 'block';
             hideError();

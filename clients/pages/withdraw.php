@@ -3,6 +3,7 @@ include_once("../modules/db_connection.php");
 include_once("../modules/usertype.php");
 include_once("../modules/isValidDate.php");
 include_once("../modules/formatMoney.php");
+include_once("../modules/generateCode.php");
 include_once("../modules/getTodayWithdrawCount.php");
 include_once("../modules/isValidCard.php");//this is getting long
 
@@ -12,15 +13,7 @@ $expire = '';
 $cvv = '';
 $amount = 0;
 $note = '';
-$error = '';
-
-if ($usertype != 1 && $usertype != 3) {
-    if ($_SERVER['REQUEST_METHOD'] == 'POST'){
-        $error = 'Please wait for verification before using this feature';
-    } else {
-        $error = 'This function is only for verified account';
-    }
-}
+$error = checkuser($usertype);
 
 if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv']) && 
     isset($_POST['amount']) && $_SERVER['REQUEST_METHOD'] == 'POST' && empty($error)) {
@@ -82,10 +75,11 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
                     $transfer_type = "Withdraw";
                     $selfFeeBear = true;
                     //selfFeeBear is true because 5% fee is applied to user who withdraw
+                    $id = generateIdCode($selfPhone, 3);
                     $date = date('Y-m-d H:i:s'); // current date/time
-                    $withd = $con->prepare("INSERT INTO history (user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, $date, ?, ?, $status, $selfFeeBear)");
+                    $withd = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, card_num, expiration, CVV, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, ?, $date, ?, ?, $status, $selfFeeBear)");
                     //maybe should rename expiration to expire
-                    $withd->bind_param("sssssds", $selfPhone, $transfer_type, $card_num, $expire, $cvv, $totalDeduct, $note);
+                    $withd->bind_param("ssssssds", $id, $selfPhone, $transfer_type, $card_num, $expire, $cvv, $totalDeduct, $note);
 
                     if(!$withd->execute()){
                         $error = 'Failed to save in withdrawal history';
@@ -98,8 +92,8 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
                             //write cancel to history
                             $status = 0;
                             $canceldate = date('Y-m-d H:i:s');
-                            $withd = $con->prepare("update history status = ?, date_confirm = ? where user_phone = ? and amount = ? and date_transfer = ?");
-                            $withd->bind_param("issds", $status, $canceldate, $selfPhone, $totalDeduct, $date);
+                            $withd = $con->prepare("update history status = ?, date_confirm = ? where id = ?");
+                            $withd->bind_param("iss", $status, $canceldate, $id);
                             if(!$withd->execute()){
                                 $error = 'Failed to update user balance, failed cancelled the withdrawal. It seem like god want you to have free money';
                                 //i don't know how to handle this case
@@ -117,8 +111,10 @@ if (isset($_POST['card_num']) && isset($_POST['expire']) && isset($_POST['cvv'])
         }
     }
 }
-include("../src/headerOutSide.php");
+include("../src/header.php");
 ?>
+
+
 
 </div>
 <div id="error-msg" class="error-alert<?= empty($error) ? ' is-invisible' : '' ?>" role="alert">
@@ -128,3 +124,4 @@ include("../src/headerOutSide.php");
     </svg>
     <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
 </div>
+<?php include("../src/footer.php"); ?>
