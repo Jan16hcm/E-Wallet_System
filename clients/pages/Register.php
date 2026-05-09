@@ -150,7 +150,7 @@ include("../src/headerOutSide.php");
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <form action="Register.php" method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow">
+            <form id="registerForm" action="Register.php" method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow">
                 <h2 class="text-center mb-4">Sign up</h2>
 
                 <div class="alert alert-danger <?= empty($error) ? 'invisible' : '' ?>" id="error-box">
@@ -163,11 +163,26 @@ include("../src/headerOutSide.php");
                         <br><small>Redirecting to login page in <span id="countdown">5</span> seconds...</small>
                     </div>
                     <script>
+                        const form = document.getElementById("registerForm");
+                        const btnSuccess = document.getElementById("btn-submit");
+                        
+                        if (form) {
+                            const elements = form.querySelectorAll('input, textarea, button, a');
+                            elements.forEach(el => {
+                                el.disabled = true;
+                                if (el.tagName === 'A') el.style.pointerEvents = 'none';
+                            });
+                            form.style.pointerEvents = 'none';
+                            form.style.opacity = '0.8';
+                        }
+
                         let seconds = 5;
-                        setInterval(function () {
+                        const timer = setInterval(function () {
                             seconds--;
-                            document.getElementById('countdown').textContent = seconds;
+                            const countdownEl = document.getElementById('countdown');
+                            if (countdownEl) countdownEl.textContent = seconds;
                             if (seconds <= 0) {
+                                clearInterval(timer);
                                 window.location.href = 'Login.php';
                             }
                         }, 1000);
@@ -214,7 +229,7 @@ include("../src/headerOutSide.php");
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">Sign up</button>
+                <button type="submit" class="btn btn-primary w-100" id="btn-submit">Sign up</button>
 
                 <div class="text-center mt-3 fs-5">
                     <small>Already have an account? <a href="Login.php" class="text-decoration-none">Sign in</a></small>
@@ -258,6 +273,16 @@ include("../src/headerOutSide.php");
             frontInput.focus();
         <?php endif; ?>
     <?php endif; ?>
+
+    const registerForm = document.getElementById('registerForm');
+    const submitBtn = document.getElementById('btn-submit');
+
+    if (registerForm && submitBtn) {
+        registerForm.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+        });
+    }
 </script>
 
 <?php include("../src/footer.php"); ?>
