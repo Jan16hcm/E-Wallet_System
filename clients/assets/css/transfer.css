@@ -1,0 +1,25 @@
+/* Transfer Page Styles */
+.transfer-container { max-width: 600px; margin: 0 auto; padding: 20px; }
+.fee-toggle {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
+}
+.fee-option { cursor: pointer; }
+.fee-option input { display: none; }
+.fee-card {
+    background: var(--bg-surface); border: 2px solid var(--border-color);
+    border-radius: 16px; padding: 16px; transition: 0.3s;
+}
+.fee-option input:checked + .fee-card {
+    border-color: var(--accent-blue); background: var(--accent-blue)10;
+}
+.otp-inputs { display: flex; gap: 10px; justify-content: center; margin: 32px 0; }
+.otp-inputs input {
+    width: 45px; height: 55px; text-align: center; font-size: 24px; font-weight: 700;
+    border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-surface); color: var(--text-main);
+}
+.otp-inputs input:focus { border-color: var(--accent-blue); outline: none; }
+
+@media (max-width: 600px) {
+    .transfer-container { padding: 12px; }
+    .widget { padding: 20px !important; }
+}

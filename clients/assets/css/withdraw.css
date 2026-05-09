@@ -1,0 +1,10 @@
+/* Withdraw Page Styles */
+.withdraw-container { max-width: 600px; margin: 0 auto; padding: 20px; }
+.fee-preview {
+    background: var(--bg-body); border-radius: 16px; padding: 20px; margin-bottom: 24px; display: none;
+}
+
+@media (max-width: 600px) {
+    .withdraw-container { padding: 12px; }
+    .widget { padding: 20px !important; }
+}

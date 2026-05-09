@@ -1,0 +1,144 @@
+/* Buycard Page Styles */
+.buycard-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+.carrier-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.carrier-option {
+    cursor: pointer;
+}
+.carrier-option input {
+    display: none;
+}
+.carrier-card {
+    background: var(--bg-surface);
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.carrier-option input:checked + .carrier-card {
+    border-color: var(--accent-blue);
+    background: var(--accent-blue)10;
+}
+.carrier-logo {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--accent-blue);
+}
+.denom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.denom-option {
+    cursor: pointer;
+}
+.denom-option input {
+    display: none;
+}
+.denom-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.denom-option input:checked + .denom-card {
+    background: var(--text-main);
+    color: var(--bg-surface);
+    border-color: var(--text-main);
+}
+.summary-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px;
+    margin-top: 24px;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+.summary-total {
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    margin-top: 12px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--accent-blue);
+}
+.success-animation {
+    text-align: center;
+    margin-bottom: 32px;
+}
+.success-icon {
+    width: 80px;
+    height: 80px;
+    background: #10b98120;
+    color: #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 16px;
+}
+.card-code-display {
+    background: linear-gradient(135deg, var(--bg-surface), var(--bg-body));
+    border: 1px dashed var(--accent-blue);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.code-text {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-main);
+}
+.copy-btn {
+    background: var(--accent-blue)10;
+    color: var(--accent-blue);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.copy-btn:hover {
+    background: var(--accent-blue);
+    color: white;
+}
+
+/* Mobile Adjustments for Buycard */
+@media (max-width: 600px) {
+    .buycard-container { padding: 12px; }
+    .widget { padding: 20px !important; }
+    .carrier-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .carrier-card { padding: 10px; border-radius: 12px; }
+    .carrier-logo { font-size: 18px; margin-bottom: 4px; }
+    .carrier-card div { font-size: 12px !important; }
+    .denom-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .denom-card { padding: 10px; font-size: 14px; }
+    .summary-card { padding: 16px; }
+    .code-text { font-size: 20px; }
+    .card-code-display { padding: 12px; }
+}
