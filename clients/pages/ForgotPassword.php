@@ -24,25 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
 wrong password many times, please contact the administrator for support'
                 ]);
             } else {
-                $expire_time = date("Y-m-d H:i:s", time() + 60);
-
-                $update_stmt = $con->prepare("UPDATE `user` SET `expire` = ? WHERE `email` = ?");
-                $update_stmt->bind_param("ss", $expire_time, $email);
-
-                if ($update_stmt->execute()) {
-                    $otp_str = str_shuffle('0123456789');
-                    $otp = substr($otp_str, 0, 6);
-                    $_SESSION['reset_otp'] = $otp;
-                    $_SESSION['reset_email_pending'] = $email;
-                    $_SESSION['reset_expire_ts'] = time() + 60;
-                    $_SESSION['reset_display_email'] = $email;
-                    if (sendOTPEmail($email, $row['name'], $otp)) {
-                        echo json_encode(['success' => true, 'message' => 'OTP sent successfully.']);
-                    } else {
-                        echo json_encode(['success' => false, 'message' => 'Failed to send email. Please try again.']);
-                    }
+                $otp_str = str_shuffle('0123456789');
+                $otp = substr($otp_str, 0, 6);
+                $_SESSION['reset_otp'] = $otp;
+                $_SESSION['reset_email_pending'] = $email;
+                $_SESSION['reset_expire_ts'] = time() + 60;
+                $_SESSION['reset_display_email'] = $email;
+                if (sendOTPEmail($email, $row['name'], $otp)) {
+                    echo json_encode(['success' => true, 'message' => 'OTP sent successfully.']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to send email. Please try again.']);
                 }
-                $update_stmt->close();
             }
         } else {
             $otp_str = str_shuffle('0123456789');
@@ -72,7 +64,7 @@ wrong password many times, please contact the administrator for support'
             exit;
         }
 
-        $stmt = $con->prepare("SELECT `expire` FROM `user` WHERE `email` = ?");
+        $stmt = $con->prepare("SELECT `email` FROM `user` WHERE `email` = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -80,17 +72,13 @@ wrong password many times, please contact the administrator for support'
 
         if (!$row || $otp_in !== $_SESSION["reset_otp"]) {
             echo json_encode(['success' => false, 'message' => 'Invalid OTP code.']);
-        } else if ($now > $row['expire']) {
+        } else if (time() > $_SESSION['reset_expire_ts']) {
             echo json_encode(['success' => false, 'message' => 'OTP has expired (1-minute limit).']);
         } else {
             $_SESSION['user_verified_for_reset'] = true;
             $_SESSION['reset_email_final'] = $email;
+            $_SESSION['email'] = $email;
             $_SESSION['forgotPass'] = true;
-            $clear_stmt = $con->prepare("UPDATE `user` SET `expire` = NULL WHERE `email` = ?");
-            $clear_stmt->bind_param("s", $email);
-            $clear_stmt->execute();
-            $clear_stmt->close();
-
             echo json_encode(['success' => true]);
         }
         $stmt->close();
@@ -312,6 +300,7 @@ include("../src/headerOutSide.php");
             otpSection.style.display = 'none';
             emailSection.style.display = 'block';
             hideError();
+            document.querySelectorAll('.otp-input').forEach(input => input.value = '');
         });
 
         const otpInputs = document.querySelectorAll('.otp-input');
