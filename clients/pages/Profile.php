@@ -163,13 +163,13 @@ include '../src/header.php';
                                 <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">Front
                                     of ID Card</label>
                                 <input type="file" name="front" accept="image/*" required class="form-control"
-                                    style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark);">
+                                    style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark); color: var(--text-main, #fff);">
                             </div>
                             <div style="margin-bottom: 15px;">
                                 <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">Back
                                     of ID Card</label>
                                 <input type="file" name="back" accept="image/*" required class="form-control"
-                                    style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark);">
+                                    style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark); color: var(--text-main, #fff);">
                             </div>
                             <button type="submit" class="btn btn-primary" style="width: 100%;">Upload and Submit</button>
                         </form>
