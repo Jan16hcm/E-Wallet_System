@@ -60,6 +60,8 @@
 }
 
 .tx-item {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
     cursor: pointer;
     transition: 0.2s;
 }
@@ -68,27 +70,131 @@
     background: var(--bg-surface-hover);
 }
 
-.status-badge {
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
+.tx-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 4px;
 }
 
-.status-0 { background: rgba(239, 68, 68, 0.1); color: #ef4444; } /* Cancelled */
-.status-1 { background: rgba(16, 185, 129, 0.1); color: #10b981; } /* Approved */
-.status-2 { background: rgba(245, 158, 11, 0.1); color: #f59e0b; } /* Pending */
+.tx-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
 
+.tx-icon-img {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.tx-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.tx-name {
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tx-note {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tx-amount {
+    font-weight: 700;
+    white-space: nowrap;
+    text-align: right;
+    font-size: 16px;
+}
+
+.tx-item-details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-left: 56px; /* Align with info text under icon */
+}
+
+.tx-card, .tx-date {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.tx-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.tx-status {
+    flex: 0.8;
+    display: flex;
+    justify-content: center;
+}
+
+.tx-date {
+    flex: 1;
+    text-align: right;
+}
+
+.tx-time {
+    font-size: 11px;
+}
+
+/* Mobile Responsiveness Improvements */
+@media (max-width: 600px) {
+    .tx-item {
+        padding: 16px !important;
+    }
+
+    .tx-top-row {
+        align-items: flex-start !important;
+    }
+
+    .tx-left {
+        flex: 1;
+    }
+
+    .tx-amount {
+        font-size: 15px !important;
+        margin-top: 2px;
+    }
+
+    .tx-item-details {
+        padding-left: 0;
+        margin-top: 12px;
+        border-top: 1px dotted var(--border-color);
+        padding-top: 10px;
+    }
+}
 /* Transaction Detail Specific Styles */
-
 .detail-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: 24px;
-    padding: 32px;
-    max-width: 600px;
-    margin: 0 auto;
+    border-radius: 28px;
+    padding: 40px;
+    max-width: 500px;
+    margin: 20px auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
 .detail-header {
@@ -100,27 +206,28 @@
     width: 80px;
     height: 80px;
     border-radius: 24px;
-    background: rgba(59, 130, 246, 0.1); /* Default fallback */
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 32px;
-    margin: 0 auto 16px;
+    margin: 0 auto 20px;
 }
 
 .detail-amount {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 800;
     color: var(--text-main);
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
 .detail-status {
     display: inline-block;
-    padding: 6px 16px;
+    padding: 6px 18px;
     border-radius: 100px;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .info-grid {
@@ -132,12 +239,13 @@
 .info-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
-    font-size: 15px;
+    margin-bottom: 22px;
+    font-size: 14px;
 }
 
 .info-label {
     color: var(--text-muted);
+    font-weight: 500;
 }
 
 .info-value {
@@ -147,16 +255,34 @@
 }
 
 .code-badge {
+    background: rgba(var(--accent-blue-rgb), 0.05);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+    border: 1px solid rgba(var(--accent-blue-rgb), 0.1);
+    color: var(--text-main);
+    word-break: break-all;
+    display: inline-block;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+}
+
+.detail-note {
     background: var(--bg-body);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-family: monospace;
+    padding: 14px;
+    border-radius: 12px;
+    width: 100%;
     font-size: 14px;
     border: 1px solid var(--border-color);
+    color: var(--text-main);
+    line-height: 1.6;
+    max-height: 150px;
+    overflow-y: auto;
 }
 
 .scratch-card {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1));
+    background: var(--bg-body);
     border: 1px dashed var(--accent-blue);
     padding: 16px;
     border-radius: 16px;
@@ -166,66 +292,31 @@
     align-items: center;
 }
 
-/* Mobile Responsiveness Improvements */
+/* Mobile Responsiveness for Details */
 @media (max-width: 600px) {
-    .tx-item {
-        padding: 16px !important;
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 12px !important;
-    }
-
-    .tx-left {
-        width: 100%;
-        margin-bottom: 4px;
-    }
-
-    .tx-item-details {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-        align-items: flex-end;
-    }
-
-    .tx-card {
-        flex: none !important;
-        width: 100% !important;
-        display: flex !important;
-        margin-bottom: 4px;
-    }
-
-    .tx-status {
-        flex: none !important;
-        order: 1;
-    }
-
-    .tx-date {
-        flex: none !important;
-        text-align: left !important;
-        order: 2;
-    }
-
-    .tx-amount {
-        flex: none !important;
-        font-size: 18px !important;
-        order: 3;
-    }
-
     .detail-card {
-        padding: 20px;
+        padding: 24px;
+        margin: 10px;
+        border-radius: 24px;
     }
 
     .detail-amount {
-        font-size: 28px;
+        font-size: 26px;
     }
 
     .info-row {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
+        gap: 6px;
     }
 
     .info-value {
         text-align: left;
+        font-size: 15px;
+    }
+
+    .detail-icon {
+        width: 64px;
+        height: 64px;
+        font-size: 24px;
     }
 }
