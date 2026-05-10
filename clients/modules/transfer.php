@@ -4,7 +4,6 @@ include_once("../modules/formatMoney.php");
 include_once("../modules/receipt.php");
 
 $usertype = usertype();
-$user = requireLogin();
 if($usertype != 1 || $usertype != 3) {//1: verified; 3: admin
     header("Location: Home.php");
     exit();

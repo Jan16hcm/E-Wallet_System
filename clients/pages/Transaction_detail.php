@@ -11,7 +11,7 @@ if ($usertype != "1") {
 
 $id = $_GET['id'] ?? '';
 if (empty($id)) {
-    header('Location: transactions.php');
+    header('Location: Transactions.php');
     exit;
 }
 
@@ -25,7 +25,7 @@ $data = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$data) {
-    header('Location: transactions.php');
+    header('Location: Transactions.php');
     exit;
 }
 
@@ -40,7 +40,7 @@ $stmt->fetch();
 $stmt->close();
 
 if ($data['user_phone'] != $user_phone && $data['receiver_phone'] != $user_phone) {
-    header('Location: transactions.php');
+    header('Location: Transactions.php');
     exit;
 }
 
@@ -111,10 +111,10 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
         <nav class="nav-menu">
             <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
             <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
-            <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
-            <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-            <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-            <a href="transactions.php" class="nav-link active"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+            <a href="Transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+            <a href="Withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+            <a href="Deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+            <a href="Transactions.php" class="nav-link active"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
             <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
             <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
         </nav>
@@ -250,7 +250,7 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
                 <?php endif; ?>
             </div>
 
-            <a href="transactions.php" class="btn" style="width: 100%; margin-top: 32px; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 600; padding: 12px; border-radius: 12px; text-decoration: none; display: block; text-align: center;">
+            <a href="Transactions.php" class="btn" style="width: 100%; margin-top: 32px; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 600; padding: 12px; border-radius: 12px; text-decoration: none; display: block; text-align: center;">
                 <i class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i> Back to History
             </a>
         </div>

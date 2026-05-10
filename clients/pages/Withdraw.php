@@ -123,10 +123,10 @@ $con->close();
         <nav class="nav-menu">
             <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
             <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
-            <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
-            <a href="withdraw.php" class="nav-link active"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-            <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-            <a href="transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+            <a href="Transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+            <a href="Withdraw.php" class="nav-link active"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+            <a href="Deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+            <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
             <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
             <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
         </nav>
@@ -220,8 +220,8 @@ $con->close();
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <a href="withdraw.php" class="btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); text-decoration: none; text-align: center; padding: 12px; border-radius: 12px; font-weight: 600;">Withdraw More</a>
-                        <a href="transactions.php" class="btn" style="background: var(--accent-blue); color: white; text-decoration: none; text-align: center; padding: 12px; border-radius: 12px; font-weight: 600;">View History</a>
+                        <a href="Withdraw.php" class="btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); text-decoration: none; text-align: center; padding: 12px; border-radius: 12px; font-weight: 600;">Withdraw More</a>
+                        <a href="Transactions.php" class="btn" style="background: var(--accent-blue); color: white; text-decoration: none; text-align: center; padding: 12px; border-radius: 12px; font-weight: 600;">View History</a>
                     </div>
                 </div>
             <?php endif; ?>
@@ -231,10 +231,10 @@ $con->close();
 
 <div class="mobile-bottom-nav">
     <a href="Home.php" class="nav-item"><i class="fa-solid fa-house"></i><span>Home</span></a>
-    <a href="transactions.php" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></a>
+    <a href="Transactions.php" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></a>
     <a href="Buycard.php" class="nav-item scan-btn"><div class="scan-circle"><i class="fa-solid fa-mobile-screen"></i></div><span>Phone Card</span></a>
-    <a href="transfer.php" class="nav-item"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Transfer</span></a>
-    <a href="withdraw.php" class="nav-item active"><i class="fa-solid fa-user"></i><span>Profile</span></a>
+    <a href="Transfer.php" class="nav-item"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Transfer</span></a>
+    <a href="Withdraw.php" class="nav-item active"><i class="fa-solid fa-user"></i><span>Profile</span></a>
 </div>
 
 <script src="../assets/js/home.js"></script>

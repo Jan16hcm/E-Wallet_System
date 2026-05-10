@@ -126,7 +126,7 @@ if (timerDisplay && typeof remainingOtpTime !== 'undefined' && remainingOtpTime 
             
             // Automatically return to beginning after a short delay
             setTimeout(() => {
-                window.location.href = 'transfer.php?cancel=1';
+                window.location.href = 'Transfer.php?cancel=1';
             }, 1500);
         }
         timeLeft--;

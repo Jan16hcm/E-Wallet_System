@@ -49,7 +49,7 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
         
         if ($amount <= 0) {
             //put link to deposit page here -----------------
-            $error = 'Please visit the <a href="withdraw.php">withdraw page</a> if you want to withdraw';
+            $error = 'Please visit the <a href="Withdraw.php">withdraw page</a> if you want to withdraw';
         } else if (!empty($date_error)) {
             $error = $date_error;
         } else if (!empty($valid_error)) {
@@ -161,10 +161,10 @@ include("../src/header.php");
             <?php } else { ?>
                 <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
-                <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
-                <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-                <a href="deposit.php" class="nav-link active"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-                <a href="transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+                <a href="Transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+                <a href="Withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+                <a href="Deposit.php" class="nav-link active"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+                <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
                 <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
                 <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
             <?php } ?>
@@ -211,7 +211,7 @@ include("../src/header.php");
                         <i class="fa-solid fa-credit-card"></i> Credit Card Details
                     </div>
                     <div style="padding: 30px;">
-                    <form id="depositForm" method="POST" action="deposit.php" class="deposit-form">
+                    <form id="depositForm" method="POST" action="Deposit.php" class="deposit-form">
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label style="font-size: 15px; margin-bottom: 8px;">Card Number (6 digits)</label>
                             <input type="text" name="card_number" value="<?= htmlspecialchars($card_num) ?>" placeholder="******"  maxlength="6" pattern="\d{6}" style="padding: 16px; font-size: 16px;">
@@ -251,7 +251,7 @@ include("../src/header.php");
         <i class="fa-solid fa-house"></i>
         <span>Home</span>
     </a>
-    <a href="transactions.php" class="nav-item">
+    <a href="Transactions.php" class="nav-item">
         <i class="fa-solid fa-clock-rotate-left"></i>
         <span>History</span>
     </a>
@@ -261,7 +261,7 @@ include("../src/header.php");
         </div>
         <span>Phone Card</span>
     </a>
-    <a href="transfer.php" class="nav-item">
+    <a href="Transfer.php" class="nav-item">
         <i class="fa-solid fa-arrow-right-arrow-left"></i>
         <span>Transfer</span>
     </a>

@@ -109,10 +109,10 @@ include '../src/header.php';
             <?php } else { ?>
                 <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="Profile.php" class="nav-link active"><i class="fa-solid fa-user"></i> Profile</a>
-                <a href="transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
-                <a href="withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-                <a href="deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-                <a href="transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+                <a href="Transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
+                <a href="Withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
+                <a href="Deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+                <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
                 <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
                 <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
             <?php } ?>
@@ -271,7 +271,7 @@ include '../src/header.php';
         <i class="fa-solid fa-house"></i>
         <span>Home</span>
     </a>
-    <a href="transactions.php" class="nav-item">
+    <a href="Transactions.php" class="nav-item">
         <i class="fa-solid fa-clock-rotate-left"></i>
         <span>History</span>
     </a>
@@ -281,7 +281,7 @@ include '../src/header.php';
         </div>
         <span>Phone Card</span>
     </a>
-    <a href="transfer.php" class="nav-item">
+    <a href="Transfer.php" class="nav-item">
         <i class="fa-solid fa-arrow-right-arrow-left"></i>
         <span>Transfer</span>
     </a>
