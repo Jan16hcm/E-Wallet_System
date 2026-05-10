@@ -46,14 +46,14 @@ const hideAlertsOnInput = () => {
 };
 
 // Amount formatter
-const amountInput = document.getElementById('amountInput');
+const amountInput = document.getElementById("amountInput");
 if (amountInput) {
-  amountInput.addEventListener('input', function() {
-    let value = this.value.replace(/\D/g, '');
+  amountInput.addEventListener("input", function () {
+    let value = this.value.replace(/\D/g, "");
     if (value) {
-      this.value = parseInt(value, 10).toLocaleString('vi-VN');
+      this.value = parseInt(value, 10).toLocaleString("vi-VN");
     } else {
-      this.value = '';
+      this.value = "";
     }
     hideAlertsOnInput();
   });
@@ -66,7 +66,7 @@ if (depositForm && submitBtn) {
   depositForm.addEventListener("submit", function () {
     // Strip formatting before submit
     if (amountInput) {
-      amountInput.value = amountInput.value.replace(/\D/g, '');
+      amountInput.value = amountInput.value.replace(/\D/g, "");
     }
     submitBtn.innerText = "Processing...";
     submitBtn.disabled = true;
@@ -78,19 +78,20 @@ if (depositForm && submitBtn) {
 // Add input listeners to hide alerts
 const formInputs = document.querySelectorAll(".deposit-form input");
 formInputs.forEach((input) => {
-  if (input.id !== 'amountInput') { // amountInput already has its own listener
+  if (input.id !== "amountInput") {
+    // amountInput already has its own listener
     input.addEventListener("input", hideAlertsOnInput);
   }
 });
 
 // Note character counter
-const noteInput = document.getElementById('noteInput');
-const noteCount = document.getElementById('noteCount');
+const noteInput = document.getElementById("noteInput");
+const noteCount = document.getElementById("noteCount");
 if (noteInput && noteCount) {
   const updateCount = () => {
     noteCount.innerText = `${noteInput.value.length}/50`;
   };
-  noteInput.addEventListener('input', updateCount);
+  noteInput.addEventListener("input", updateCount);
   updateCount(); // Initialize
 }
 

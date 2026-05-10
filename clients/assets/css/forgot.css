@@ -37,9 +37,15 @@ body {
 .auth-page-wrapper::before {
   content: "";
   position: absolute;
-  top: -10%; left: -5%;
-  width: 450px; height: 450px;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, transparent 70%);
+  top: -10%;
+  left: -5%;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(
+    circle,
+    rgba(124, 58, 237, 0.12) 0%,
+    transparent 70%
+  );
   pointer-events: none;
   z-index: 0;
 }
@@ -48,9 +54,15 @@ body {
 .auth-page-wrapper::after {
   content: "";
   position: absolute;
-  bottom: -10%; right: -5%;
-  width: 350px; height: 350px;
-  background: radial-gradient(circle, rgba(200, 75, 143, 0.1) 0%, transparent 70%);
+  bottom: -10%;
+  right: -5%;
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(
+    circle,
+    rgba(200, 75, 143, 0.1) 0%,
+    transparent 70%
+  );
   pointer-events: none;
   z-index: 0;
 }
@@ -110,7 +122,10 @@ body {
   font-family: var(--font-body);
   font-size: 15px;
   cursor: pointer;
-  transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    opacity 0.2s,
+    box-shadow 0.2s;
   box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
 }
 
@@ -136,24 +151,24 @@ body {
   transform: translateX(-3px);
 }
 .error-alert {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    margin-top: 16px;
-    background: rgba(248, 113, 113, 0.1);
-    border: 1px solid rgba(248, 113, 113, 0.25);
-    border-radius: 8px;
-    color: #f87171;
-    font-size: 13.5px;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-top: 16px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 13.5px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .error-alert.show {
-    visibility: visible;
-    opacity: 1;
+  visibility: visible;
+  opacity: 1;
 }
 footer.bg-white {
   background-color: var(--brand-card) !important;
@@ -162,7 +177,7 @@ footer.bg-white {
   margin-top: auto;
 }
 
-footer.bg-white .text-muted, 
+footer.bg-white .text-muted,
 footer.bg-white p {
   color: var(--text-3) !important;
   font-size: 13px;
@@ -216,38 +231,51 @@ footer.bg-white a:hover {
 }
 
 .form-control {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    color: var(--text-1) !important;
-    font-family: var(--font-body);
-    font-size: 14.5px;
-    padding: 13px 14px;
-    outline: none;
-    width: 100%;
-    box-sizing: border-box;
-    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-1) !important;
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  padding: 13px 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
 }
 .form-control::placeholder {
-    color: var(--text-3) !important;
+  color: var(--text-3) !important;
 }
 .form-control:focus {
-    border-color: var(--brand-purple);
-    background: rgba(124, 58, 237, 0.08);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
-    color: var(--text-1) !important;
+  border-color: var(--brand-purple);
+  background: rgba(124, 58, 237, 0.08);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  color: var(--text-1) !important;
 }
 
 .form-control:-webkit-autofill,
 .form-control:-webkit-autofill:focus {
-    -webkit-text-fill-color: var(--text-1) !important;
-    -webkit-box-shadow: 0 0 0px 1000px #1a1530 inset !important;
-    transition: background-color 5000s ease-in-out 0s;
+  -webkit-text-fill-color: var(--text-1) !important;
+  -webkit-box-shadow: 0 0 0px 1000px #1a1530 inset !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 /* ── RESPONSIVE ── */
 @media (max-width: 480px) {
-  .auth-box { padding: 32px 20px; }
-  .otp-container { gap: 8px; }
-  .otp-input { width: 40px; height: 50px; font-size: 18px; }
-  .form-title { font-size: 22px; }
+  .auth-box {
+    padding: 32px 20px;
+  }
+  .otp-container {
+    gap: 8px;
+  }
+  .otp-input {
+    width: 40px;
+    height: 50px;
+    font-size: 18px;
+  }
+  .form-title {
+    font-size: 22px;
+  }
 }

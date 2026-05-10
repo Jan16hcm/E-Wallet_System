@@ -12,8 +12,8 @@ $error = $_SESSION['error'] ?? '';
 unset($_SESSION['error']);
 ?>
 
-<?php if(!empty($error)) { ?>
-<script> alert (<?= json_encode($error) ?>)</script>
+<?php if (!empty($error)) { ?>
+    <script> alert(<?= json_encode($error) ?>)</script>
 <?php } ?>
 
 <?php
@@ -100,23 +100,31 @@ include '../src/header.php';
             <?php if ($usertype === "0" || $usertype === "2") { ?>
                 <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="Profile.php" class="nav-link active"><i class="fa-solid fa-user"></i> Profile</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-money-bill-transfer"></i> Transfer
+                    money</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    Withdraw</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i>
+                    Deposit money</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-clock-rotate-left"></i> Transaction
+                    history</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone
+                    card</a>
                 <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
             <?php } else { ?>
                 <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="Profile.php" class="nav-link active"><i class="fa-solid fa-user"></i> Profile</a>
                 <a href="Transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
                 <a href="Withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-                <a href="Deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-                <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+                <a href="Deposit.php" class="nav-link"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit
+                    money</a>
+                <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction
+                    history</a>
                 <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
                 <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
             <?php } ?>
-            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i
+                    class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 
@@ -132,7 +140,8 @@ include '../src/header.php';
                 </div>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button class="theme-toggle" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
+                <button class="theme-toggle"
+                    style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
                     <i class="fa-solid fa-moon"></i>
                 </button>
                 <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
@@ -253,15 +262,15 @@ include '../src/header.php';
                     </div>
                 </div>
 
-                
-                    <div class="card-mockup-wrapper">
-                        <div class="card-mockup">
-                            <div class="card-balance-label">Available Balance</div>
-                            <div class="card-balance-value"><?= $money ?> ₫</div>
 
-                        </div>
+                <div class="card-mockup-wrapper">
+                    <div class="card-mockup">
+                        <div class="card-balance-label">Available Balance</div>
+                        <div class="card-balance-value"><?= $money ?> ₫</div>
+
                     </div>
-                
+                </div>
+
             </div>
         </div>
     </main>

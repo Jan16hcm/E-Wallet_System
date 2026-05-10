@@ -136,7 +136,7 @@
 }
 
 .card-mockup::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   right: 0;
@@ -187,11 +187,11 @@
     text-align: center;
     padding: 24px 16px;
   }
-  
+
   .profile-info p {
     justify-content: center;
   }
-  
+
   .profile-grid {
     grid-template-columns: 1fr;
   }
@@ -209,7 +209,7 @@
   .profile-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .card-mockup-wrapper {
     grid-column: span 2;
   }
@@ -220,7 +220,7 @@
   .profile-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .card-mockup-wrapper {
     grid-column: span 1;
   }
@@ -231,7 +231,7 @@
   .profile-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   .card-mockup-wrapper {
     grid-column: span 1;
   }

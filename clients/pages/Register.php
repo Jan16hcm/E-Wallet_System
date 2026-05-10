@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if (!in_array($front_mime, $allowed_mimes) || !in_array($back_mime, $allowed_mimes)) {
                 $error = 'Only JPG, JPEG & PNG files are allowed.';
-            } else if(($_FILES['front']['size'] > 20 * 1024 * 1024) || $_FILES['back']['size'] > 20 * 1024 * 1024) {
+            } else if (($_FILES['front']['size'] > 20 * 1024 * 1024) || $_FILES['back']['size'] > 20 * 1024 * 1024) {
                 $error = 'File size is too large. Maximum limit is 10MB.';
             } else {
                 $front_data = getCompressedImageData($_FILES["front"]["tmp_name"], 60);
@@ -150,7 +150,8 @@ include("../src/headerOutSide.php");
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <form id="registerForm" action="Register.php" method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow">
+            <form id="registerForm" action="Register.php" method="POST" enctype="multipart/form-data"
+                class="bg-white p-4 rounded shadow">
                 <h2 class="text-center mb-4">Sign up</h2>
 
                 <div class="alert alert-danger <?= empty($error) ? 'invisible' : '' ?>" id="error-box">
@@ -165,7 +166,7 @@ include("../src/headerOutSide.php");
                     <script>
                         const form = document.getElementById("registerForm");
                         const btnSuccess = document.getElementById("btn-submit");
-                        
+
                         if (form) {
                             const elements = form.querySelectorAll('input, textarea, button, a');
                             elements.forEach(el => {
@@ -278,7 +279,7 @@ include("../src/headerOutSide.php");
     const submitBtn = document.getElementById('btn-submit');
 
     if (registerForm && submitBtn) {
-        registerForm.addEventListener('submit', function() {
+        registerForm.addEventListener('submit', function () {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
         });

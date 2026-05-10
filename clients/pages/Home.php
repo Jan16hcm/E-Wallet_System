@@ -40,7 +40,7 @@ $tx_stmt = $con->prepare("SELECT `transfer_type`, `date_transfer`, `money`, `sta
 $tx_stmt->bind_param("s", $user_data['phonenum']);
 $tx_stmt->execute();
 $tx_res = $tx_stmt->get_result();
-while($row = $tx_res->fetch_assoc()) {
+while ($row = $tx_res->fetch_assoc()) {
     $recent_txs[] = $row;
 }
 $tx_stmt->close();
@@ -50,7 +50,7 @@ $daily_data = [];
 for ($i = 5; $i >= 0; $i--) {
     $date = date('Y-m-d', strtotime("-$i days"));
     $display_date = date('d/m', strtotime("-$i days"));
-    
+
     // Net = (Incoming) - (Outgoing)
     // Incoming: Deposit + Transfer (as recipient)
     // Outgoing: Transfer (as sender) + Withdraw + Buycard
@@ -62,7 +62,7 @@ for ($i = 5; $i >= 0; $i--) {
     $q->bind_param("ssssss", $user_data['phonenum'], $date, $user_data['phonenum'], $date, $user_data['phonenum'], $date);
     $q->execute();
     $r = $q->get_result()->fetch_assoc();
-    $net = ((float)($r['incoming_transfer'] ?? 0) + (float)($r['incoming_deposit'] ?? 0)) - (float)($r['outgoing'] ?? 0);
+    $net = ((float) ($r['incoming_transfer'] ?? 0) + (float) ($r['incoming_deposit'] ?? 0)) - (float) ($r['outgoing'] ?? 0);
     $daily_data[$display_date] = $net;
     $q->close();
 }
@@ -76,17 +76,17 @@ $q = $con->prepare("SELECT
 $q->bind_param("sssss", $user_data['phonenum'], $user_data['phonenum'], $month_start, $user_data['phonenum'], $month_start);
 $q->execute();
 $stats = $q->get_result()->fetch_assoc();
-$month_earnings = (float)($stats['earnings'] ?? 0);
-$month_spending = (float)($stats['spending'] ?? 0);
+$month_earnings = (float) ($stats['earnings'] ?? 0);
+$month_spending = (float) ($stats['spending'] ?? 0);
 $q->close();
 
-$monthly_goal = (float)($user_data['monthly_goal'] ?: 5000000);
+$monthly_goal = (float) ($user_data['monthly_goal'] ?: 5000000);
 $goal_pct = $monthly_goal > 0 ? round(($month_spending / $monthly_goal) * 100) : 0;
 
 // Handle Goal Update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_goal'])) {
     $raw_goal = $_POST['monthly_goal'] ?? '5000000';
-    $new_goal = (float)str_replace('.', '', $raw_goal); // Remove dots for DB
+    $new_goal = (float) str_replace('.', '', $raw_goal); // Remove dots for DB
     $stmt = $con->prepare("UPDATE `user` SET `monthly_goal` = ? WHERE `email` = ?");
     $stmt->bind_param("ds", $new_goal, $useremail_session);
     $stmt->execute();
@@ -102,10 +102,10 @@ $q = $con->prepare("SELECT
 $q->bind_param("ssss", $user_data['phonenum'], $user_data['phonenum'], $user_data['phonenum'], $user_data['phonenum']);
 $q->execute();
 $prev_res = $q->get_result()->fetch_assoc();
-$prev_balance = (float)($prev_res['prev_net'] ?? 0);
+$prev_balance = (float) ($prev_res['prev_net'] ?? 0);
 $q->close();
 
-$current_balance = (float)$user_data['money'];
+$current_balance = (float) $user_data['money'];
 $balance_growth = $prev_balance > 0 ? round((($current_balance - $prev_balance) / $prev_balance) * 100) : 100;
 $balance_growth_dir = $balance_growth >= 0 ? 'up' : 'down';
 $balance_growth = abs($balance_growth);
@@ -117,7 +117,7 @@ $q = $con->prepare("SELECT SUM(money) as earnings FROM history WHERE (user_phone
 $q->bind_param("ssss", $user_data['phonenum'], $user_data['phonenum'], $last_month_start, $last_month_end);
 $q->execute();
 $last_stats = $q->get_result()->fetch_assoc();
-$last_month_earnings = (float)($last_stats['earnings'] ?? 0);
+$last_month_earnings = (float) ($last_stats['earnings'] ?? 0);
 $q->close();
 
 $earnings_growth = $last_month_earnings > 0 ? round((($month_earnings - $last_month_earnings) / $last_month_earnings) * 100) : 100;
@@ -166,7 +166,8 @@ include '../src/header.php';
                 history</a>
             <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
             <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
-            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i
+                    class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 
@@ -182,7 +183,8 @@ include '../src/header.php';
                 </div>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button class="theme-toggle" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
+                <button class="theme-toggle"
+                    style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
                     <i class="fa-solid fa-moon"></i>
                 </button>
                 <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
@@ -231,7 +233,8 @@ include '../src/header.php';
                     <div class="widget-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
                 </div>
                 <div class="balance-value">
-                    <?= $money ?> ₫ <span class="badge-<?= $balance_growth_dir ?>"><i class="fa-solid fa-arrow-<?= $balance_growth_dir ?>"></i> <?= $balance_growth ?>%</span>
+                    <?= $money ?> ₫ <span class="badge-<?= $balance_growth_dir ?>"><i
+                            class="fa-solid fa-arrow-<?= $balance_growth_dir ?>"></i> <?= $balance_growth ?>%</span>
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="balanceChart"></canvas>
@@ -263,37 +266,42 @@ include '../src/header.php';
                 </div>
 
                 <div class="tx-list">
-                    <?php if(empty($recent_txs)): ?>
-                        <div style="text-align:center; padding: 20px; color: var(--text-muted);">No recent transactions</div>
+                    <?php if (empty($recent_txs)): ?>
+                        <div style="text-align:center; padding: 20px; color: var(--text-muted);">No recent transactions
+                        </div>
                     <?php else: ?>
-                        <?php foreach($recent_txs as $tx): 
+                        <?php foreach ($recent_txs as $tx):
                             $is_pos = ($tx['transfer_type'] == 'Deposit');
                             $icon_class = $is_pos ? 'fa-arrow-down' : 'fa-arrow-up';
                             $icon_color = $is_pos ? '#10b981' : '#ef4444';
                             $amount_prefix = $is_pos ? '+' : '-';
-                        ?>
-                        <div class="tx-item">
-                            <div class="tx-left" style="flex: 1.5;">
-                                <div class="tx-icon-img" style="background: <?= $icon_color ?>20; color: <?= $icon_color ?>;">
-                                    <i class="fa-solid <?= $icon_class ?>"></i>
+                            ?>
+                            <div class="tx-item">
+                                <div class="tx-left" style="flex: 1.5;">
+                                    <div class="tx-icon-img"
+                                        style="background: <?= $icon_color ?>20; color: <?= $icon_color ?>;">
+                                        <i class="fa-solid <?= $icon_class ?>"></i>
+                                    </div>
+                                    <div>
+                                        <div class="tx-name"><?= htmlspecialchars($tx['transfer_type']) ?></div>
+                                        <?php if (!empty($tx['note'])): ?>
+                                            <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+                                                <?= htmlspecialchars($tx['note']) ?></div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div class="tx-name"><?= htmlspecialchars($tx['transfer_type']) ?></div>
-                                    <?php if(!empty($tx['note'])): ?>
-                                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;"><?= htmlspecialchars($tx['note']) ?></div>
+                                <div class="tx-card" style="flex: 1;">
+                                    <?php if (!empty($tx['card_num'])): ?>
+                                        <i class="fa-solid fa-credit-card"></i><?= htmlspecialchars($tx['card_num']) ?>
                                     <?php endif; ?>
                                 </div>
+                                <div class="tx-date" style="flex: 1.2; text-align: center; padding: 0;">
+                                    <?= date('d M, g:i A', strtotime($tx['date_transfer'])) ?></div>
+                                <div class="tx-amount <?= $is_pos ? 'pos' : '' ?>"
+                                    style="flex: 1.3; width: auto; white-space: nowrap;">
+                                    <?= $amount_prefix ?>        <?= number_format($tx['money'], 0, ',', '.') ?> ₫
+                                </div>
                             </div>
-                            <div class="tx-card" style="flex: 1;">
-                                <?php if(!empty($tx['card_num'])): ?>
-                                    <i class="fa-solid fa-credit-card"></i><?= htmlspecialchars($tx['card_num']) ?>
-                                <?php endif; ?>
-                            </div>
-                            <div class="tx-date" style="flex: 1.2; text-align: center; padding: 0;"><?= date('d M, g:i A', strtotime($tx['date_transfer'])) ?></div>
-                            <div class="tx-amount <?= $is_pos ? 'pos' : '' ?>" style="flex: 1.3; width: auto; white-space: nowrap;">
-                                <?= $amount_prefix ?><?= number_format($tx['money'], 0, ',', '.') ?> ₫
-                            </div>
-                        </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
@@ -303,14 +311,18 @@ include '../src/header.php';
             <div class="widget earnings-widget">
                 <div class="widget-header">
                     <span class="widget-title">Spending Goal</span>
-                    <div class="widget-icon" style="cursor: pointer;" onclick="document.getElementById('goalModal').style.display='flex'"><i class="fa-solid fa-pen-to-square"></i></div>
+                    <div class="widget-icon" style="cursor: pointer;"
+                        onclick="document.getElementById('goalModal').style.display='flex'"><i
+                            class="fa-solid fa-pen-to-square"></i></div>
                 </div>
                 <div class="balance-value" style="font-size: 20px; margin-bottom: 15px;">
-                    <?= $goal_pct ?>% <span style="font-size: 12px; color: var(--text-muted); font-weight: 400;">of goal</span>
+                    <?= $goal_pct ?>% <span style="font-size: 12px; color: var(--text-muted); font-weight: 400;">of
+                        goal</span>
                 </div>
                 <div class="doughnut-wrapper">
                     <canvas id="earningsChart"></canvas>
-                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -10%); text-align: center;">
+                    <div
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -10%); text-align: center;">
                         <div style="font-size: 24px; font-weight: 700;"><?= $goal_pct ?>%</div>
                     </div>
                 </div>
@@ -320,14 +332,17 @@ include '../src/header.php';
             </div>
 
             <!-- Goal Setting Modal (Simple) -->
-            <div id="goalModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
-                <div style="background:var(--bg-surface); padding:30px; border-radius:16px; width:90%; max-width:400px; border:1px solid var(--border-color);">
+            <div id="goalModal"
+                style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+                <div
+                    style="background:var(--bg-surface); padding:30px; border-radius:16px; width:90%; max-width:400px; border:1px solid var(--border-color);">
                     <h3 style="margin-top:0;">Set Monthly Spending Goal</h3>
-                    <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">Enter your target monthly spending limit.</p>
+                    <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">Enter your target monthly
+                        spending limit.</p>
                     <form method="POST">
-                        <input type="text" name="monthly_goal" id="goalInput" value="<?= number_format($monthly_goal, 0, ',', '.') ?>" 
-                               onkeyup="formatCurrency(this)"
-                               style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:var(--text-main); margin-bottom:20px; font-size: 18px; font-weight: 600;">
+                        <input type="text" name="monthly_goal" id="goalInput"
+                            value="<?= number_format($monthly_goal, 0, ',', '.') ?>" onkeyup="formatCurrency(this)"
+                            style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:var(--text-main); margin-bottom:20px; font-size: 18px; font-weight: 600;">
                         <script>
                             function formatCurrency(input) {
                                 let val = input.value.replace(/\D/g, "");
@@ -339,8 +354,10 @@ include '../src/header.php';
                             }
                         </script>
                         <div style="display:flex; gap:10px;">
-                            <button type="button" onclick="document.getElementById('goalModal').style.display='none'" class="btn btn-outline" style="flex:1;">Cancel</button>
-                            <button type="submit" name="update_goal" class="btn btn-primary" style="flex:1;">Save Goal</button>
+                            <button type="button" onclick="document.getElementById('goalModal').style.display='none'"
+                                class="btn btn-outline" style="flex:1;">Cancel</button>
+                            <button type="submit" name="update_goal" class="btn btn-primary" style="flex:1;">Save
+                                Goal</button>
                         </div>
                     </form>
                 </div>
@@ -388,11 +405,11 @@ include '../src/header.php';
         <span>Password</span>
     </a>
 </div>
-<?php if(!empty($error)) { ?>
-<script> alert (<?= json_encode($error) ?>)</script>
+<?php if (!empty($error)) { ?>
+    <script> alert(<?= json_encode($error) ?>)</script>
 <?php } ?>
 <script>
-    
+
     // Pass PHP data to home.js
     window.chartData = {
         daily: <?= json_encode(array_values($daily_data)) ?>,
@@ -404,5 +421,5 @@ include '../src/header.php';
 </script>
 <script src="../assets/js/home.js"></script>
 <?php
-    include '../src/footer.php';
+include '../src/footer.php';
 ?>

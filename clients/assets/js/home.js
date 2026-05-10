@@ -56,100 +56,108 @@ Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
 // Balance Chart
 const ctxBalanceEl = document.getElementById("balanceChart");
 if (ctxBalanceEl) {
-    const ctxBalance = ctxBalanceEl.getContext("2d");
-    let gradientBlue = ctxBalance.createLinearGradient(0, 0, 0, 150);
-    gradientBlue.addColorStop(0, "rgba(59, 130, 246, 0.4)");
-    gradientBlue.addColorStop(1, "rgba(59, 130, 246, 0)");
+  const ctxBalance = ctxBalanceEl.getContext("2d");
+  let gradientBlue = ctxBalance.createLinearGradient(0, 0, 0, 150);
+  gradientBlue.addColorStop(0, "rgba(59, 130, 246, 0.4)");
+  gradientBlue.addColorStop(1, "rgba(59, 130, 246, 0)");
 
-    new Chart(ctxBalance, {
+  new Chart(ctxBalance, {
     type: "line",
     data: {
-        labels: window.chartData ? window.chartData.labels : ["15", "16", "17", "18", "19", "20"],
-        datasets: [
+      labels: window.chartData
+        ? window.chartData.labels
+        : ["15", "16", "17", "18", "19", "20"],
+      datasets: [
         {
-            data: window.chartData ? window.chartData.daily : [100, 150, 130, 200, 180, 250],
-            borderColor: "#3b82f6",
-            borderWidth: 3,
-            backgroundColor: gradientBlue,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
+          data: window.chartData
+            ? window.chartData.daily
+            : [100, 150, 130, 200, 180, 250],
+          borderColor: "#3b82f6",
+          borderWidth: 3,
+          backgroundColor: gradientBlue,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
         },
-        ],
+      ],
     },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { display: false }, y: { display: false } },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { display: false } },
     },
-    });
+  });
 }
 
 // Goal Progress Chart (Modified from Earnings)
 const earningsEl = document.getElementById("earningsChart");
 if (earningsEl) {
-    const spent = window.chartData ? window.chartData.spending : 42;
-    const goal = window.chartData ? window.chartData.earnings : 100;
-    const remaining = Math.max(0, goal - spent);
-    const progressColor = spent > goal ? "#ef4444" : "#3b82f6"; // Red if over goal
+  const spent = window.chartData ? window.chartData.spending : 42;
+  const goal = window.chartData ? window.chartData.earnings : 100;
+  const remaining = Math.max(0, goal - spent);
+  const progressColor = spent > goal ? "#ef4444" : "#3b82f6"; // Red if over goal
 
-    new Chart(earningsEl, {
+  new Chart(earningsEl, {
     type: "doughnut",
     data: {
-        datasets: [
+      datasets: [
         {
-            data: [spent, remaining],
-            backgroundColor: [progressColor, "#2a2f3e"],
-            borderWidth: 0,
-            cutout: "80%",
-            borderRadius: 20,
+          data: [spent, remaining],
+          backgroundColor: [progressColor, "#2a2f3e"],
+          borderWidth: 0,
+          cutout: "80%",
+          borderRadius: 20,
         },
-        ],
+      ],
     },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        rotation: -90,
-        circumference: 180,
-        plugins: { tooltip: { enabled: false } },
+      responsive: true,
+      maintainAspectRatio: false,
+      rotation: -90,
+      circumference: 180,
+      plugins: { tooltip: { enabled: false } },
     },
-    });
+  });
 }
 
 // Spending Chart
 const spendingEl = document.getElementById("spendingChart");
 if (spendingEl) {
-    let gradBar = spendingEl.getContext("2d").createLinearGradient(0, 0, 0, 150);
-    gradBar.addColorStop(0, "#3b82f6");
-    gradBar.addColorStop(1, "rgba(59, 130, 246, 0.2)");
-    new Chart(spendingEl, {
+  let gradBar = spendingEl.getContext("2d").createLinearGradient(0, 0, 0, 150);
+  gradBar.addColorStop(0, "#3b82f6");
+  gradBar.addColorStop(1, "rgba(59, 130, 246, 0.2)");
+  new Chart(spendingEl, {
     type: "bar",
     data: {
-        labels: window.chartData ? window.chartData.labels.slice(-6) : ["Mon", "Tue", "Wed", "Thu"],
-        datasets: [
-        { 
-            data: window.chartData ? window.chartData.daily.slice(-6).map(v => Math.abs(v)) : [34, 16, 8, 6], 
-            backgroundColor: gradBar, 
-            borderRadius: 8,
-            barThickness: 40
+      labels: window.chartData
+        ? window.chartData.labels.slice(-6)
+        : ["Mon", "Tue", "Wed", "Thu"],
+      datasets: [
+        {
+          data: window.chartData
+            ? window.chartData.daily.slice(-6).map((v) => Math.abs(v))
+            : [34, 16, 8, 6],
+          backgroundColor: gradBar,
+          borderRadius: 8,
+          barThickness: 40,
         },
-        ],
+      ],
     },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { 
-        x: { 
-            display: true, 
-            grid: { display: false },
-            ticks: { color: "#8b92a5", font: { size: 12 } }
-        }, 
-        y: { 
-            display: false 
-        } 
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          display: true,
+          grid: { display: false },
+          ticks: { color: "#8b92a5", font: { size: 12 } },
         },
+        y: {
+          display: false,
+        },
+      },
     },
-    });
+  });
 }

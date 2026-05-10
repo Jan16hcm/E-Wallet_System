@@ -13,8 +13,8 @@ $expire = '';
 $cvv = '';
 $amount = 0;
 $note = '';
-$error = checkuser((int)$usertype);
-if(!empty($error)){
+$error = checkuser((int) $usertype);
+if (!empty($error)) {
     $_SESSION['error'] = $error;
     redirectHome();
 }
@@ -23,9 +23,11 @@ $success_msg = '';
 $username = htmlspecialchars($_SESSION['name'] ?? 'User', ENT_QUOTES, 'UTF-8');
 $current_date = strtoupper(date('l, F j'));
 
-if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv']) && 
-    isset($_POST['amount']) && $_SERVER['REQUEST_METHOD'] == 'POST' && empty($error)) {
-    
+if (
+    isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv']) &&
+    isset($_POST['amount']) && $_SERVER['REQUEST_METHOD'] == 'POST' && empty($error)
+) {
+
     $card_num = trim($_POST['card_number'] ?? '');
     $expire = trim($_POST['expire'] ?? '');
     $cvv = trim($_POST['cvv'] ?? '');
@@ -46,7 +48,7 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
         $amount = floatval($amount_str);
         $date_error = isValidDate($expire);
         $valid_error = isValidDepositCard($card_num, $expire, $cvv, $amount);
-        
+
         if ($amount <= 0) {
             //put link to deposit page here -----------------
             $error = 'Please visit the <a href="Withdraw.php">withdraw page</a> if you want to withdraw';
@@ -59,8 +61,8 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
             $con = connect_db();
             $dep = $con->prepare("SELECT phonenum FROM user where email = ?");
             $dep->bind_param("s", $_SESSION["email"]);
-            
-            if(!$dep->execute()){
+
+            if (!$dep->execute()) {
                 $error = 'Error in database, please try again later';
             } else {
                 $dep->bind_result($selfPhone);
@@ -75,7 +77,7 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
                 $transfer_type = "Deposit";
                 $id = generateIdCode($selfPhone, 2);
                 $date = date('Y-m-d H:i:s');
-                
+
                 $dt = DateTime::createFromFormat('d/m/Y', $expire);
                 $expire_db = $dt->format('Y-m-d');
                 $fee = 0;
@@ -83,15 +85,15 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
                 $dep = $con->prepare("INSERT INTO `history` (`id`, `user_phone`, `transfer_type`, `card_num`, `expire`, `CVV`, `date_transfer`, `money`, `fee`, `note`, `status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $dep->bind_param("sssssssddsi", $id, $selfPhone, $transfer_type, $card_num, $expire_db, $cvv, $date, $amount, $fee, $note, $status);
 
-                if(!$dep->execute()){
+                if (!$dep->execute()) {
                     $error = 'Failed to save in deposit history';
                 } else {
                     $dep->close();
-                    
+
                     $dep = $con->prepare("UPDATE user SET money = money + ? WHERE phonenum = ?");
                     $dep->bind_param("ds", $amount, $selfPhone);
 
-                    if(!$dep->execute()){
+                    if (!$dep->execute()) {
                         $error = 'Failed to update user balance, cancelled the deposit';
                         $status = 0; // Cancelled/Rejected
                         $canceldate = date('Y-m-d H:i:s');
@@ -104,7 +106,7 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
                         if (!empty($note)) {
                             $success_msg .= " Note: " . htmlspecialchars($note);
                         }
-                        
+
                         // Update session money
                         $stmt = $con->prepare("SELECT `money` FROM `user` WHERE `phonenum` = ?");
                         $stmt->bind_param("s", $selfPhone);
@@ -116,7 +118,11 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
                         $stmt->close();
 
                         // clear fields on success
-                        $card_num = ''; $expire = ''; $cvv = ''; $amount = 0; $note = '';
+                        $card_num = '';
+                        $expire = '';
+                        $cvv = '';
+                        $amount = 0;
+                        $note = '';
                     }
                 }
             }
@@ -128,7 +134,8 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
 ?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/home.css">
 <link rel="stylesheet" href="../assets/css/profile.css">
 <link rel="stylesheet" href="../assets/css/deposit.css">
@@ -150,23 +157,31 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
             <?php if ($usertype === "0" || $usertype === "2") { ?>
                 <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-                <a href="#" class="nav-link restricted-feature active"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
-                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-money-bill-transfer"></i> Transfer
+                    money</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    Withdraw</a>
+                <a href="#" class="nav-link restricted-feature active"><i
+                        class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-clock-rotate-left"></i> Transaction
+                    history</a>
+                <a href="#" class="nav-link restricted-feature"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone
+                    card</a>
                 <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
             <?php } else { ?>
                 <a href="Home.php" class="nav-link"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="Profile.php" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
                 <a href="Transfer.php" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfer money</a>
                 <a href="Withdraw.php" class="nav-link"><i class="fa-solid fa-arrow-up-from-bracket"></i> Withdraw</a>
-                <a href="Deposit.php" class="nav-link active"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i> Deposit money</a>
-                <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
+                <a href="Deposit.php" class="nav-link active"><i class="fa-solid fa-wallet fa-arrow-down-to-bracket"></i>
+                    Deposit money</a>
+                <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction
+                    history</a>
                 <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
                 <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
             <?php } ?>
-            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i
+                    class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 
@@ -182,7 +197,8 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
                 </div>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button class="theme-toggle" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
+                <button class="theme-toggle"
+                    style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">
                     <i class="fa-solid fa-moon"></i>
                 </button>
                 <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
@@ -191,16 +207,19 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
             </div>
         </div>
 
-        <div class="profile-container" style="display: flex; flex-direction: column; align-items: center; min-height: calc(100vh - 100px); padding-top: 20px;">
+        <div class="profile-container"
+            style="display: flex; flex-direction: column; align-items: center; min-height: calc(100vh - 100px); padding-top: 20px;">
             <div style="width: 100%; max-width: 800px;">
                 <h2 style="margin-bottom: 20px;">Deposit Money</h2>
-                
-                <div id="alert-error" class="alert alert-danger" style="<?= empty($error) ? 'visibility: hidden; opacity: 0;' : 'visibility: visible; opacity: 1;' ?> transition: opacity 0.3s ease;">
+
+                <div id="alert-error" class="alert alert-danger"
+                    style="<?= empty($error) ? 'visibility: hidden; opacity: 0;' : 'visibility: visible; opacity: 1;' ?> transition: opacity 0.3s ease;">
                     <i class="fa-solid fa-circle-exclamation"></i>
                     <span id="err-text"><?= htmlspecialchars($error) ?></span>
                 </div>
 
-                <div id="alert-success" class="alert alert-success" style="<?= empty($success_msg) ? 'visibility: hidden; opacity: 0;' : 'visibility: visible; opacity: 1;' ?> transition: opacity 0.3s ease;">
+                <div id="alert-success" class="alert alert-success"
+                    style="<?= empty($success_msg) ? 'visibility: hidden; opacity: 0;' : 'visibility: visible; opacity: 1;' ?> transition: opacity 0.3s ease;">
                     <i class="fa-solid fa-circle-check"></i>
                     <span id="success-text"><?= htmlspecialchars($success_msg) ?></span>
                 </div>
@@ -210,41 +229,54 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
                         <i class="fa-solid fa-credit-card"></i> Credit Card Details
                     </div>
                     <div style="padding: 30px;">
-                    <form id="depositForm" method="POST" action="Deposit.php" class="deposit-form">
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label style="font-size: 15px; margin-bottom: 8px;">Card Number (6 digits)</label>
-                            <input type="text" name="card_number" value="<?= htmlspecialchars($card_num) ?>" placeholder="******"  maxlength="6" pattern="\d{6}" style="padding: 16px; font-size: 16px;">
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 15px; margin-bottom: 8px;">Expiration Date (dd/mm/yyyy)</label>
-                                <input type="text" name="expire" value="<?= htmlspecialchars($expire) ?>" placeholder="dd/mm/yyyy"  style="padding: 16px; font-size: 16px;">
+                        <form id="depositForm" method="POST" action="Deposit.php" class="deposit-form">
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="font-size: 15px; margin-bottom: 8px;">Card Number (6 digits)</label>
+                                <input type="text" name="card_number" value="<?= htmlspecialchars($card_num) ?>"
+                                    placeholder="******" maxlength="6" pattern="\d{6}"
+                                    style="padding: 16px; font-size: 16px;">
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 15px; margin-bottom: 8px;">CVV (3 digits)</label>
-                                <input type="text" name="cvv" value="<?= htmlspecialchars($cvv) ?>" placeholder="***"  maxlength="3" pattern="\d{3}" style="padding: 16px; font-size: 16px;">
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 15px; margin-bottom: 8px;">Expiration Date
+                                        (dd/mm/yyyy)</label>
+                                    <input type="text" name="expire" value="<?= htmlspecialchars($expire) ?>"
+                                        placeholder="dd/mm/yyyy" style="padding: 16px; font-size: 16px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 15px; margin-bottom: 8px;">CVV (3 digits)</label>
+                                    <input type="text" name="cvv" value="<?= htmlspecialchars($cvv) ?>"
+                                        placeholder="***" maxlength="3" pattern="\d{3}"
+                                        style="padding: 16px; font-size: 16px;">
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label style="font-size: 15px; margin-bottom: 8px;">Amount (VND)</label>
-                            <input type="text" name="amount" id="amountInput" value="<?= htmlspecialchars($amount > 0 ? number_format($amount, 0, ',', '.') : '') ?>" placeholder="00,000"  style="padding: 16px; font-size: 16px;">
-                        </div>
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="font-size: 15px; margin-bottom: 8px;">Amount (VND)</label>
+                                <input type="text" name="amount" id="amountInput"
+                                    value="<?= htmlspecialchars($amount > 0 ? number_format($amount, 0, ',', '.') : '') ?>"
+                                    placeholder="00,000" style="padding: 16px; font-size: 16px;">
+                            </div>
 
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label style="font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                <span>Note</span>
-                                <span id="noteCount" style="font-size: 12px; font-weight: normal; color: var(--text-muted);">0/50</span>
-                            </label>
-                            <input type="text" name="note" id="noteInput" value="<?= htmlspecialchars($note) ?>" maxlength="50" style="padding: 16px; font-size: 16px;">
-                        </div>
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label
+                                    style="font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Note</span>
+                                    <span id="noteCount"
+                                        style="font-size: 12px; font-weight: normal; color: var(--text-muted);">0/50</span>
+                                </label>
+                                <input type="text" name="note" id="noteInput" value="<?= htmlspecialchars($note) ?>"
+                                    maxlength="50" style="padding: 16px; font-size: 16px;">
+                            </div>
 
-                        <button type="submit" id="submitBtn" class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border-radius: 10px;">Deposit Now</button>
-                    </form>
+                            <button type="submit" id="submitBtn" class="btn btn-primary"
+                                style="width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border-radius: 10px;">Deposit
+                                Now</button>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
     </main>
 </div>
 

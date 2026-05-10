@@ -69,13 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($
                         session_destroy();
                         header('Location: Login.php');
                         exit();
-                    } else if(!$normalreset && (isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === false))
-                    {
+                    } else if (!$normalreset && (isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === false)) {
                         session_regenerate_id(true);
                         header('Location: Profile.php');//newly login
                         exit();
-                    } 
-                    else {
+                    } else {
                         session_regenerate_id(true);
                         header('Location: Home.php');//change password
                         exit();

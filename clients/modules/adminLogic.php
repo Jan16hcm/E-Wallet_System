@@ -3,7 +3,7 @@ require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
 require_once("../modules/sendOTP.php");
 require_once("../modules/formatMoney.php");
-$usertype = usertype(); 
+$usertype = usertype();
 if ($usertype != "3") {
     redirectHome();
 }
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $phone = $_POST['phone'] ?? '';
     $tx_id = $_POST['tx_id'] ?? '';
-    
+
     if ($action === 'verify' && $phone) {
         $stmt = $con->prepare("UPDATE `user` SET `verified` = 1 WHERE `phonenum` = ?");
         $stmt->bind_param("s", $phone);
@@ -56,12 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $result = $stmt->get_result();
         $verified = -1;
-        if($result->num_rows > 0) {
+        if ($result->num_rows > 0) {
             $row = $result->fetch_assoc();
             $verified = $row['subverified'] ?? -1;
         }
         $stmt->close();
-        
+
         $stmt = $con->prepare("UPDATE `user` SET `verified` = ?, `subverified` = -1, `abnormal_login` = 0, `locked_time` = NULL WHERE `phonenum` = ?");
         $stmt->bind_param("is", $verified, $phone);
         $stmt->execute();
@@ -72,12 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $result = $stmt->get_result();
         $subverified = -1;
-        if($result->num_rows > 0) {
+        if ($result->num_rows > 0) {
             $row = $result->fetch_assoc();
             $subverified = $row['verified'] ?? -1;
         }
         $stmt->close();
-        
+
         $stmt = $con->prepare("UPDATE `user` SET `subverified` = ?, `verified` = 4 WHERE `phonenum` = ?");
         $stmt->bind_param("is", $subverified, $phone);
         $stmt->execute();
@@ -88,15 +88,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $tx = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        
+
         if ($tx) {
             $sender = $tx['user_phone'];
             $receiver = $tx['receiver_phone'];
             $amount = floatval($tx['money']);
             $fee = floatval($tx['fee']);
             $type = $tx['transfer_type'];
-            $selfFeeBear = (int)$tx['selfFeeBear'];
-            
+            $selfFeeBear = (int) $tx['selfFeeBear'];
+
             // Calculate total amount to deduct from sender/user
             $deduction = $amount;
             if ($type === 'Withdraw' || ($type === 'Transfer' && $selfFeeBear === 1)) {
@@ -108,13 +108,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($type === 'Transfer' && $selfFeeBear === 0) {
                 $recipientGets = $amount - $fee;
             }
-            
+
             $stmt = $con->prepare("SELECT `money` FROM `user` WHERE `phonenum` = ?");
             $stmt->bind_param("s", $sender);
             $stmt->execute();
             $sender_data = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-            
+
             if ($sender_data) {
                 if ($type === 'Withdraw') {
                     $totalDeduct = $amount + $fee;
@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         exit();
                     }
                 }
-                
+
                 // Add to receiver if Transfer
                 if ($type === 'Transfer' && $receiver) {
                     $stmt = $con->prepare("UPDATE `user` SET `money` = `money` + ? WHERE `phonenum` = ?");
@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         );
                     }
                 }
-                
+
                 // Update history status to 1 (Approved)
                 $now = date('Y-m-d H:i:s');
                 $stmt = $con->prepare("UPDATE `history` SET `status` = 1, `date_confirm` = ? WHERE `id` = ?");
@@ -191,13 +191,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fee = floatval($tx_data['fee']);
             $type = $tx_data['transfer_type'];
             $selfFeeBear = intval($tx_data['selfFeeBear']);
-            
+
             if ($type === 'Transfer') {
                 $refund = $amount;
                 if ($selfFeeBear === 1) {
                     $refund = $amount + $fee;
                 }
-                
+
                 // Refund the sender (Withdrawals are not refunded because they were never deducted)
                 $stmt = $con->prepare("UPDATE `user` SET `money` = `money` + ? WHERE `phonenum` = ?");
                 $stmt->bind_param("ds", $refund, $sender);
@@ -212,12 +212,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
     }
-    
+
     // Redirect to prevent form resubmission
     $redirect_tab = $_POST['tab'] ?? $_SESSION['admin_active_tab'] ?? 'pending';
     $redirect_search = $_POST['search'] ?? '';
     $url = '../pages/Admin_dashboard.php?tab=' . urlencode($redirect_tab);
-    if ($redirect_search) $url .= '&search=' . urlencode($redirect_search);
+    if ($redirect_search)
+        $url .= '&search=' . urlencode($redirect_search);
     header('Location: ' . $url);
     exit();
 }
@@ -249,14 +250,14 @@ $search_results = [];
 $search_tx_results = [];
 if ($search_query) {
     $search_param = "%" . $search_query . "%";
-    
+
     // Search users
     $stmt = $con->prepare("SELECT * FROM `user` WHERE (`phonenum` LIKE ? OR `email` LIKE ?) AND `phonenum` != '0000000000'");
     $stmt->bind_param("ss", $search_param, $search_param);
     $stmt->execute();
     $search_results = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
-    
+
     // Search transactions by ID
     $stmt = $con->prepare("SELECT * FROM `history` WHERE `id` LIKE ? ORDER BY `date_transfer` DESC");
     $stmt->bind_param("s", $search_param);
@@ -274,7 +275,7 @@ if ($selected_phone) {
     $stmt->execute();
     $user_details = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    
+
     if ($user_details && in_array($user_details['verified'], [1, 4]) && $user_details['abnormal_login'] < 6) {
         // Fetch transaction history in current month
         $current_month = date('Y-m');

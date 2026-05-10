@@ -123,7 +123,7 @@ body {
 }
 .theme-toggle i {
   font-size: 16px;
-  color: var(--text-main); 
+  color: var(--text-main);
   transition: 0.3s ease;
 }
 .theme-toggle:hover {
@@ -235,7 +235,7 @@ body {
 
 .btn-outline {
   background: var(--bg-surface);
-  color: var(--text-main) !important; 
+  color: var(--text-main) !important;
   border: 1px solid var(--border-color);
 }
 
@@ -443,16 +443,12 @@ body {
 }
 
 body.light-theme .transfer-widget {
-  background: linear-gradient(
-    180deg,
-    #eff6ff 0%,
-    #dbeafe 100%
-  );
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
   border: 1px solid #bfdbfe;
 }
 
 body.light-theme .quick-action-badge {
-  background: rgba(59, 130, 246, 0.15); 
+  background: rgba(59, 130, 246, 0.15);
   color: var(--accent-blue);
 }
 
@@ -475,7 +471,7 @@ body.light-theme .transfer-btn-large:hover {
 }
 
 body {
-  font-size: 16px; 
+  font-size: 16px;
 }
 
 .widget h3 {

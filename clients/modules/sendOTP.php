@@ -48,11 +48,12 @@ function sendEmail($recipientEmail, $recipientName, $subject, $content, $altBody
         return false;
     }
 }
-function sendRegistrationEmail($email, $phonenum, $name, $password) {
+function sendRegistrationEmail($email, $phonenum, $name, $password)
+{
     $subject = "Welcome to MeoMeo Wallet - Get Started Now!";
     $link_page = "http://meomeo.baby/clients/pages/Login.php";
     $brand_color = "#7C3AED";
-    
+
     $content = "
         <div style='font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 16px; overflow: hidden;'>
             <div style='background-color: #1A1530; padding: 30px; text-align: center;'>
@@ -93,7 +94,8 @@ function sendRegistrationEmail($email, $phonenum, $name, $password) {
 
     return sendEmail($email, $name, $subject, $content);
 }
-function sendOTPEmail($email, $recipientName, $otpCode) {
+function sendOTPEmail($email, $recipientName, $otpCode)
+{
     $minute = 1;//all otp is 1 minute
     $subject = 'Your OTP Verification Code';
     $content = "
@@ -117,7 +119,8 @@ function sendOTPEmail($email, $recipientName, $otpCode) {
     return sendEmail($email, $recipientName, $subject, $content, $altBody);
 }
 
-function send_receipt(String $formatedMoneysent, String $formatedMoneytotal, String $email, String $sendername, String $name, String $note) {
+function send_receipt(string $formatedMoneysent, string $formatedMoneytotal, string $email, string $sendername, string $name, string $note)
+{
     $brand_color = "#7C3AED";
     $subject = "MeoMeo Wallet - Money Received!";
     $content = "
