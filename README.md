@@ -24,3 +24,9 @@ The application is deployed and publicly accessible at:
 [meomeo.baby](http://meomeo.baby/)
 ---
 *Developed as a course project with a focus on reliable web architecture and database consistency.*
+
+## <?> How To Run The Program:
+1. Have and open XAMPP or any php complier to run php
+2. Import database in ```/database``` folder to mysql
+3. Go to ```/clients/pages``` folder and run Login.php
+4. Login using predefined accounts in testingAccount.txt or register a new account
