@@ -121,6 +121,9 @@ ALTER TABLE `user`
   ADD UNIQUE (`email`);
 ALTER TABLE `user` 
   ADD `subverified` tinyint(1) NOT NULL DEFAULT -1 COMMENT '-1:firstRegist\r\n0:False\r\n1:True\r\n2:Request additional information\r\n4:DisableAccount';
+ALTER TABLE `user` 
+  ADD `monthly_goal` decimal(19,4) NOT NULL DEFAULT 5000000.0000;
+
 --
 -- Constraints for dumped tables
 --
