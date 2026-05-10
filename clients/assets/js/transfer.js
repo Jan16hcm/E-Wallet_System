@@ -106,3 +106,32 @@ if (otpForm) {
         }
     });
 }
+
+// Countdown timer logic
+const timerDisplay = document.getElementById('otp-timer');
+if (timerDisplay && typeof remainingOtpTime !== 'undefined' && remainingOtpTime > 0) {
+    let timeLeft = remainingOtpTime;
+    
+    function updateTimer() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            timerDisplay.innerText = "Expired";
+            timerDisplay.style.color = "#ef4444";
+            // Disable inputs if expired
+            document.querySelectorAll('.otp-inputs input').forEach(i => i.disabled = true);
+            
+            // Automatically return to beginning after a short delay
+            setTimeout(() => {
+                window.location.href = 'transfer.php?cancel=1';
+            }, 1500);
+        }
+        timeLeft--;
+    }
+    
+    updateTimer();
+    const timerInterval = setInterval(updateTimer, 1000);
+}
