@@ -33,9 +33,9 @@ function updateFeePreview() {
 
     feePreview.style.display = 'block';
     feePreview.innerHTML = `
-        <div class="summary-row" style="margin-bottom:8px"><span style="color:var(--text-muted)">Transfer amount</span><span>${fmt(num)}</span></div>
-        <div class="summary-row" style="margin-bottom:8px"><span style="color:var(--text-muted)">Fee (5%)</span><span style="color:#ef4444">${fmt(fee)}</span></div>
-        <div class="summary-row" style="margin-bottom:8px"><span style="color:var(--text-muted)">Recipient gets</span><span style="color:#10b981">${fmt(theyGet)}</span></div>
+        <div class="summary-row" style="margin-bottom:8px"><span style="color:var(--text-muted)">Transfer amount: </span><span>${fmt(num)}</span></div>
+        <div class="summary-row" style="margin-bottom:8px"><span style="color:var(--text-muted)">Fee (5%): </span><span style="color:#ef4444">${fmt(fee)}</span></div>
+        <div class="summary-row" style="margin-bottom:8px"><span style="color:var(--text-muted)">Recipient gets: </span><span style="color:#10b981">${fmt(theyGet)}</span></div>
         <div style="border-top:1px solid var(--border-color); padding-top:8px; margin-top:8px; display:flex; justify-content:space-between; font-weight:700">
             <span>You Pay</span><span>${fmt(youPay)}</span>
         </div>`;
@@ -51,7 +51,7 @@ if (amountInput) {
         updateFeePreview();
         // Hide server error when user re-enters amount
         const errBox = document.getElementById('transferError');
-        if (errBox) errBox.style.display = 'none';
+        if (errBox) errBox.style.visibility = 'hidden';
     });
 }
 feeRadios.forEach(r => r.addEventListener('change', updateFeePreview));
@@ -65,7 +65,7 @@ if (phoneInput && recipientBadge) {
         clearTimeout(timeout);
         // Hide server error when user re-enters phone
         const errBox = document.getElementById('transferError');
-        if (errBox) errBox.style.display = 'none';
+        if (errBox) errBox.style.visibility = 'hidden';
         const phone = this.value.trim();
         if (phone.length >= 10) {
             timeout = setTimeout(() => {

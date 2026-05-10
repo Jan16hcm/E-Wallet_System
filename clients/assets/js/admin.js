@@ -1,9 +1,7 @@
     function switchTab(tabId) {
-        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.admin-list').forEach(l => l.classList.remove('active'));
-        
-        event.target.classList.add('active');
-        document.getElementById('list-' + tabId).classList.add('active');
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabId);
+        window.location.href = url.toString();
     }
 
     const themeToggleBtns = document.querySelectorAll('.theme-toggle');

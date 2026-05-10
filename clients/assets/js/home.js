@@ -86,16 +86,21 @@ if (ctxBalanceEl) {
     });
 }
 
-// Earnings Chart
+// Goal Progress Chart (Modified from Earnings)
 const earningsEl = document.getElementById("earningsChart");
 if (earningsEl) {
+    const spent = window.chartData ? window.chartData.spending : 42;
+    const goal = window.chartData ? window.chartData.earnings : 100;
+    const remaining = Math.max(0, goal - spent);
+    const progressColor = spent > goal ? "#ef4444" : "#3b82f6"; // Red if over goal
+
     new Chart(earningsEl, {
     type: "doughnut",
     data: {
         datasets: [
         {
-            data: window.chartData ? [window.chartData.earnings, window.chartData.spending] : [58, 42],
-            backgroundColor: ["#3b82f6", "#2a2f3e"],
+            data: [spent, remaining],
+            backgroundColor: [progressColor, "#2a2f3e"],
             borderWidth: 0,
             cutout: "80%",
             borderRadius: 20,
