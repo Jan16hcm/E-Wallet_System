@@ -9,12 +9,18 @@
         $con = connect_db();
         $email = $_SESSION['email'];
 
-        $stmt = $con->prepare("SELECT verified FROM user WHERE email = ?");
+        $stmt = $con->prepare("SELECT verified, abnormal_login, locked_time FROM user WHERE email = ?");
         $stmt->bind_param("s", $email); // "s" nghĩa là data type là string
         $stmt->execute();
         $result = $stmt->get_result();
         if ($result->num_rows > 0) { //check if database is not empty
             $row = $result->fetch_assoc();
+            
+            // If locked due to abnormal login or admin, treat as disabled (4)
+            if ($row['abnormal_login'] >= 6 || !empty($row['locked_time'])) {
+                $row['verified'] = 4;
+            }
+            
             $_SESSION["verified"] = $row["verified"];
             $re = $row["verified"];
             
