@@ -63,7 +63,7 @@ if (phoneInput && recipientBadge) {
         const phone = this.value.trim();
         if (phone.length >= 10) {
             timeout = setTimeout(() => {
-                fetch('../modules/filter_account.php?phone=' + encodeURIComponent(phone))
+                fetch('../modules/lookup_user.php?phone=' + encodeURIComponent(phone))
                     .then(r => r.json())
                     .then(data => {
                         if (data.found) {
