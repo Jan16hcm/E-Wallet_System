@@ -60,20 +60,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($selfamount < $totalDeduct) {
                 $error = 'Insufficient balance. You need ' . number_format($totalDeduct, 0, ',', '.') . ' ₫ (incl. 5% fee).';
             } else {
-                $status = ($amount > 5000000) ? 1 : 0; // 0: Completed, 1: Pending
+                $status = ($amount > 5000000) ? 2 : 1; // 1: Approved/Completed, 2: Pending
                 $type = "Withdraw";
                 $now = date('Y-m-d H:i:s');
                 $id = generateIdCode($selfPhone, 3);
 
                 $con->begin_transaction();
                 try {
-                    $stmt = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, card_num, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $fee = $amount * 0.05;
+                    $stmt = $con->prepare("INSERT INTO `history` (`id`, `user_phone`, `transfer_type`, `card_num`, `date_transfer`, `money`, `fee`, `note`, `status`, `selfFeeBear`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $selfFeeBear = 1;
-                    $stmt->bind_param("sssssdsii", $id, $selfPhone, $type, $card_num, $now, $amount, $note, $status, $selfFeeBear);
+                    $stmt->bind_param("sssssddsii", $id, $selfPhone, $type, $card_num, $now, $amount, $fee, $note, $status, $selfFeeBear);
                     $stmt->execute();
 
-                    if ($status == 0) {
-                        $stmt = $con->prepare("UPDATE user SET money = money - ? WHERE phonenum = ?");
+                    if ($status == 1) {
+                        $stmt = $con->prepare("UPDATE `user` SET `money` = `money` - ? WHERE `phonenum` = ?");
                         $stmt->bind_param("ds", $totalDeduct, $selfPhone);
                         $stmt->execute();
                         $success = true;

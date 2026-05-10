@@ -2,7 +2,7 @@
 require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
 require_once("../modules/formatMoney.php");
-require_once("../modules/receipt.php");
+require_once("../modules/sendOTP.php");
 require_once("../modules/generateCode.php");
 
 $usertype = usertype();
@@ -13,6 +13,16 @@ if(!empty($error)){
 }
 
 $step = (int)($_GET['step'] ?? 1);
+
+// Persist Step 2 if OTP is still active and not expired
+if ($step == 1 && !empty($_SESSION['otp']) && !empty($_SESSION['otp_expire'])) {
+    if (time() < $_SESSION['otp_expire']) {
+        $step = 2;
+    } else {
+        // Clear expired OTP
+        unset($_SESSION['otp'], $_SESSION['otp_expire'], $_SESSION['transfer']);
+    }
+}
 $recipientPhone = '';
 $amount = 0;
 $note = '';
@@ -28,6 +38,10 @@ $stmt->execute();
 $stmt->bind_result($selfPhone, $selfamount, $selfName);
 $stmt->fetch();
 $stmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $step == 1 && isset($_GET['cancel'])) {
+    unset($_SESSION['otp'], $_SESSION['otp_expire'], $_SESSION['transfer']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 1) {
     $recipientPhone = trim($_POST['recipientPhone'] ?? '');
@@ -58,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 1) {
             if ($selfamount < $selfDeduct) {
                 $error = 'Insufficient balance. You need ' . number_format($selfDeduct, 0, ',', '.') . ' ₫ but have ' . number_format($selfamount, 0, ',', '.') . ' ₫.';
             } else {
-                $otp = sprintf('%06d', random_int(0, 999999));
+                $otp_str = str_shuffle('0123456789');
+                $otp = substr($otp_str, 0, 6);
                 $expire = time() + 60;
                 $_SESSION['otp'] = $otp;
                 $_SESSION['otp_expire'] = $expire;
@@ -74,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 1) {
                     'selfDeduct' => $selfDeduct
                 ];
 
-                if (send_otp_email($otp, $_SESSION['email'], $selfName)) {
+                if (!sendOTPEmail($_SESSION['email'], $selfName, $otp)) {
                     $error = 'Failed to send OTP email, please try again later';
                 } else {
                     $step = 2;
@@ -99,29 +114,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 2) {
     } else {
         unset($_SESSION['otp'], $_SESSION['otp_expire']);
         $t = $_SESSION['transfer'];
-        $status = ($t['amount'] > 5000000) ? 1 : 0; // 0: Completed, 1: Pending
+        $status = ($t['amount'] > 5000000) ? 2 : 1; // 1: Approved/Completed, 2: Pending
         $type = "Transfer";
         $now = date('Y-m-d H:i:s');
         $id = generateIdCode($t['selfPhone'], 1);
 
         $con->begin_transaction();
         try {
-            $stmt = $con->prepare("INSERT INTO history (id, user_phone, receiver_phone, transfer_type, date_transfer, money, note, status, selfFeeBear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssssdsii", $id, $t['selfPhone'], $t['recipientPhone'], $type, $now, $t['amount'], $t['note'], $status, $t['selfFeeBear']);
+            $fee = $t['amount'] * 0.05;
+            $stmt = $con->prepare("INSERT INTO `history` (`id`, `user_phone`, `receiver_phone`, `transfer_type`, `date_transfer`, `money`, `fee`, `note`, `status`, `selfFeeBear`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssssddsii", $id, $t['selfPhone'], $t['recipientPhone'], $type, $now, $t['amount'], $fee, $t['note'], $status, $t['selfFeeBear']);
             $stmt->execute();
 
-            if ($status == 0) {
+            if ($status == 1) {
                 // Instant transfer
-                $stmt = $con->prepare("UPDATE user SET money = money - ? WHERE phonenum = ?");
+                $stmt = $con->prepare("UPDATE `user` SET `money` = `money` - ? WHERE `phonenum` = ?");
                 $stmt->bind_param("ds", $t['selfDeduct'], $t['selfPhone']);
                 $stmt->execute();
 
-                $stmt = $con->prepare("UPDATE user SET money = money + ? WHERE phonenum = ?");
+                $stmt = $con->prepare("UPDATE `user` SET `money` = `money` + ? WHERE `phonenum` = ?");
                 $stmt->bind_param("ds", $t['recipientGet'], $t['recipientPhone']);
                 $stmt->execute();
 
                 // Get recipient email for receipt
-                $stmt = $con->prepare("SELECT email, money FROM user WHERE phonenum = ?");
+                $stmt = $con->prepare("SELECT `email`, `money` FROM `user` WHERE `phonenum` = ?");
                 $stmt->bind_param("s", $t['recipientPhone']);
                 $stmt->execute();
                 $stmt->bind_result($rEmail, $rNewMoney);
@@ -132,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 2) {
             }
             $con->commit();
             $step = 3;
-            $_SESSION['money'] -= ($status == 0 ? $t['selfDeduct'] : 0);
+            $_SESSION['money'] -= ($status == 1 ? $t['selfDeduct'] : 0);
         } catch (Exception $e) {
             $con->rollback();
             $error = 'Transaction failed: ' . $e->getMessage();
@@ -279,7 +295,12 @@ $con->close();
                         <button type="submit" class="btn" style="width: 100%; padding: 16px; border-radius: 16px; background: var(--accent-blue); color: white; border: none; font-weight: 700; font-size: 18px; cursor: pointer; margin-bottom: 16px;">
                             Verify & Transfer
                         </button>
-                        <a href="transfer.php" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">Cancel transaction</a>
+                        
+                        <div style="margin-bottom: 24px; font-size: 14px; color: var(--text-muted);">
+                            Code expires in: <span id="otp-timer" style="font-weight: 700; color: var(--accent-blue);">01:00</span>
+                        </div>
+
+                        <a href="transfer.php?cancel=1" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">Cancel transaction</a>
                     </form>
                 </div>
 
@@ -317,6 +338,9 @@ $con->close();
     <a href="Profile.php" class="nav-item"><i class="fa-solid fa-user"></i><span>Profile</span></a>
 </div>
 
+<script>
+    const remainingOtpTime = <?= isset($_SESSION['otp_expire']) ? max(0, $_SESSION['otp_expire'] - time()) : 0 ?>;
+</script>
 <script src="../assets/js/home.js"></script>
 <script src="../assets/js/transfer.js"></script>
 </body>
