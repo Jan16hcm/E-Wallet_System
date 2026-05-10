@@ -2,7 +2,17 @@
 require_once('../modules/adminLogic.php');
 // require_once ('../../vendor/Mobile_Detect.php');
 
+$error = $_SESSION['error'] ?? '';
+unset($_SESSION['error']);
+?>
 
+
+<?php if(!empty($error)) { ?>
+<script> alert (<?= json_encode($error) ?>)</script>
+<!-- Block admin luon by Khai hehe -->
+<?php } ?>
+
+<?php
 include '../src/header.php';
 ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
