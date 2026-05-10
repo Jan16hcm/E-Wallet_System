@@ -28,7 +28,7 @@ $stmt->bind_result($user_phone);
 $stmt->fetch();
 $stmt->close();
 
-$where = "(user_phone = ? OR (receiver_phone = ? AND status = 0))";
+$where = "(user_phone = ? OR (receiver_phone = ? AND status = 1))";
 $params = [$user_phone, $user_phone];
 $types = "ss";
 
@@ -73,6 +73,17 @@ $username = $_SESSION['name'] ?? 'User';
     <link rel="stylesheet" href="../assets/css/home.css">
     <link rel="stylesheet" href="../assets/css/profile.css">
     <link rel="stylesheet" href="../assets/css/transaction.css">
+    <style>
+        /* Responsive hiding of amount as requested */
+        @media (max-width: 1024px) {
+            .tx-amount {
+                display: none !important;
+            }
+            .tx-item-details {
+                justify-content: flex-end !important;
+            }
+        }
+    </style>
 </head>
 <body>
 <script>
@@ -158,12 +169,9 @@ $username = $_SESSION['name'] ?? 'User';
                         $icon_color = $is_pos ? '#10b981' : '#ef4444';
                         $amount_prefix = $is_pos ? '+' : '-';
                         
-                        // Status Logic
+                        // Unified Status Mapping (0: Cancelled, 1: Approved, 2: Pending)
                         $display_status = $tx['status'];
-                        if ($tx['transfer_type'] == 'Deposit' || $tx['transfer_type'] == 'Buy Card') {
-                            $display_status = 0; // Always show Completed
-                        }
-                        $status_label = ['Completed', 'Pending', 'Cancelled'][$display_status] ?? 'Unknown';
+                        $status_label = ['Cancelled', 'Approved', 'Pending'][$display_status] ?? 'Unknown';
                     ?>
                     <div class="tx-item" onclick="window.location.href='transaction_detail.php?id=<?= $tx['id'] ?>'" style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
                         <div class="tx-left" style="flex: 1.5; display: flex; align-items: center; gap: 12px;">

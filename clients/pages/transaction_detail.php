@@ -150,20 +150,13 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
         </div>
 
         <div class="detail-card">
-<?php
-            // Status Logic for Detail View
-            $display_status = $data['status'];
-            if ($data['transfer_type'] == 'Deposit' || $data['transfer_type'] == 'Buy Card') {
-                $display_status = 0; // Always show Completed
-            }
-            $status_label = ['Completed', 'Pending', 'Cancelled'][$display_status] ?? 'Unknown';
-            ?>
             <div class="detail-header">
                 <div class="detail-icon" style="background: <?= $icon_color ?>20; color: <?= $icon_color ?>;">
                     <i class="fa-solid <?= $is_pos ? 'fa-arrow-down' : 'fa-arrow-up' ?>"></i>
                 </div>
                 <div class="detail-amount"><?= $amount_prefix ?><?= number_format($data['money'], 0, ',', '.') ?> ₫</div>
-                <div class="detail-status status-<?= $display_status ?>"><?= $status_label ?></div>
+                <?php $status_label = ['Cancelled', 'Approved', 'Pending'][$data['status']] ?? 'Unknown'; ?>
+                <div class="detail-status status-<?= $data['status'] ?>"><?= $status_label ?></div>
             </div>
 
             <div class="info-grid">
@@ -179,6 +172,39 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
                     <span class="info-label">Date & Time</span>
                     <span class="info-value"><?= date('d M Y, g:i A', strtotime($data['date_transfer'])) ?></span>
                 </div>
+
+                <?php 
+                $fee = (float)$data['fee'];
+                $fee_payer = '';
+                if ($fee > 0) {
+                    $selfFeeBear = (int)$data['selfFeeBear'];
+                    
+                    if ($data['transfer_type'] == 'Withdraw') {
+                        $fee_payer = 'You (Deducted from amount)';
+                    } else {
+                        // For Transfers
+                        if ($is_sender) {
+                            $fee_payer = ($selfFeeBear === 1) ? 'You (Paid)' : 'Recipient (Paid from amount)';
+                        } else {
+                            $fee_payer = ($selfFeeBear === 1) ? 'Sender (Paid)' : 'You (Paid from amount)';
+                        }
+                    }
+                }
+                ?>
+                
+                <?php if ($fee > 0): ?>
+                <div class="info-row">
+                    <span class="info-label">Transaction Fee (5%)</span>
+                    <span class="info-value" style="color: #ef4444;">
+                        <?= number_format($fee, 0, ',', '.') ?> ₫<br>
+                        <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">Paid by: <?= $fee_payer ?></span>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">System Profit</span>
+                    <span class="info-value" style="color: #10b981;"><?= number_format($fee, 0, ',', '.') ?> ₫</span>
+                </div>
+                <?php endif; ?>
                 
                 <?php if ($data['transfer_type'] == 'Transfer'): ?>
                     <div class="info-row">
