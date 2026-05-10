@@ -40,8 +40,10 @@ CREATE TABLE `history` (
   `date_transfer` datetime NOT NULL,
   `date_confirm` datetime DEFAULT NULL COMMENT 'date admin approve/cancelled',
   `money` decimal(19,4) NOT NULL DEFAULT 0.0000,
+  `fee` decimal(19,4) NOT NULL DEFAULT 0.0000,
   `note` mediumtext DEFAULT NULL,
-  `status` tinyint(4) NOT NULL DEFAULT 2 COMMENT '0:Cancelled\n1:Approved\n2:Pending'
+  `status` tinyint(4) NOT NULL DEFAULT 2 COMMENT '0:Cancelled\n1:Approved\n2:Pending',
+  `selfFeeBear` tinyint(1) DEFAULT 1 COMMENT '1: User pays fee, 0: Recipient pays fee'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
