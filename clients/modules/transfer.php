@@ -1,6 +1,7 @@
 <?php
 include_once("../modules/db_connection.php");
 include_once("../modules/formatMoney.php");
+require_once("../modules/sendOTP.php");
 include_once("../modules/receipt.php");
 
 $usertype = usertype();
@@ -74,7 +75,7 @@ if (isset($_POST['recipientPhone']) && isset($_POST['amount']) && $step == 1){
                     $_SESSION['otp'] = $otp;
                     $_SESSION['otp_expire'] = $expire;
 
-                    if(send_otp_email($otp, $_SESSION['email'], $name)){
+                    if(!sendOTPEmail($_SESSION['email'], $selfName, $otp)){
                         $error = 'Failed to send mail, please try again later';
                     } else {
                         $_SESSION['transfer'] = ['amount' => $amount,
@@ -184,7 +185,6 @@ if($step == 2 && isset($_SESSION['otp']) && isset($_SESSION['transfer'])) {
 </table>
 
 <script>
-//claude here (not checked)
 // Look up recipient as they type
 const phoneInput = document.getElementById('recipientPhone');
 const recipientInfo = document.getElementById('recipientInfo');

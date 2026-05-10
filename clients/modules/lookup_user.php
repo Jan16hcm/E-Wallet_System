@@ -8,13 +8,15 @@ $response = ['found' => false, 'name' => ''];
 
 if (!empty($phone)) {
     $con = connect_db();
-    $stmt = $con->prepare("SELECT `name` FROM `user` WHERE `phonenum` = ?");
+    $stmt = $con->prepare("SELECT `name`, `verified` FROM `user` WHERE `phonenum` = ?");
     $stmt->bind_param("s", $phone);
     $stmt->execute();
-    $stmt->bind_result($name);
+    $stmt->bind_result($name, $verified);
     if ($stmt->fetch()) {
-        $response['found'] = true;
-        $response['name'] = $name;
+        if ($verified != 3) {
+            $response['found'] = true;
+            $response['name'] = $name;
+        }
     }
     $stmt->close();
     $con->close();
