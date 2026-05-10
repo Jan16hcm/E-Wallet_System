@@ -1,3 +1,6 @@
+## 🚀 Deployment
+The application is deployed and publicly accessible at: 
+[meomeo.baby](http://meomeo.baby/)
 # 💳 E-Wallet System (Simplified Digital Wallet)
 
 A web-based e-wallet application that mimics the core functionalities of platforms like MoMo or modern online banking. This project was developed as a collaborative assignment, emphasizing structured data models, maintainable code, and a clear separation of concerns.
@@ -18,10 +21,6 @@ A web-based e-wallet application that mimics the core functionalities of platfor
 *   **Database:** MySQL
 *   **Frontend:** HTML5, CSS3, JavaScript (Bootstrap/jQuery supported)
 *   **Tools:** Composer, Git/GitHub
-
-## 🚀 Deployment
-The application is deployed and publicly accessible at: 
-[meomeo.baby](http://meomeo.baby/)
 ---
 *Developed as a course project with a focus on reliable web architecture and database consistency.*
 
