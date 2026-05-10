@@ -5,8 +5,7 @@ require_once("../modules/usertype.php");
 
 $usertype = usertype();//3 == admin, 2 = Request additional information, -1 = first login 
 if ($usertype != "1") {
-    header('Location: Login.php');
-    exit();
+    redirectHome();
 }
 $error = $_SESSION["error"] ?? '';
 unset($_SESSION["error"]);
@@ -345,7 +344,7 @@ include '../src/header.php';
     </a>
 </div>
 <?php if(!empty($error)) { ?>
-<script> alert (<?= $error ?>)</script>
+<script> alert (<?= json_encode($error) ?>)</script>
 <?php } ?>
 <script>
     
