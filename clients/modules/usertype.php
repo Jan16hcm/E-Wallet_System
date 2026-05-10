@@ -38,6 +38,11 @@
                 if ($_SERVER['REQUEST_METHOD'] == 'POST'){
                     $error = 'Please contact the admin to reactive the account to use this feature';
                 }
+            } else if ($usertype == 2) {
+                $error = 'Please update your ID card information to use this feature';
+                if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+                    $error = 'This feature requires an updated and verified ID card. Please visit your profile.';
+                }
             } else {
                 $error = 'This function is only for verified account';
                 if ($_SERVER['REQUEST_METHOD'] == 'POST'){
@@ -46,5 +51,30 @@
             }
         }
         return $error;
+    }
+
+    function redirectHome() {
+        $type = (int)($_SESSION['verified'] ?? usertype());
+        switch ($type) {
+            case -1:
+                header('Location: ChangePassword.php');
+                break;
+            case 0:
+            case 2:
+                header('Location: Profile.php');
+                break;
+            case 3:
+                header('Location: Admin_dashboard.php');
+                break;
+            case 4:
+                unset($_SESSION['email'], $_SESSION['name'], $_SESSION['verified']);
+                $_SESSION['login_error'] = 'Your account has been disabled.';
+                header('Location: Login.php');
+                break;
+            default:
+                header('Location: Home.php');
+                break;
+        }
+        exit();
     }
 ?>
