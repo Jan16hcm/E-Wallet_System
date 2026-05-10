@@ -88,12 +88,21 @@ CREATE TABLE `user` (
 --
 -- Dumping data for table `user`
 --
+ALTER TABLE `user`
+  ADD PRIMARY KEY (`phonenum`);
+ALTER TABLE `user` 
+  ADD UNIQUE (`email`);
+ALTER TABLE `user` 
+  ADD `subverified` tinyint(1) NOT NULL DEFAULT -1 COMMENT '-1:firstRegist\r\n0:False\r\n1:True\r\n2:Request additional information\r\n4:DisableAccount';
+ALTER TABLE `user` 
+  ADD `monthly_goal` decimal(19,4) NOT NULL DEFAULT 5000000.0000;
 
+-- Admin account, Disable accout, Request additional information account
 INSERT INTO `user` VALUES
-('0000000000', 'admin@meomeo.com', 'Admin', '2005-01-16', 'TDTU', NULL, NULL, '$2y$10$B6hq495fsonInn5zlBf7mOn.CbplMG7/Y87wCD1go.chQeGWdNk8y', 3, 0, NULL, 0.0000, NULL, NULL, NULL, current_timestamp(), NULL),
-('0909090909', 'user3@gmail.com', 'Le Van C', '1998-02-28', 'Đà Nẵng', NULL, NULL, '$2y$10$BBstCMneuLr2RJoEgEtOUualLHCJtTrC3HVvIPwOg/vYTXwxgATsO', 4, 0, NULL, 150000.0000, NULL, NULL, NULL, current_timestamp(), NULL),
-('0912345678', 'user1@gmail.com', 'Tran Hoang Khai', '1995-05-15', 'Hồ Chí Minh', NULL, NULL, '$2y$10$Wyq/jXyw6jwyxjjvxy1.ceYiYODYEOS34GfitOqthWL1llDPmZlBe', 1, 0, NULL, 5000000.0000, NULL, NULL, NULL, current_timestamp(), NULL),
-('0987654321', 'user2@gmail.com', 'Tran Thi B', '2000-10-20', 'Hà Nội', NULL, NULL, '$2y$10$WdH8txReFwer4lGWxptvpuW6D0L7MdFDTqwhGoWgNmY8m9daATH.K', 0, 0, NULL, 0.0000, NULL, NULL, NULL, current_timestamp(), NULL);
+('0000000000', 'admin@meomeo.com', 'Admin', '2005-01-16', 'TDTU', NULL, NULL, '$2y$10$B6hq495fsonInn5zlBf7mOn.CbplMG7/Y87wCD1go.chQeGWdNk8y', 3, 0, NULL, 0.0000, NULL, NULL, NULL, current_timestamp(), NULL, NULL, 5000000.0000),
+('0909090909', 'user3@gmail.com', 'Le Van C', '1998-02-28', 'Đà Nẵng', NULL, NULL, '$2y$10$BBstCMneuLr2RJoEgEtOUualLHCJtTrC3HVvIPwOg/vYTXwxgATsO', 4, 0, NULL, 0.0000, NULL, NULL, NULL, current_timestamp(), NULL, NULL, 5000000.0000),
+('0987654321', 'user2@gmail.com', 'Tran Thi B', '2000-10-20', 'Hà Nội', NULL, NULL, '$2y$10$WdH8txReFwer4lGWxptvpuW6D0L7MdFDTqwhGoWgNmY8m9daATH.K', 2, 0, NULL, 0.0000, NULL, NULL, NULL, current_timestamp(), NULL, NULL, 5000000.0000);
+-- ('0912345678', 'user1@gmail.com', 'Tran Hoang Khai', '1995-05-15', 'Hồ Chí Minh', NULL, NULL, '$2y$10$Wyq/jXyw6jwyxjjvxy1.ceYiYODYEOS34GfitOqthWL1llDPmZlBe', 1, 0, NULL, 5000000.0000, NULL, NULL, NULL, current_timestamp(), NULL, NULL, 5000000.0000),
 
 --
 -- Indexes for dumped tables
@@ -115,14 +124,6 @@ ALTER TABLE `phonecard`
 --
 -- Indexes for table `user`
 --
-ALTER TABLE `user`
-  ADD PRIMARY KEY (`phonenum`);
-ALTER TABLE `user` 
-  ADD UNIQUE (`email`);
-ALTER TABLE `user` 
-  ADD `subverified` tinyint(1) NOT NULL DEFAULT -1 COMMENT '-1:firstRegist\r\n0:False\r\n1:True\r\n2:Request additional information\r\n4:DisableAccount';
-ALTER TABLE `user` 
-  ADD `monthly_goal` decimal(19,4) NOT NULL DEFAULT 5000000.0000;
 
 --
 -- Constraints for dumped tables
