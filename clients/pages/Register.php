@@ -216,7 +216,7 @@ include("../src/headerOutSide.php");
                 <div class="mb-3">
                     <label class="form-label">Address</label>
                     <textarea name="address" class="form-control"
-                        rows="2"> <?= htmlspecialchars($address ?? '') ?></textarea>
+                        rows="2" required> <?= htmlspecialchars($address ?? '') ?></textarea>
                 </div>
 
                 <div class="row">
