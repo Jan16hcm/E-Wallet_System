@@ -9,6 +9,7 @@ function getTodayWithdrawCount(string $email)
     $user_phone = '';
     $stmt->bind_result($user_phone);
     $stmt->fetch();//done get user phonenum
+    $stmt->close();
 
     /*
     //should not use this
