@@ -71,16 +71,17 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
             $dep->close();
 
             if (!empty($selfPhone) && empty($error)) {
-                $status = 1; 
+                $status = 1; // Approved immediately after successful execution
                 $transfer_type = "Deposit";
                 $id = generateIdCode($selfPhone, 2);
                 $date = date('Y-m-d H:i:s');
                 
                 $dt = DateTime::createFromFormat('d/m/Y', $expire);
                 $expire_db = $dt->format('Y-m-d');
+                $fee = 0;
 
-                $dep = $con->prepare("INSERT INTO `history` (`id`, `user_phone`, `transfer_type`, `card_num`, `expire`, `CVV`, `date_transfer`, `money`, `note`, `status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $dep->bind_param("sssssssdsi", $id, $selfPhone, $transfer_type, $card_num, $expire_db, $cvv, $date, $amount, $note, $status);
+                $dep = $con->prepare("INSERT INTO `history` (`id`, `user_phone`, `transfer_type`, `card_num`, `expire`, `CVV`, `date_transfer`, `money`, `fee`, `note`, `status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $dep->bind_param("sssssssddsi", $id, $selfPhone, $transfer_type, $card_num, $expire_db, $cvv, $date, $amount, $fee, $note, $status);
 
                 if(!$dep->execute()){
                     $error = 'Failed to save in deposit history';
@@ -92,7 +93,7 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
 
                     if(!$dep->execute()){
                         $error = 'Failed to update user balance, cancelled the deposit';
-                        $status = 0;
+                        $status = 0; // Cancelled/Rejected
                         $canceldate = date('Y-m-d H:i:s');
                         $dep->close();
                         $dep = $con->prepare("UPDATE history SET status = ?, date_confirm = ? WHERE id = ?");

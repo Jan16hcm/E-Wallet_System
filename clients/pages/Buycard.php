@@ -56,12 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $history_id = generateIdCode($user_phone, 4);
                 $now = date('Y-m-d H:i:s');
-                $status = 0; // Completed immediately
+                $status = 1; // Approved immediately
                 $type = "Buy Card";
 
                 // 1. Insert into history
-                $stmt = $con->prepare("INSERT INTO history (id, user_phone, transfer_type, date_transfer, money, note, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("ssssdsi", $history_id, $user_phone, $type, $now, $total_cost, $note, $status);
+                $fee = 0;
+                $stmt = $con->prepare("INSERT INTO `history` (`id`, `user_phone`, `transfer_type`, `date_transfer`, `money`, `fee`, `note`, `status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssssddsi", $history_id, $user_phone, $type, $now, $total_cost, $fee, $note, $status);
                 $stmt->execute();
 
                 // 2. Generate and Insert card codes
