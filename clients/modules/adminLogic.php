@@ -91,7 +91,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sender = $tx['user_phone'];
             $receiver = $tx['receiver_phone'];
             $amount = floatval($tx['money']);
+            $fee = floatval($tx['fee']);
             $type = $tx['transfer_type'];
+            $selfFeeBear = (int)$tx['selfFeeBear'];
+            
+            // Calculate total amount to deduct from sender/user
+            $deduction = $amount;
+            if ($type === 'Withdraw' || ($type === 'Transfer' && $selfFeeBear === 1)) {
+                $deduction = $amount + $fee;
+            }
+
+            // Calculate amount recipient actually gets
+            $recipientGets = $amount;
+            if ($type === 'Transfer' && $selfFeeBear === 0) {
+                $recipientGets = $amount - $fee;
+            }
             
             $stmt = $con->prepare("SELECT `money` FROM `user` WHERE `phonenum` = ?");
             $stmt->bind_param("s", $sender);
@@ -99,22 +113,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sender_data = $stmt->get_result()->fetch_assoc();
             $stmt->close();
             
-            if ($sender_data && floatval($sender_data['money']) >= $amount) {
+            if ($sender_data && floatval($sender_data['money']) >= $deduction) {
                 // Deduct from sender
                 $stmt = $con->prepare("UPDATE `user` SET `money` = `money` - ? WHERE `phonenum` = ?");
-                $stmt->bind_param("ds", $amount, $sender);
+                $stmt->bind_param("ds", $deduction, $sender);
                 $stmt->execute();
                 $stmt->close();
                 
                 // Add to receiver if Transfer
                 if ($type === 'Transfer' && $receiver) {
                     $stmt = $con->prepare("UPDATE `user` SET `money` = `money` + ? WHERE `phonenum` = ?");
-                    $stmt->bind_param("ds", $amount, $receiver);
+                    $stmt->bind_param("ds", $recipientGets, $receiver);
                     $stmt->execute();
                     $stmt->close();
                 }
                 
-                // Update history status
+                // Update history status to 1 (Approved)
                 $now = date('Y-m-d H:i:s');
                 $stmt = $con->prepare("UPDATE `history` SET `status` = 1, `date_confirm` = ? WHERE `id` = ?");
                 $stmt->bind_param("ss", $now, $tx_id);
