@@ -3,8 +3,7 @@ require_once("../modules/db_connection.php");
 require_once("../modules/usertype.php");
 $usertype = usertype(); 
 if ($usertype != "3") {
-    header('Location: ../pages/Login.php');
-    exit();
+    redirectHome();
 }
 // $detect = new WP_Rocket_Mobile_Detect;
 // $is_desktop = false;
