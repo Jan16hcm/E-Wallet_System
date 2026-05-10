@@ -17,7 +17,7 @@
         }
         */
 
-        $stmt = $con->prepare('SELECT COUNT(*) FROM history WHERE user_phone = ? AND transfer_type = Withdraw AND DATE(date_transfer) = CURDATE() AND status != 0');
+        $stmt = $con->prepare("SELECT COUNT(*) FROM `history` WHERE `user_phone` = ? AND `transfer_type` = 'Withdraw' AND DATE(date_transfer) = CURDATE() AND status != 0");
         //DATE(a) removes the time part and keeps only YYYY-MM-D
         //CURDATE() function in MySQL returns the current date in the format YYYY-MM-DD (string) 
         $stmt->bind_param("s", $user_phone);

@@ -117,5 +117,61 @@ function sendOTPEmail($email, $recipientName, $otpCode) {
     return sendEmail($email, $recipientName, $subject, $content, $altBody);
 }
 
+function send_receipt(String $formatedMoneysent, String $formatedMoneytotal, String $email, String $sendername, String $name, String $note) {
+    $brand_color = "#7C3AED";
+    $subject = "MeoMeo Wallet - Money Received!";
+    $content = "
+    <div style='font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 16px; overflow: hidden;'>
+        <div style='background-color: #1A1530; padding: 30px; text-align: center;'>
+            <h1 style='color: white; margin: 0; font-size: 28px;'>MeoMeo Wallet</h1>
+            <p style='color: #B8AED4; margin-top: 10px;'>Money Received!</p>
+        </div>
+
+        <div style='padding: 40px 30px; background-color: #ffffff; color: #333;'>
+            <h2 style='color: $brand_color; margin-top: 0;'>Hi $name,</h2>
+            <p style='line-height: 1.6;'>Good news! You have just received a money transfer from <b>$sendername</b>.</p>
+            
+            <div style='background-color: #F8F7FF; border-left: 4px solid $brand_color; padding: 25px; margin: 25px 0; text-align: center;'>
+                <p style='margin: 0 0 10px 0; color: #555;'>Amount Received:</p>
+                <p style='margin: 0; color: $brand_color; font-size: 32px; font-weight: 800;'>+ $formatedMoneysent</p>
+            </div>
+
+            <div style='margin-bottom: 25px;'>
+                <table style='width: 100%; font-size: 14px; color: #666;'>
+                    <tr>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #f0f0f0;'><b>From:</b></td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #f0f0f0; text-align: right;'>$sendername</td>
+                    </tr>
+                    <tr>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #f0f0f0;'><b>Note:</b></td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #f0f0f0; text-align: right;'>$note</td>
+                    </tr>
+                    <tr>
+                        <td style='padding: 12px 0; color: #333;'><b>Current Balance:</b></td>
+                        <td style='padding: 12px 0; text-align: right; color: #10b981; font-weight: bold; font-size: 16px;'>$formatedMoneytotal</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p style='font-size: 14px; color: #666; line-height: 1.6;'>
+                Log in to your account to view your full transaction history.
+            </p>
+
+            <div style='text-align: center; margin-top: 35px;'>
+                <a href='http://meomeo.baby/clients/pages/Login.php' style='background-color: $brand_color; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;'>Open Wallet</a>
+            </div>
+        </div>
+
+        <div style='background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee;'>
+            <p style='font-size: 12px; color: #888; margin: 0;'>
+                This is an automated receipt for your wallet transaction.<br><br>
+                &copy; 2026 MeoMeo Wallet Team. All rights reserved.
+            </p>
+        </div>
+    </div>
+    ";
+
+    return sendEmail($email, $name, $subject, $content);
+}
 
 ?>
