@@ -21,10 +21,11 @@ $filter = $_GET['type'] ?? '';
 
 $con = connect_db();
 $user_phone = '';
-$stmt = $con->prepare("SELECT phonenum FROM user WHERE email = ?");
+$user_money = 0;
+$stmt = $con->prepare("SELECT phonenum, money FROM user WHERE email = ?");
 $stmt->bind_param("s", $_SESSION["email"]);
 $stmt->execute();
-$stmt->bind_result($user_phone);
+$stmt->bind_result($user_phone, $user_money);
 $stmt->fetch();
 $stmt->close();
 
@@ -73,17 +74,6 @@ $username = $_SESSION['name'] ?? 'User';
     <link rel="stylesheet" href="../assets/css/home.css">
     <link rel="stylesheet" href="../assets/css/profile.css">
     <link rel="stylesheet" href="../assets/css/transaction.css">
-    <style>
-        /* Responsive hiding of amount as requested */
-        @media (max-width: 1024px) {
-            .tx-amount {
-                display: none !important;
-            }
-            .tx-item-details {
-                justify-content: flex-end !important;
-            }
-        }
-    </style>
 </head>
 <body>
 <script>
@@ -94,7 +84,6 @@ $username = $_SESSION['name'] ?? 'User';
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="dashboard-wrapper">
-    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="user-profile-card">
             <button class="theme-toggle" id="themeToggleBtn">
@@ -114,10 +103,10 @@ $username = $_SESSION['name'] ?? 'User';
             <a href="Transactions.php" class="nav-link active"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
             <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
             <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 
-    <!-- Main Content -->
     <main class="main-content">
         <div class="mobile-header">
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -142,7 +131,13 @@ $username = $_SESSION['name'] ?? 'User';
         <div class="header-actions" style="margin-bottom: 20px;">
             <div class="header-welcome">
                 <div class="date-text"><?= $current_date ?></div>
-                <h1 style="font-size: 28px; font-weight: 800; color: var(--text-main); margin: 0;">Transaction History</h1>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                    <h1 style="font-size: 28px; font-weight: 800; color: var(--text-main); margin: 0;">Transaction History</h1>
+                    <div style="background: var(--accent-blue-transparent); padding: 8px 16px; border-radius: 12px; border: 1px solid var(--accent-blue-dim);">
+                        <span style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 2px;">Available Balance</span>
+                        <span style="font-size: 20px; font-weight: 700; color: var(--success);"><?= number_format($user_money, 0, ',', '.') ?> ₫</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -171,25 +166,39 @@ $username = $_SESSION['name'] ?? 'User';
                         
                         // Unified Status Mapping (0: Cancelled, 1: Approved, 2: Pending)
                         $display_status = $tx['status'];
-                        $status_label = ['Cancelled', 'Approved', 'Pending'][$display_status] ?? 'Unknown';
+                        $status_label = ['Declined', 'Approved', 'Pending'][$display_status] ?? 'Unknown';
                     ?>
-                    <div class="tx-item" onclick="window.location.href='Transaction_detail.php?id=<?= $tx['id'] ?>'" style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
-                        <div class="tx-left" style="flex: 1.5; display: flex; align-items: center; gap: 12px;">
-                            <div class="tx-icon-img" style="background: <?= $icon_color ?>20; color: <?= $icon_color ?>; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                                <i class="fa-solid <?= $icon_class ?>"></i>
+                    <div class="tx-item" onclick="window.location.href='Transaction_detail.php?id=<?= $tx['id'] ?>'">
+                        <div class="tx-top-row">
+                            <div class="tx-left">
+                                <div class="tx-icon-img" style="background: <?= $icon_color ?>20; color: <?= $icon_color ?>;">
+                                    <i class="fa-solid <?= $icon_class ?>"></i>
+                                </div>
+                                <div class="tx-info">
+                                    <div class="tx-name"><?= htmlspecialchars($tx['transfer_type']) ?></div>
+                                </div>
                             </div>
-                            <div>
-                                <div class="tx-name" style="font-weight: 600; color: var(--text-main);"><?= htmlspecialchars($tx['transfer_type']) ?></div>
-                                <?php if(!empty($tx['note'])): ?>
-                                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                        <?= htmlspecialchars($tx['note']) ?>
-                                    </div>
-                                <?php endif; ?>
+                            <div class="tx-amount <?= $is_pos ? 'pos' : '' ?>" style="color: <?= $icon_color ?>;">
+                                <?php 
+                                    $display_money = $tx['money'];
+                                    if ($tx['transfer_type'] == 'Transfer') {
+                                        if (!$is_sender) {
+                                            if (isset($tx['selfFeeBear']) && $tx['selfFeeBear'] == 0) {
+                                                $display_money = $tx['money'] - $tx['fee'];
+                                            }
+                                        } else {
+                                            if (isset($tx['selfFeeBear']) && $tx['selfFeeBear'] == 1) {
+                                                $display_money = $tx['money'] + $tx['fee'];
+                                            }
+                                        }
+                                    }
+                                ?>
+                                <?= $amount_prefix ?><?= number_format($display_money, 0, ',', '.') ?> ₫
                             </div>
                         </div>
                         
-                        <div class="tx-item-details" style="flex: 4; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-                            <div class="tx-card" style="flex: 1; display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px;">
+                        <div class="tx-item-details">
+                            <div class="tx-card">
                                 <?php if(!empty($tx['card_num'])): ?>
                                     <i class="fa-solid fa-credit-card"></i> <?= htmlspecialchars($tx['card_num']) ?>
                                 <?php elseif(!empty($tx['receiver_phone']) && $is_sender): ?>
@@ -197,17 +206,13 @@ $username = $_SESSION['name'] ?? 'User';
                                 <?php endif; ?>
                             </div>
 
-                            <div class="tx-status" style="flex: 0.8; display: flex; justify-content: center;">
+                            <div class="tx-status">
                                 <span class="status-badge status-<?= $display_status ?>"><?= $status_label ?></span>
                             </div>
 
-                            <div class="tx-date" style="flex: 1; text-align: right; color: var(--text-muted); font-size: 13px;">
+                            <div class="tx-date">
                                 <?= date('d M, Y', strtotime($tx['date_transfer'])) ?><br>
-                                <span style="font-size: 11px;"><?= date('g:i A', strtotime($tx['date_transfer'])) ?></span>
-                            </div>
-
-                            <div class="tx-amount <?= $is_pos ? 'pos' : '' ?>" style="flex: 1.2; text-align: right; font-weight: 700; white-space: nowrap; color: <?= $icon_color ?>;">
-                                <?= $amount_prefix ?><?= number_format($tx['money'], 0, ',', '.') ?> ₫
+                                <span class="tx-time"><?= date('g:i A', strtotime($tx['date_transfer'])) ?></span>
                             </div>
                         </div>
                     </div>

@@ -61,8 +61,8 @@ include '../src/header.php';
 
         <h2 style="margin-bottom: 20px;">MeoMeo Management</h2>
 
-        <form method="GET" action="../modules/adminLogic.php" style="margin-bottom: 20px; display: flex; gap: 10px;">
-            <input type="text" name="search" placeholder="Search by phone number or email..." value="<?= htmlspecialchars($search_query) ?>" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);">
+        <form method="GET" action="Admin_dashboard.php" style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <input type="text" name="search" placeholder="Search by phone, email, or transaction ID..." value="<?= htmlspecialchars($search_query) ?>" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);">
             <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
             <?php if ($search_query): ?>
                 <a href="Admin_dashboard.php" class="btn btn-outline" style="text-decoration: none; padding: 12px; display: flex; align-items: center;">Clear</a>
@@ -71,7 +71,7 @@ include '../src/header.php';
 
         <div class="admin-tabs">
             <?php if ($search_query): ?>
-                <div class="admin-tab <?= $active_tab === 'search' ? 'active' : '' ?>" onclick="switchTab('search')">Search Results (<?= count($search_results) ?>)</div>
+                <div class="admin-tab <?= $active_tab === 'search' ? 'active' : '' ?>" onclick="switchTab('search')">Search Results (<?= count($search_results) + count($search_tx_results) ?>)</div>
             <?php endif; ?>
             <div class="admin-tab <?= $active_tab === 'pending' ? 'active' : '' ?>" onclick="switchTab('pending')">Pending (<?= count($pending_accounts) ?>)</div>
             <div class="admin-tab <?= $active_tab === 'active' ? 'active' : '' ?>" onclick="switchTab('active')">Active (<?= count($active_accounts) ?>)</div>
@@ -82,19 +82,48 @@ include '../src/header.php';
 
         <?php if ($search_query): ?>
         <div id="list-search" class="admin-list <?= $active_tab === 'search' ? 'active' : '' ?>">
-            <?php foreach($search_results as $u): ?>
-                <div class="admin-card">
-                    <div class="admin-card-header">
+            <?php if(!empty($search_results)): ?>
+                <h4 style="margin-bottom: 15px; color: var(--text-muted);">Users Found</h4>
+                <?php foreach($search_results as $u): ?>
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <div>
+                                <strong><?= htmlspecialchars($u['name'] ?: 'Unknown') ?></strong>
+                                <div style="font-size: 12px; color: var(--text-muted);"><?= htmlspecialchars($u['phonenum']) ?> | <?= htmlspecialchars($u['email']) ?></div>
+                            </div>
+                        </div>
                         <div>
-                            <strong><?= htmlspecialchars($u['name'] ?: 'Unknown') ?></strong>
-                            <div style="font-size: 12px; color: var(--text-muted);"><?= htmlspecialchars($u['phonenum']) ?> | <?= htmlspecialchars($u['email']) ?></div>
+                            <a href="?tab=search&search=<?= urlencode($search_query) ?>&details=<?= urlencode($u['phonenum']) ?>" class="btn btn-outline btn-sm">View Details</a>
                         </div>
                     </div>
-                    <div>
-                        <a href="?tab=search&search=<?= urlencode($search_query) ?>&details=<?= urlencode($u['phonenum']) ?>" class="btn btn-outline btn-sm">View Details</a>
+                <?php endforeach; ?>
+            <?php endif; ?>
+
+            <?php if(!empty($search_tx_results)): ?>
+                <h4 style="margin-top: 20px; margin-bottom: 15px; color: var(--text-muted);">Transactions Found</h4>
+                <?php foreach($search_tx_results as $tx): ?>
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <div>
+                                <strong>ID: <?= htmlspecialchars($tx['id']) ?></strong>
+                                <?php 
+                                    $display_money = (float)$tx['money'];
+                                    if ($tx['transfer_type'] === 'Withdraw' || ($tx['transfer_type'] === 'Transfer' && isset($tx['selfFeeBear']) && $tx['selfFeeBear'] == 1)) {
+                                        $display_money += (float)$tx['fee'];
+                                    }
+                                ?>
+                                <div style="font-size: 12px; color: var(--text-muted);"><?= htmlspecialchars($tx['transfer_type']) ?> - <?= number_format($display_money, 0, ',', '.') ?> ₫</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Date: <?= htmlspecialchars($tx['date_transfer']) ?></div>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="?tab=search&search=<?= urlencode($search_query) ?>&tx_details=<?= urlencode($tx['id']) ?>" class="btn btn-outline btn-sm" style="border-color: var(--accent-blue); color: var(--accent-blue);">Review Details</a>
+                        </div>
                     </div>
-                </div>
-            <?php endforeach; if(empty($search_results)) echo "<p>No users found matching your search.</p>"; ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
+
+            <?php if(empty($search_results) && empty($search_tx_results)) echo "<p>No users or transactions found matching your search.</p>"; ?>
         </div>
         <?php endif; ?>
 
@@ -186,7 +215,13 @@ include '../src/header.php';
                 <div class="admin-card">
                     <div class="admin-card-header">
                         <div>
-                            <strong><?= htmlspecialchars($tx['transfer_type']) ?> - <?= number_format($tx['money'],0,',','.') ?> ₫</strong>
+                            <?php 
+                                $display_money = (float)$tx['money'];
+                                if ($tx['transfer_type'] === 'Withdraw' || ($tx['transfer_type'] === 'Transfer' && isset($tx['selfFeeBear']) && $tx['selfFeeBear'] == 1)) {
+                                    $display_money += (float)$tx['fee'];
+                                }
+                            ?>
+                            <strong><?= htmlspecialchars($tx['transfer_type']) ?> - <?= number_format($display_money, 0, ',', '.') ?> ₫</strong>
                             <div style="font-size: 12px; color: var(--text-muted);">From: <?= htmlspecialchars($tx['user_phone']) ?> | Date: <?= htmlspecialchars($tx['date_transfer']) ?></div>
                         </div>
                     </div>
@@ -256,6 +291,30 @@ include '../src/header.php';
                 <div style="grid-column: span 2;">
                     <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Available Balance</div>
                     <div style="font-size: 20px; font-weight: 700; color: var(--success);"><?= number_format($user_details['money'],0,',','.') ?> ₫</div>
+                    <?php 
+                    $user_deducted = 0;
+                    $user_awaiting = 0;
+                    foreach($pending_tx as $tx) {
+                        if($tx['user_phone'] === $user_details['phonenum']) {
+                            $total_val = $tx['money'] + ($tx['transfer_type'] == 'Withdraw' || (isset($tx['selfFeeBear']) && $tx['selfFeeBear'] == 1) ? $tx['fee'] : 0);
+                            if ($tx['transfer_type'] === 'Withdraw') {
+                                $user_awaiting += $total_val;
+                            } else {
+                                $user_deducted += $total_val;
+                            }
+                        }
+                    }
+                    ?>
+                    <?php if($user_deducted > 0): ?>
+                        <div style="font-size: 12px; color: var(--warning); margin-top: 4px; font-weight: 600;">
+                            <i class="fa-solid fa-clock"></i> Pending Transfer: -<?= number_format($user_deducted, 0, ',', '.') ?> ₫ (Deducted)
+                        </div>
+                    <?php endif; ?>
+                    <?php if($user_awaiting > 0): ?>
+                        <div style="font-size: 12px; color: var(--accent-blue); margin-top: 4px; font-weight: 600;">
+                            <i class="fa-solid fa-hourglass-half"></i> Pending Withdraw: -<?= number_format($user_awaiting, 0, ',', '.') ?> ₫ (Awaiting Approval)
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -329,8 +388,32 @@ include '../src/header.php';
                         <strong style="font-size: 14px;"><?= $h['transfer_type'] ?></strong>
                         <div style="color: var(--text-muted); margin-top: 4px;"><?= $h['date_transfer'] ?></div>
                     </div>
-                    <div style="font-weight: 600; font-size: 14px; <?= $h['user_phone'] === $user_details['phonenum'] && $h['transfer_type'] !== 'Deposit' ? 'color: var(--danger);' : 'color: var(--success);' ?>">
-                        <?= $h['user_phone'] === $user_details['phonenum'] && $h['transfer_type'] !== 'Deposit' ? '-' : '+' ?><?= number_format($h['money'],0,',','.') ?> ₫
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                        <div style="font-weight: 600; font-size: 14px; <?= $h['user_phone'] === $user_details['phonenum'] && $h['transfer_type'] !== 'Deposit' ? 'color: var(--danger);' : 'color: var(--success);' ?>">
+                            <?php 
+                                $is_sender = ($h['user_phone'] === $user_details['phonenum']);
+                                $display_money = $h['money'];
+                                
+                                if ($is_sender) {
+                                    if ($h['transfer_type'] === 'Withdraw' || ($h['transfer_type'] === 'Transfer' && isset($h['selfFeeBear']) && $h['selfFeeBear'] == 1)) {
+                                        $display_money = $h['money'] + $h['fee'];
+                                    }
+                                } else {
+                                    // Receiver view
+                                    if ($h['transfer_type'] === 'Transfer' && isset($h['selfFeeBear']) && $h['selfFeeBear'] == 0) {
+                                        $display_money = $h['money'] - $h['fee'];
+                                    }
+                                }
+                            ?>
+                            <?= $is_sender && $h['transfer_type'] !== 'Deposit' ? '-' : '+' ?><?= number_format($display_money, 0, ',', '.') ?> ₫
+                        </div>
+                        <?php if($h['status'] == 2): ?>
+                            <a href="?tab=tx&tx_details=<?= urlencode($h['id']) ?>" class="btn btn-outline btn-sm" style="font-size: 10px; padding: 2px 8px; border-color: var(--warning); color: var(--warning);">Review</a>
+                        <?php elseif($h['status'] == 0): ?>
+                            <div style="font-size: 11px; color: var(--danger); margin-top: 2px;">(Declined)</div>
+                        <?php elseif($h['status'] == 1): ?>
+                            <div style="font-size: 11px; color: var(--success); margin-top: 2px;">(Completed)</div>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -349,18 +432,56 @@ include '../src/header.php';
         <div style="margin-bottom: 20px;">
             <p><strong>ID:</strong> <?= htmlspecialchars($tx_details['id']) ?></p>
             <p><strong>Type:</strong> <?= htmlspecialchars($tx_details['transfer_type']) ?></p>
-            <p><strong>Amount:</strong> <?= number_format($tx_details['money'],0,',','.') ?> ₫</p>
-            <p><strong>Sender:</strong> <?= htmlspecialchars($tx_details['user_phone']) ?></p>
-            <p><strong>Receiver:</strong> <?= htmlspecialchars($tx_details['receiver_phone'] ?: 'N/A') ?></p>
-            <p><strong>Date:</strong> <?= htmlspecialchars($tx_details['date_transfer']) ?></p>
+            <p><strong>Original Amount:</strong> <?= number_format($tx_details['money'], 0, ',', '.') ?> ₫</p>
+            <p><strong>Transaction Fee (5%):</strong> <?= number_format($tx_details['fee'], 0, ',', '.') ?> ₫</p>
+            
+            <?php 
+                $sender_total = $tx_details['money'];
+                $receiver_total = $tx_details['money'];
+                $fee_payer = "N/A";
+                
+                if ($tx_details['transfer_type'] === 'Withdraw') {
+                    $sender_total = $tx_details['money'] + $tx_details['fee'];
+                    $fee_payer = "Sender (Deducted)";
+                } elseif ($tx_details['transfer_type'] === 'Transfer') {
+                    if (isset($tx_details['selfFeeBear']) && $tx_details['selfFeeBear'] == 1) {
+                        $sender_total = $tx_details['money'] + $tx_details['fee'];
+                        $fee_payer = "Sender (Paid extra)";
+                    } else {
+                        $receiver_total = $tx_details['money'] - $tx_details['fee'];
+                        $fee_payer = "Recipient (Paid from amount)";
+                    }
+                }
+            ?>
+            
+            <p><strong>Fee Paid By:</strong> <?= $fee_payer ?></p>
+            <p><strong>Total Deducted from Sender:</strong> <span style="color: var(--danger); font-weight: 700;"><?= number_format($sender_total, 0, ',', '.') ?> ₫</span></p>
+            
+            <?php if ($tx_details['transfer_type'] === 'Transfer'): ?>
+                <p><strong>Total Received by Recipient:</strong> <span style="color: var(--success); font-weight: 700;"><?= number_format($receiver_total, 0, ',', '.') ?> ₫</span></p>
+            <?php endif; ?>
+
+            <p style="margin-top: 15px;"><strong>Sender Phone:</strong> <?= htmlspecialchars($tx_details['user_phone']) ?></p>
+            <?php if ($tx_details['receiver_phone']): ?>
+                <p><strong>Receiver Phone:</strong> <?= htmlspecialchars($tx_details['receiver_phone']) ?></p>
+            <?php endif; ?>
+            <p><strong>Date Initiated:</strong> <?= htmlspecialchars($tx_details['date_transfer']) ?></p>
             <p><strong>Note:</strong> <?= htmlspecialchars($tx_details['note'] ?: 'None') ?></p>
             
-            <form method="POST" action="../modules/adminLogic.php" style="margin-top: 30px; display: flex; flex-direction: column; gap: 10px;" onsubmit="return confirm('Confirm transaction decision?');">
-                <input type="hidden" name="tx_id" value="<?= htmlspecialchars($tx_details['id']) ?>">
-                <input type="hidden" name="tab" value="tx">
-                <button type="submit" name="action" value="approve_tx" class="btn btn-primary" style="background: var(--success);">Approve Transaction</button>
-                <button type="submit" name="action" value="reject_tx" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Decline Transaction</button>
-            </form>
+            <?php if($tx_details['status'] == 2): ?>
+                <form method="POST" action="../modules/adminLogic.php" style="margin-top: 30px; display: flex; flex-direction: column; gap: 10px;" onsubmit="return confirm('Confirm transaction decision?');">
+                    <input type="hidden" name="tx_id" value="<?= htmlspecialchars($tx_details['id']) ?>">
+                    <input type="hidden" name="tab" value="tx">
+                    <button type="submit" name="action" value="approve_tx" class="btn btn-primary" style="background: var(--success);">Approve Transaction</button>
+                    <button type="submit" name="action" value="reject_tx" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Decline Transaction</button>
+                </form>
+            <?php else: ?>
+                <div style="margin-top: 30px; padding: 15px; border-radius: 8px; text-align: center; background: rgba(255,255,255,0.05);">
+                    <strong style="color: <?= $tx_details['status'] == 1 ? 'var(--success)' : 'var(--danger)' ?>;">
+                        <?= $tx_details['status'] == 1 ? '<i class="fa-solid fa-check"></i> Transaction Approved' : '<i class="fa-solid fa-xmark"></i> Transaction Declined' ?>
+                    </strong>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>

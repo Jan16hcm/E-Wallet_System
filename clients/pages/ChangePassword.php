@@ -69,7 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['newPass1']) && isset($
                         session_destroy();
                         header('Location: Login.php');
                         exit();
-                    } else {
+                    } else if(!$normalreset && (isset($_SESSION['forgotPass']) && $_SESSION['forgotPass'] === false))
+                    {
+                        session_regenerate_id(true);
+                        header('Location: Profile.php');//newly login
+                        exit();
+                    } 
+                    else {
                         session_regenerate_id(true);
                         header('Location: Home.php');//change password
                         exit();
@@ -107,7 +113,7 @@ include("../src/headerOutSide.php");
                 <span><?= !empty($error) ? htmlspecialchars($error) : '&nbsp;' ?></span>
             </div>
 
-            <?php if (!$normalreset && $_SESSION['forgotPass'] === false): ?>
+            <?php if (!$normalreset && ($_SESSION['forgotPass'] ?? false) === false): ?>
                 <div class="alert-custom info-vibrant">
                     <i class="bi bi-shield-check"></i>
                     <span><strong>First Login:</strong> Please set a permanent password to secure your account.</span>

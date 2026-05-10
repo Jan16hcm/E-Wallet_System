@@ -150,6 +150,7 @@ $con->close();
             <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
             <a href="Buycard.php" class="nav-link active"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
             <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 

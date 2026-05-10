@@ -29,7 +29,7 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
     $card_num = trim($_POST['card_number'] ?? '');
     $expire = trim($_POST['expire'] ?? '');
     $cvv = trim($_POST['cvv'] ?? '');
-    $amount_str = str_replace(',', '', trim($_POST['amount'] ?? ''));
+    $amount_str = str_replace(['.', ','], '', trim($_POST['amount'] ?? ''));
     $note = trim($_POST['note'] ?? '');
 
     if (empty($card_num)) {
@@ -100,8 +100,7 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
                         $dep->bind_param("iss", $status, $canceldate, $id);
                         $dep->execute();
                     } else {
-                        $masked_card = "•••• " . substr($card_num, -4);
-                        $success_msg = "Successfully deposited " . number_format($amount, 0, ',', '.') . " ₫ from card $masked_card.";
+                        $success_msg = "Successfully deposited " . number_format($amount, 0, ',', '.') . " ₫ from card $card_num.";
                         if (!empty($note)) {
                             $success_msg .= " Note: " . htmlspecialchars($note);
                         }
@@ -126,7 +125,6 @@ if (isset($_POST['card_number']) && isset($_POST['expire']) && isset($_POST['cvv
         }
     }
 }
-include("../src/header.php");
 ?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -168,6 +166,7 @@ include("../src/header.php");
                 <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
                 <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
             <?php } ?>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 
@@ -230,12 +229,15 @@ include("../src/header.php");
 
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label style="font-size: 15px; margin-bottom: 8px;">Amount (VND)</label>
-                            <input type="text" name="amount" value="<?= htmlspecialchars($amount > 0 ? $amount : '') ?>" placeholder="00,000"  style="padding: 16px; font-size: 16px;">
+                            <input type="text" name="amount" id="amountInput" value="<?= htmlspecialchars($amount > 0 ? number_format($amount, 0, ',', '.') : '') ?>" placeholder="00,000"  style="padding: 16px; font-size: 16px;">
                         </div>
 
                         <div class="form-group" style="margin-bottom: 20px;">
-                            <label style="font-size: 15px; margin-bottom: 8px;">Note </label>
-                            <input type="text" name="note" value="<?= htmlspecialchars($note) ?>"  style="padding: 16px; font-size: 16px;">
+                            <label style="font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Note</span>
+                                <span id="noteCount" style="font-size: 12px; font-weight: normal; color: var(--text-muted);">0/50</span>
+                            </label>
+                            <input type="text" name="note" id="noteInput" value="<?= htmlspecialchars($note) ?>" maxlength="50" style="padding: 16px; font-size: 16px;">
                         </div>
 
                         <button type="submit" id="submitBtn" class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border-radius: 10px;">Deposit Now</button>
@@ -271,4 +273,3 @@ include("../src/header.php");
     </a>
 </div>
 <script src="../assets/js/deposit.js"></script>
-<?php include("../src/footer.php"); ?>

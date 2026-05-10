@@ -26,7 +26,7 @@ $username = $_SESSION['name'] ?? 'User';
 $current_date = strtoupper(date('l, F j'));
 
 $con = connect_db();
-$stmt = $con->prepare("SELECT phonenum, money FROM user WHERE email = ?");
+$stmt = $con->prepare("SELECT `phonenum`, `money` FROM `user` WHERE `email` = ?");
 $stmt->bind_param("s", $_SESSION['email']);
 $stmt->execute();
 $stmt->bind_result($selfPhone, $selfamount);
@@ -37,15 +37,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $card_num = trim($_POST['card_num'] ?? '');
     $expire = trim($_POST['expire'] ?? '');
     $cvv = trim($_POST['cvv'] ?? '');
-    $amount_str = str_replace(',', '', $_POST['amount'] ?? '');
+    $amount_str = str_replace(['.', ','], '', $_POST['amount'] ?? '');
     $amount = floatval($amount_str);
+    $amount_int = (int)round($amount); // use integer for modulo checks
     $note = trim($_POST['note'] ?? '');
 
     if (empty($card_num) || empty($expire) || empty($cvv) || $amount <= 0) {
         $error = 'Please fill in all required fields correctly.';
     } else if (getTodayWithdrawCount($_SESSION['email']) >= 2) {
         $error = 'Daily withdrawal limit reached (max 2). Please try again tomorrow.';
-    } else if ($amount % 50000 != 0) {
+    } else if ($amount_int % 50000 !== 0) {
         $error = 'Withdrawal amount must be a multiple of 50,000 VND.';
     } else {
         $date_error = isValidDate($expire);
@@ -74,11 +75,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute();
 
                     if ($status == 1) {
+                        // Only deduct immediately if the transaction does not require admin approval
                         $stmt = $con->prepare("UPDATE `user` SET `money` = `money` - ? WHERE `phonenum` = ?");
                         $stmt->bind_param("ds", $totalDeduct, $selfPhone);
                         $stmt->execute();
-                        $success = true;
                         $_SESSION['money'] -= $totalDeduct;
+                    }
+
+                    if ($status == 1) {
+                        $success = true;
                     } else {
                         $pendingApproval = true;
                     }
@@ -129,6 +134,7 @@ $con->close();
             <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
             <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
             <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 
@@ -156,11 +162,9 @@ $con->close();
                     </div>
                 </div>
 
-                <?php if ($error): ?>
-                    <div class="alert alert-danger" style="border-radius: 12px; margin-bottom: 24px;">
-                        <i class="fa-solid fa-circle-exclamation" style="margin-right: 8px;"></i> <?= $error ?>
-                    </div>
-                <?php endif; ?>
+                <div class="alert alert-danger" id="withdrawError" style="border-radius: 12px; margin-bottom: 24px; <?= $error ? '' : 'display:none;' ?>">
+                    <i class="fa-solid fa-circle-exclamation" style="margin-right: 8px;"></i> <?= htmlspecialchars($error) ?>
+                </div>
 
                 <form method="POST" id="withdrawForm">
                     <div class="widget" style="padding: 32px; border-radius: 24px;">
@@ -181,21 +185,34 @@ $con->close();
                         </div>
 
                         <div class="form-group" style="margin-bottom: 24px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 700;">Amount (VND)</label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label style="font-weight: 700;">Amount (VND)</label>
+                                <span style="font-size: 13px; color: var(--accent-blue); font-weight: 600;">
+                                    Balance: <?= number_format($selfamount, 0, ',', '.') ?> ₫
+                                </span>
+                            </div>
                             <input type="text" name="amount" id="amountInput" placeholder="Multiples of 50,000" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= $amount > 0 ? number_format($amount, 0, ',', '.') : '' ?>" required>
+                            <div id="amountError" style="color: #ef4444; font-size: 12px; margin-top: 8px; display: none; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                <span>Amount must be a multiple of 50,000 VND</span>
+                            </div>
                         </div>
 
-                        <div id="feePreview" class="fee-preview">
+                        <div id="feePreview" class="fee-preview" style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 16px; margin-bottom: 24px;">
                             <!-- JS populated -->
                         </div>
 
                         <div class="form-group" style="margin-bottom: 24px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 700;">Note (Optional)</label>
-                            <textarea name="note" rows="2" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);"><?= htmlspecialchars($note) ?></textarea>
+                            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 700;">
+                                <span>Note (Optional)</span>
+                                <span id="noteCount" style="font-size: 12px; font-weight: normal; color: var(--text-muted);">0/50</span>
+                            </label>
+                            <textarea name="note" id="noteInput" rows="2" maxlength="50" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);"><?= htmlspecialchars($note) ?></textarea>
                         </div>
 
-                        <div class="alert alert-info" style="font-size: 13px; background: var(--bg-body); border-color: var(--border-color); margin-bottom: 24px;">
-                            <i class="fa-solid fa-circle-info"></i> Max 2 withdrawals per day. 5% fee applies.
+                        <div class="alert alert-info" style="font-size: 13px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; margin-bottom: 24px; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 10px;">
+                            <i class="fa-solid fa-circle-info" style="color: #3b82f6; font-size: 16px;"></i>
+                            <span style="font-weight: 600;">Max 2 withdrawals per day. 5% fee applies.</span>
                         </div>
 
                         <button type="submit" class="btn" style="width: 100%; padding: 16px; border-radius: 16px; background: var(--accent-blue); color: white; border: none; font-weight: 700; font-size: 18px; cursor: pointer;">

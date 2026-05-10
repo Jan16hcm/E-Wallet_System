@@ -39,30 +39,33 @@ $stmt->bind_result($selfPhone, $selfamount, $selfName);
 $stmt->fetch();
 $stmt->close();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $step == 1 && isset($_GET['cancel'])) {
+// Cancel from step 1 or step 2
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['cancel'])) {
     unset($_SESSION['otp'], $_SESSION['otp_expire'], $_SESSION['transfer']);
+    header('Location: Transfer.php');
+    exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 1) {
     $recipientPhone = trim($_POST['recipientPhone'] ?? '');
-    $amount_str = str_replace(',', '', $_POST['amount'] ?? '0');
+    $amount_str = str_replace(['.', ','], '', $_POST['amount'] ?? '0');
     $amount = floatval($amount_str);
     $note = trim($_POST['note'] ?? '');
     $selfFeeBear = (int)($_POST['selfFeeBear'] ?? 0);
 
     if (empty($recipientPhone)) {
         $error = 'Please enter the recipient phone number';
-    } else if ($amount < 50001) {
-        $error = 'Minimum transfer amount is 50,001 VND';
+    } else if ($amount < 2000) {
+        $error = 'Minimum transfer amount is 2.000 VND';
     } else if ($recipientPhone == $selfPhone) {
         $error = 'You cannot transfer money to yourself';
     } else {
         // Check recipient
-        $stmt = $con->prepare("SELECT name FROM user WHERE phonenum = ?");
+        $stmt = $con->prepare("SELECT name, verified, abnormal_login, locked_time FROM user WHERE phonenum = ?");
         $stmt->bind_param("s", $recipientPhone);
         $stmt->execute();
-        $stmt->bind_result($recipientName);
-        if (!$stmt->fetch()) {
+        $stmt->bind_result($recipientName, $recipientVerified, $abnormal_login, $locked_time);
+        if (!$stmt->fetch() || $recipientVerified == 3 || $recipientVerified == 4 || $abnormal_login >= 6 || !empty($locked_time)) {
             $error = 'Recipient not found';
         } else {
             $stmt->close();
@@ -92,14 +95,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 1) {
                 if (!sendOTPEmail($_SESSION['email'], $selfName, $otp)) {
                     $error = 'Failed to send OTP email, please try again later';
                 } else {
-                    $step = 2;
+                    header('Location: Transfer.php');
+                    exit();
                 }
             }
         }
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 2) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 2 && isset($_POST['otp_in1'])) {
     $otp_in = ($_POST['otp_in1'] ?? '') . ($_POST['otp_in2'] ?? '') . ($_POST['otp_in3'] ?? '') . 
               ($_POST['otp_in4'] ?? '') . ($_POST['otp_in5'] ?? '') . ($_POST['otp_in6'] ?? '');
     $saved_otp = $_SESSION['otp'] ?? '';
@@ -126,12 +130,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 2) {
             $stmt->bind_param("sssssddsii", $id, $t['selfPhone'], $t['recipientPhone'], $type, $now, $t['amount'], $fee, $t['note'], $status, $t['selfFeeBear']);
             $stmt->execute();
 
-            if ($status == 1) {
-                // Instant transfer
-                $stmt = $con->prepare("UPDATE `user` SET `money` = `money` - ? WHERE `phonenum` = ?");
-                $stmt->bind_param("ds", $t['selfDeduct'], $t['selfPhone']);
-                $stmt->execute();
+            // Always deduct from sender immediately to prevent double-spending
+            $stmt = $con->prepare("UPDATE `user` SET `money` = `money` - ? WHERE `phonenum` = ?");
+            $stmt->bind_param("ds", $t['selfDeduct'], $t['selfPhone']);
+            $stmt->execute();
 
+            if ($status == 1) {
+                // Instant transfer: credit recipient immediately
                 $stmt = $con->prepare("UPDATE `user` SET `money` = `money` + ? WHERE `phonenum` = ?");
                 $stmt->bind_param("ds", $t['recipientGet'], $t['recipientPhone']);
                 $stmt->execute();
@@ -147,8 +152,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 2) {
                 send_receipt(number_format($t['recipientGet'], 0, ',', '.') . ' ₫', number_format($rNewMoney, 0, ',', '.') . ' ₫', $rEmail, $t['selfName'], $t['recipientName'], $t['note']);
             }
             $con->commit();
-            $step = 3;
-            $_SESSION['money'] -= ($status == 1 ? $t['selfDeduct'] : 0);
+            $_SESSION['money'] -= $t['selfDeduct']; // Always deduct from current session balance
+            header('Location: Transfer.php?step=3');
+            exit();
         } catch (Exception $e) {
             $con->rollback();
             $error = 'Transaction failed: ' . $e->getMessage();
@@ -193,6 +199,7 @@ $con->close();
             <a href="Transactions.php" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Transaction history</a>
             <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
             <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 
@@ -220,23 +227,26 @@ $con->close();
                     </div>
                 </div>
 
-                <?php if ($error): ?>
-                    <div class="alert alert-danger" style="border-radius: 12px; margin-bottom: 24px;">
-                        <i class="fa-solid fa-circle-exclamation" style="margin-right: 8px;"></i> <?= $error ?>
-                    </div>
-                <?php endif; ?>
+                <div class="alert alert-danger" id="transferError" style="border-radius: 12px; margin-bottom: 24px; <?= $error ? 'visibility:visible;' : 'visibility:hidden;' ?>">
+                    <i class="fa-solid fa-circle-exclamation" style="margin-right: 8px;"></i> <?= htmlspecialchars($error) ?>
+                </div>
 
                 <form method="POST" id="transferForm">
                     <div class="widget" style="padding: 32px; border-radius: 24px;">
                         <div class="form-group" style="margin-bottom: 24px;">
                             <label style="display: block; margin-bottom: 8px; font-weight: 700;">Recipient Phone Number</label>
-                            <input type="text" name="recipientPhone" id="recipientPhone" placeholder="09xxxxxxxx" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= htmlspecialchars($recipientPhone) ?>" required>
+                            <input type="text" name="recipientPhone" id="recipientPhone" placeholder="Enter recipient phone number" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= htmlspecialchars($recipientPhone) ?>" required>
                             <div id="recipientBadge" style="margin-top: 8px; font-size: 13px;"></div>
                         </div>
 
                         <div class="form-group" style="margin-bottom: 24px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 700;">Amount (VND)</label>
-                            <input type="text" name="amount" id="amountInput" placeholder="Minimum 50,001" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= $amount > 0 ? number_format($amount, 0, ',', '.') : '' ?>" required>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label style="font-weight: 700;">Amount (VND)</label>
+                                <span style="font-size: 13px; color: var(--accent-blue); font-weight: 600;">
+                                    Balance: <?= number_format($selfamount, 0, ',', '.') ?> ₫
+                                </span>
+                            </div>
+                            <input type="text" name="amount" id="amountInput" placeholder="Minimum 2.000" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);" value="<?= $amount > 0 ? number_format($amount, 0, ',', '.') : '' ?>" required>
                         </div>
 
                         <label style="display: block; margin-bottom: 12px; font-weight: 700;">Who pays the 5% fee?</label>
@@ -257,13 +267,16 @@ $con->close();
                             </label>
                         </div>
 
-                        <div id="feePreview" style="background: var(--bg-body); border-radius: 16px; padding: 20px; margin-bottom: 24px; display: none;">
+                        <div id="feePreview" style="background: rgba(255,255,255,0.03); border-radius: 16px; padding: 20px; margin-bottom: 24px;">
                             <!-- JS populated -->
                         </div>
 
                         <div class="form-group" style="margin-bottom: 24px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 700;">Note (Optional)</label>
-                            <textarea name="note" rows="2" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);"><?= htmlspecialchars($note) ?></textarea>
+                            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 700;">
+                                <span>Note (Optional)</span>
+                                <span id="noteCount" style="font-size: 12px; font-weight: normal; color: var(--text-muted);">0/50</span>
+                            </label>
+                            <textarea name="note" id="noteInput" rows="2" maxlength="50" class="form-control" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);"><?= htmlspecialchars($note) ?></textarea>
                         </div>
 
                         <button type="submit" class="btn" style="width: 100%; padding: 16px; border-radius: 16px; background: var(--accent-blue); color: white; border: none; font-weight: 700; font-size: 18px; cursor: pointer;">
@@ -278,7 +291,19 @@ $con->close();
                         <i class="fa-solid fa-shield-halved"></i>
                     </div>
                     <h2 style="font-weight: 800; color: var(--text-main);">Security Verification</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 32px;">We've sent a 6-digit OTP to your email.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 24px;">We've sent a 6-digit OTP to your email.</p>
+
+                    <?php $t = $_SESSION['transfer'] ?? []; ?>
+                    <?php if(!empty($t)): ?>
+                    <div class="summary-card" style="margin-bottom: 32px; text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px;">
+                        <div class="summary-row" style="margin-bottom: 8px;"><span style="color: var(--text-muted);">To: </span><span style="font-weight: 700; color: var(--text-main);"><?= htmlspecialchars($t['recipientName'] ?? '') ?></span></div>
+                        <div class="summary-row" style="margin-bottom: 8px;"><span style="color: var(--text-muted);">Phone: </span><span><?= htmlspecialchars($t['recipientPhone'] ?? '') ?></span></div>
+                        <div class="summary-row" style="margin-bottom: 8px;"><span style="color: var(--text-muted);">Amount: </span><span style="color: var(--accent-blue); font-weight: 600;"><?= number_format($t['amount'] ?? 0, 0, ',', '.') ?> ₫</span></div>
+                        <div style="border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between; font-weight: 700;">
+                            <span style="color: var(--text-muted);">Total Deducted: </span><span style="color: var(--danger);"><?= number_format($t['selfDeduct'] ?? 0, 0, ',', '.') ?> ₫</span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                     <?php if ($error): ?>
                         <div class="alert alert-danger" style="margin-bottom: 24px; border-radius: 12px; text-align: left;">
@@ -300,7 +325,7 @@ $con->close();
                             Code expires in: <span id="otp-timer" style="font-weight: 700; color: var(--accent-blue);">01:00</span>
                         </div>
 
-                        <a href="Transfer.php?cancel=1" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">Cancel transaction</a>
+                        <a href="Transfer.php?cancel=2" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">Cancel transaction</a>
                     </form>
                 </div>
 
@@ -314,9 +339,9 @@ $con->close();
                     <p style="color: var(--text-muted); margin-bottom: 32px;"><?= $pending ? 'Transfers over 5,000,000 VND require admin approval.' : 'Your money has been sent successfully.' ?></p>
 
                     <div class="summary-card" style="margin-bottom: 32px; text-align: left;">
-                        <div class="summary-row"><span style="color: var(--text-muted);">To</span><span><?= htmlspecialchars($t['recipientName'] ?? '') ?></span></div>
-                        <div class="summary-row"><span style="color: var(--text-muted);">Amount</span><span><?= number_format($t['amount'] ?? 0, 0, ',', '.') ?> ₫</span></div>
-                        <div class="summary-total"><span>Total Deducted</span><span><?= number_format($t['selfDeduct'] ?? 0, 0, ',', '.') ?> ₫</span></div>
+                        <div class="summary-row"><span style="color: var(--text-muted);">To: </span><span><?= htmlspecialchars($t['recipientName'] ?? '') ?></span></div>
+                        <div class="summary-row"><span style="color: var(--text-muted);">Amount: </span><span><?= number_format($t['amount'] ?? 0, 0, ',', '.') ?> ₫</span></div>
+                        <div class="summary-total"><span>Total Deducted: </span><span><?= number_format($t['selfDeduct'] ?? 0, 0, ',', '.') ?> ₫</span></div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">

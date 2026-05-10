@@ -17,7 +17,7 @@ unset($_SESSION["error"]);
 // }
 $useremail_session = $_SESSION['email'] ?? '';
 $con = connect_db();
-$stmt = $con->prepare("SELECT `name`, `email`, `phonenum`, `birth`, `address`, `verified`, `card_num`, `money`, `CVV` FROM `user` WHERE `email` = ?");
+$stmt = $con->prepare("SELECT `name`, `email`, `phonenum`, `birth`, `address`, `verified`, `card_num`, `money`, `CVV`, `monthly_goal` FROM `user` WHERE `email` = ?");
 $stmt->bind_param("s", $useremail_session);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -51,34 +51,55 @@ for ($i = 5; $i >= 0; $i--) {
     $date = date('Y-m-d', strtotime("-$i days"));
     $display_date = date('d/m', strtotime("-$i days"));
     
-    $q = $con->prepare("SELECT SUM(CASE WHEN transfer_type = 'Deposit' THEN money ELSE -money END) as net FROM history WHERE user_phone = ? AND DATE(date_transfer) = ? AND status = 1");
-    $q->bind_param("ss", $user_data['phonenum'], $date);
+    // Net = (Incoming) - (Outgoing)
+    // Incoming: Deposit + Transfer (as recipient)
+    // Outgoing: Transfer (as sender) + Withdraw + Buycard
+    $q = $con->prepare("SELECT 
+        (SELECT SUM(money) FROM history WHERE receiver_phone = ? AND DATE(date_transfer) = ? AND status = 1) as incoming_transfer,
+        (SELECT SUM(money) FROM history WHERE user_phone = ? AND DATE(date_transfer) = ? AND status = 1 AND transfer_type = 'Deposit') as incoming_deposit,
+        (SELECT SUM(money + fee) FROM history WHERE user_phone = ? AND DATE(date_transfer) = ? AND status = 1 AND transfer_type IN ('Transfer', 'Withdraw', 'Buy Card')) as outgoing
+    ");
+    $q->bind_param("ssssss", $user_data['phonenum'], $date, $user_data['phonenum'], $date, $user_data['phonenum'], $date);
     $q->execute();
     $r = $q->get_result()->fetch_assoc();
-    $daily_data[$display_date] = (float)($r['net'] ?? 0);
+    $net = ((float)($r['incoming_transfer'] ?? 0) + (float)($r['incoming_deposit'] ?? 0)) - (float)($r['outgoing'] ?? 0);
+    $daily_data[$display_date] = $net;
     $q->close();
 }
 
-// 3. Earnings vs Spending for current month (Doughnut)
+// 3. Earnings vs Spending for current month (Doughnut/Goal)
 $month_start = date('Y-m-01');
 $q = $con->prepare("SELECT 
-    SUM(CASE WHEN transfer_type = 'Deposit' THEN money ELSE 0 END) as earnings,
-    SUM(CASE WHEN transfer_type IN ('Transfer', 'Withdraw', 'Buy Card') THEN money ELSE 0 END) as spending
-    FROM history WHERE user_phone = ? AND date_transfer >= ? AND status = 1");
-$q->bind_param("ss", $user_data['phonenum'], $month_start);
+    (SELECT SUM(money) FROM history WHERE (user_phone = ? AND transfer_type = 'Deposit' OR (receiver_phone = ? AND status = 1)) AND date_transfer >= ?) as earnings,
+    (SELECT SUM(money + fee) FROM history WHERE user_phone = ? AND transfer_type IN ('Transfer', 'Withdraw', 'Buy Card') AND date_transfer >= ? AND status = 1) as spending
+");
+$q->bind_param("sssss", $user_data['phonenum'], $user_data['phonenum'], $month_start, $user_data['phonenum'], $month_start);
 $q->execute();
 $stats = $q->get_result()->fetch_assoc();
 $month_earnings = (float)($stats['earnings'] ?? 0);
 $month_spending = (float)($stats['spending'] ?? 0);
 $q->close();
 
-$total_active_money = $month_earnings + $month_spending;
-$earnings_pct = $total_active_money > 0 ? round(($month_earnings / $total_active_money) * 100) : 0;
+$monthly_goal = (float)($user_data['monthly_goal'] ?: 5000000);
+$goal_pct = $monthly_goal > 0 ? round(($month_spending / $monthly_goal) * 100) : 0;
 
-// 4. Growth percentages (Balance and Earnings)
-// Balance growth compared to 7 days ago
-$q = $con->prepare("SELECT SUM(CASE WHEN transfer_type = 'Deposit' THEN money ELSE -money END) as prev_net FROM history WHERE user_phone = ? AND date_transfer < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status = 1");
-$q->bind_param("s", $user_data['phonenum']);
+// Handle Goal Update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_goal'])) {
+    $raw_goal = $_POST['monthly_goal'] ?? '5000000';
+    $new_goal = (float)str_replace('.', '', $raw_goal); // Remove dots for DB
+    $stmt = $con->prepare("UPDATE `user` SET `monthly_goal` = ? WHERE `email` = ?");
+    $stmt->bind_param("ds", $new_goal, $useremail_session);
+    $stmt->execute();
+    $stmt->close();
+    header("Location: Home.php");
+    exit();
+}
+
+// 4. Growth percentages
+$q = $con->prepare("SELECT 
+    (SELECT SUM(CASE WHEN receiver_phone = ? THEN money WHEN user_phone = ? AND transfer_type = 'Deposit' THEN money ELSE -(money+fee) END) FROM history WHERE (user_phone = ? OR receiver_phone = ?) AND date_transfer < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status = 1) as prev_net
+");
+$q->bind_param("ssss", $user_data['phonenum'], $user_data['phonenum'], $user_data['phonenum'], $user_data['phonenum']);
 $q->execute();
 $prev_res = $q->get_result()->fetch_assoc();
 $prev_balance = (float)($prev_res['prev_net'] ?? 0);
@@ -92,8 +113,8 @@ $balance_growth = abs($balance_growth);
 // Earnings growth (This month vs last month)
 $last_month_start = date('Y-m-01', strtotime('last month'));
 $last_month_end = date('Y-m-t', strtotime('last month'));
-$q = $con->prepare("SELECT SUM(money) as earnings FROM history WHERE user_phone = ? AND transfer_type = 'Deposit' AND date_transfer BETWEEN ? AND ? AND status = 1");
-$q->bind_param("sss", $user_data['phonenum'], $last_month_start, $last_month_end);
+$q = $con->prepare("SELECT SUM(money) as earnings FROM history WHERE (user_phone = ? AND transfer_type = 'Deposit' OR (receiver_phone = ? AND status = 1)) AND date_transfer BETWEEN ? AND ?");
+$q->bind_param("ssss", $user_data['phonenum'], $user_data['phonenum'], $last_month_start, $last_month_end);
 $q->execute();
 $last_stats = $q->get_result()->fetch_assoc();
 $last_month_earnings = (float)($last_stats['earnings'] ?? 0);
@@ -145,6 +166,7 @@ include '../src/header.php';
                 history</a>
             <a href="Buycard.php" class="nav-link"><i class="fa-solid fa-mobile-screen-button"></i> Buy phone card</a>
             <a href="ChangePassword.php" class="nav-link"><i class="fa-solid fa-gear"></i> Change Password</a>
+            <a href="../modules/logout.php" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </nav>
     </aside>
 
@@ -173,8 +195,6 @@ include '../src/header.php';
                 <i class="fa-regular fa-calendar"></i> This Month
             </div>
             <div class="btn-group">
-                <button class="btn btn-outline"><i class="fa-solid fa-grip"></i> Manage Widgets</button>
-                <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add new Widget</button>
             </div>
         </div>
         <div class="mobile-services-grid">
@@ -213,9 +233,6 @@ include '../src/header.php';
                 <div class="balance-value">
                     <?= $money ?> ₫ <span class="badge-<?= $balance_growth_dir ?>"><i class="fa-solid fa-arrow-<?= $balance_growth_dir ?>"></i> <?= $balance_growth ?>%</span>
                 </div>
-                <div class="card-number-badge">
-                    <i class="fa-regular fa-credit-card"></i> Card ending in •••• <?= substr($card_num, -4) ?>
-                </div>
                 <div class="chart-wrapper">
                     <canvas id="balanceChart"></canvas>
                 </div>
@@ -240,7 +257,6 @@ include '../src/header.php';
                 <div class="widget-header">
                     <span class="widget-title">Recent Activity</span>
                     <div style="display: flex; gap: 8px;">
-                        <div class="widget-icon"><i class="fa-solid fa-filter"></i></div>
                         <a href="Transactions.php" class="widget-icon" style="text-decoration:none;"><i
                                 class="fa-solid fa-arrow-up-right-from-square"></i></a>
                     </div>
@@ -283,21 +299,50 @@ include '../src/header.php';
                 </div>
             </div>
 
-            <!-- 4. Earnings (Spans 1) -->
+            <!-- 4. Monthly Goal (Spans 1) -->
             <div class="widget earnings-widget">
                 <div class="widget-header">
-                    <span class="widget-title">Monthly Goal</span>
-                    <div class="widget-icon"><i class="fa-solid fa-bullseye"></i></div>
+                    <span class="widget-title">Spending Goal</span>
+                    <div class="widget-icon" style="cursor: pointer;" onclick="document.getElementById('goalModal').style.display='flex'"><i class="fa-solid fa-pen-to-square"></i></div>
                 </div>
                 <div class="balance-value" style="font-size: 20px; margin-bottom: 15px;">
-                    <?= $earnings_pct ?>% <span class="badge-<?= $earnings_growth_dir ?>" style="font-size: 10px;"><i class="fa-solid fa-arrow-<?= $earnings_growth_dir ?>"></i> <?= $earnings_growth ?>%</span>
+                    <?= $goal_pct ?>% <span style="font-size: 12px; color: var(--text-muted); font-weight: 400;">of goal</span>
                 </div>
                 <div class="doughnut-wrapper">
                     <canvas id="earningsChart"></canvas>
-                    <div
-                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -10%); text-align: center;">
-                        <div style="font-size: 24px; font-weight: 700;"><?= $earnings_pct ?>%</div>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -10%); text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700;"><?= $goal_pct ?>%</div>
                     </div>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 10px;">
+                    Limit: <?= number_format($monthly_goal, 0, ',', '.') ?> ₫
+                </div>
+            </div>
+
+            <!-- Goal Setting Modal (Simple) -->
+            <div id="goalModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+                <div style="background:var(--bg-surface); padding:30px; border-radius:16px; width:90%; max-width:400px; border:1px solid var(--border-color);">
+                    <h3 style="margin-top:0;">Set Monthly Spending Goal</h3>
+                    <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">Enter your target monthly spending limit.</p>
+                    <form method="POST">
+                        <input type="text" name="monthly_goal" id="goalInput" value="<?= number_format($monthly_goal, 0, ',', '.') ?>" 
+                               onkeyup="formatCurrency(this)"
+                               style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:var(--text-main); margin-bottom:20px; font-size: 18px; font-weight: 600;">
+                        <script>
+                            function formatCurrency(input) {
+                                let val = input.value.replace(/\D/g, "");
+                                if (val) {
+                                    input.value = parseInt(val).toLocaleString('de-DE'); // Use German locale for dots
+                                } else {
+                                    input.value = "";
+                                }
+                            }
+                        </script>
+                        <div style="display:flex; gap:10px;">
+                            <button type="button" onclick="document.getElementById('goalModal').style.display='none'" class="btn btn-outline" style="flex:1;">Cancel</button>
+                            <button type="submit" name="update_goal" class="btn btn-primary" style="flex:1;">Save Goal</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -352,9 +397,9 @@ include '../src/header.php';
     window.chartData = {
         daily: <?= json_encode(array_values($daily_data)) ?>,
         labels: <?= json_encode(array_keys($daily_data)) ?>,
-        earnings: <?= $month_earnings ?>,
+        earnings: <?= $monthly_goal ?>, // Use goal as the base for the doughnut
         spending: <?= $month_spending ?>,
-        earningsPct: <?= $earnings_pct ?>
+        earningsPct: <?= $goal_pct ?>
     };
 </script>
 <script src="../assets/js/home.js"></script>

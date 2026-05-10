@@ -97,7 +97,6 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="dashboard-wrapper">
-    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="user-profile-card">
             <button class="theme-toggle" id="themeToggleBtn">
@@ -120,7 +119,6 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
         </nav>
     </aside>
 
-    <!-- Main Content -->
     <main class="main-content">
         <div class="mobile-header">
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -154,8 +152,26 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
                 <div class="detail-icon" style="background: <?= $icon_color ?>20; color: <?= $icon_color ?>;">
                     <i class="fa-solid <?= $is_pos ? 'fa-arrow-down' : 'fa-arrow-up' ?>"></i>
                 </div>
-                <div class="detail-amount"><?= $amount_prefix ?><?= number_format($data['money'], 0, ',', '.') ?> ₫</div>
-                <?php $status_label = ['Cancelled', 'Approved', 'Pending'][$data['status']] ?? 'Unknown'; ?>
+                <?php 
+                    $display_money = (float)$data['money'];
+                    $fee = (float)$data['fee'];
+                    
+                    if ($data['transfer_type'] == 'Transfer') {
+                        if (!$is_sender) {
+                            if (isset($data['selfFeeBear']) && $data['selfFeeBear'] == 0) {
+                                $display_money = $display_money - $fee;
+                            }
+                        } else {
+                            if (isset($data['selfFeeBear']) && $data['selfFeeBear'] == 1) {
+                                $display_money = $display_money + $fee;
+                            }
+                        }
+                    } elseif ($data['transfer_type'] == 'Withdraw') {
+                        $display_money = $display_money + $fee;
+                    }
+                ?>
+                <div class="detail-amount"><?= $amount_prefix ?><?= number_format($display_money, 0, ',', '.') ?> ₫</div>
+                <?php $status_label = ['Declined', 'Approved', 'Pending'][$data['status']] ?? 'Unknown'; ?>
                 <div class="detail-status status-<?= $data['status'] ?>"><?= $status_label ?></div>
             </div>
 
@@ -174,36 +190,77 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
                 </div>
 
                 <?php 
-                $fee = (float)$data['fee'];
+                $fee = (float)($data['fee'] ?? 0);
                 $fee_payer = '';
+                $show_fee_row = false;
+                $display_fee = $data['status'] == 0 ? 0 : $fee;
+
                 if ($fee > 0) {
-                    $selfFeeBear = (int)$data['selfFeeBear'];
+                    $selfFeeBear = (int)($data['selfFeeBear'] ?? 0);
                     
                     if ($data['transfer_type'] == 'Withdraw') {
                         $fee_payer = 'You (Deducted from amount)';
+                        $show_fee_row = true;
                     } else {
                         // For Transfers
+                        $show_fee_row = true;
                         if ($is_sender) {
                             $fee_payer = ($selfFeeBear === 1) ? 'You (Paid)' : 'Recipient (Paid from amount)';
                         } else {
-                            $fee_payer = ($selfFeeBear === 1) ? 'Sender (Paid)' : 'You (Paid from amount)';
+                            if ($selfFeeBear === 1) {
+                                $fee_payer = 'Sender paid the fee';
+                                // We keep display_fee as the actual fee so the recipient sees how much was paid
+                            } else {
+                                $fee_payer = 'You (Paid from amount)';
+                            }
                         }
                     }
                 }
                 ?>
                 
-                <?php if ($fee > 0): ?>
+                <?php if ($show_fee_row && in_array($data['transfer_type'], ['Transfer', 'Withdraw'])): ?>
+                <?php if (!$is_sender && $data['transfer_type'] == 'Transfer'): ?>
+                    <div class="info-row">
+                        <span class="info-label">Total Money Transferred</span>
+                        <span class="info-value"><?= number_format($data['money'], 0, ',', '.') ?> ₫</span>
+                    </div>
+                <?php endif; ?>
+                <?php if ($is_sender && $data['transfer_type'] == 'Transfer'): ?>
+                    <div class="info-row">
+                        <span class="info-label">Transfer Amount</span>
+                        <span class="info-value"><?= number_format($data['money'], 0, ',', '.') ?> ₫</span>
+                    </div>
+                <?php endif; ?>
                 <div class="info-row">
                     <span class="info-label">Transaction Fee (5%)</span>
-                    <span class="info-value" style="color: #ef4444;">
-                        <?= number_format($fee, 0, ',', '.') ?> ₫<br>
-                        <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">Paid by: <?= $fee_payer ?></span>
+                    <span class="info-value" style="color: <?= $display_fee > 0 ? '#ef4444' : 'var(--text-main)' ?>;">
+                        <?= number_format($display_fee, 0, ',', '.') ?> ₫<br>
+                        <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);"><?= $display_fee == 0 ? $fee_payer : 'Paid by: ' . $fee_payer ?></span>
                     </span>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">System Profit</span>
-                    <span class="info-value" style="color: #10b981;"><?= number_format($fee, 0, ',', '.') ?> ₫</span>
-                </div>
+
+                <?php if (!$is_sender && $data['transfer_type'] == 'Transfer'): ?>
+                    <div class="info-row">
+                        <span class="info-label">Total Received</span>
+                        <span class="info-value" style="color: #10b981; font-weight: 700;">
+                            <?= number_format($data['status'] == 0 ? 0 : (isset($data['selfFeeBear']) && $data['selfFeeBear'] == 1 ? $data['money'] : $data['money'] - $data['fee']), 0, ',', '.') ?> ₫
+                        </span>
+                    </div>
+                <?php endif; ?>
+                <?php if ($is_sender && $data['transfer_type'] == 'Transfer'): ?>
+                    <div class="info-row">
+                        <span class="info-label">Recipient Received</span>
+                        <span class="info-value" style="color: #10b981; font-weight: 700;">
+                            <?= number_format($data['status'] == 0 ? 0 : (isset($data['selfFeeBear']) && $data['selfFeeBear'] == 1 ? $data['money'] : $data['money'] - $data['fee']), 0, ',', '.') ?> ₫
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Total Deducted</span>
+                        <span class="info-value" style="color: #ef4444; font-weight: 700;">
+                            <?= $data['status'] == 0 ? '' : '-' ?><?= number_format($data['status'] == 0 ? 0 : (isset($data['selfFeeBear']) && $data['selfFeeBear'] == 1 ? $data['money'] + $data['fee'] : $data['money']), 0, ',', '.') ?> ₫
+                        </span>
+                    </div>
+                <?php endif; ?>
                 <?php endif; ?>
                 
                 <?php if ($data['transfer_type'] == 'Transfer'): ?>
@@ -226,7 +283,7 @@ $status_label = ['Completed', 'Pending', 'Cancelled'][$data['status']] ?? 'Unkno
                 <?php if (!empty($data['note'])): ?>
                     <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
                         <span class="info-label">Message / Note</span>
-                        <div style="background: var(--bg-body); padding: 12px; border-radius: 12px; width: 100%; font-size: 14px; border: 1px solid var(--border-color);">
+                        <div class="detail-note">
                             <?= nl2br(htmlspecialchars($data['note'])) ?>
                         </div>
                     </div>
