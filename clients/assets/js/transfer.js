@@ -23,11 +23,8 @@ const feeRadios = document.querySelectorAll('input[name="selfFeeBear"]');
 function updateFeePreview() {
     if (!amountInput || !feePreview) return;
     const raw = amountInput.value.replace(/[^0-9]/g, '');
-    if (!raw) { 
-        feePreview.style.display = 'none'; 
-        return; 
-    }
-    const num = parseInt(raw);
+    const num = raw ? parseInt(raw, 10) : 0;
+    
     const selfPays = document.querySelector('input[name="selfFeeBear"]:checked')?.value === '1';
     const fee = num * 0.05;
     const youPay = selfPays ? num + fee : num;
@@ -44,11 +41,17 @@ function updateFeePreview() {
         </div>`;
 }
 
+// Initial call
+updateFeePreview();
+
 if (amountInput) {
     amountInput.addEventListener('input', function () {
         const raw = this.value.replace(/[^0-9]/g, '');
         this.value = raw ? parseInt(raw, 10).toLocaleString('vi-VN') : '';
         updateFeePreview();
+        // Hide server error when user re-enters amount
+        const errBox = document.getElementById('transferError');
+        if (errBox) errBox.style.display = 'none';
     });
 }
 feeRadios.forEach(r => r.addEventListener('change', updateFeePreview));
@@ -60,6 +63,9 @@ if (phoneInput && recipientBadge) {
     let timeout;
     phoneInput.addEventListener('input', function () {
         clearTimeout(timeout);
+        // Hide server error when user re-enters phone
+        const errBox = document.getElementById('transferError');
+        if (errBox) errBox.style.display = 'none';
         const phone = this.value.trim();
         if (phone.length >= 10) {
             timeout = setTimeout(() => {
@@ -84,6 +90,9 @@ if (phoneInput && recipientBadge) {
 const transferForm = document.getElementById('transferForm');
 if (transferForm) {
     transferForm.addEventListener('submit', function() {
+        if (amountInput) {
+            amountInput.value = amountInput.value.replace(/\D/g, '');
+        }
         const btn = transferForm.querySelector('button[type="submit"]');
         if (btn) {
             btn.innerText = 'Processing...';
@@ -92,6 +101,17 @@ if (transferForm) {
             btn.style.cursor = 'not-allowed';
         }
     });
+}
+
+// Note character counter
+const noteInput = document.getElementById('noteInput');
+const noteCount = document.getElementById('noteCount');
+if (noteInput && noteCount) {
+    const updateCount = () => {
+        noteCount.innerText = `${noteInput.value.length}/50`;
+    };
+    noteInput.addEventListener('input', updateCount);
+    updateCount(); // Initialize
 }
 
 const otpForm = document.getElementById('otpForm');

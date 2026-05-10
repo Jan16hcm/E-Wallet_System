@@ -45,11 +45,29 @@ const hideAlertsOnInput = () => {
   }
 };
 
+// Amount formatter
+const amountInput = document.getElementById('amountInput');
+if (amountInput) {
+  amountInput.addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    if (value) {
+      this.value = parseInt(value, 10).toLocaleString('vi-VN');
+    } else {
+      this.value = '';
+    }
+    hideAlertsOnInput();
+  });
+}
+
 const depositForm = document.getElementById("depositForm");
 const submitBtn = document.getElementById("submitBtn");
 
 if (depositForm && submitBtn) {
   depositForm.addEventListener("submit", function () {
+    // Strip formatting before submit
+    if (amountInput) {
+      amountInput.value = amountInput.value.replace(/\D/g, '');
+    }
     submitBtn.innerText = "Processing...";
     submitBtn.disabled = true;
     submitBtn.style.opacity = "0.7";
@@ -60,8 +78,21 @@ if (depositForm && submitBtn) {
 // Add input listeners to hide alerts
 const formInputs = document.querySelectorAll(".deposit-form input");
 formInputs.forEach((input) => {
-  input.addEventListener("input", hideAlertsOnInput);
+  if (input.id !== 'amountInput') { // amountInput already has its own listener
+    input.addEventListener("input", hideAlertsOnInput);
+  }
 });
+
+// Note character counter
+const noteInput = document.getElementById('noteInput');
+const noteCount = document.getElementById('noteCount');
+if (noteInput && noteCount) {
+  const updateCount = () => {
+    noteCount.innerText = `${noteInput.value.length}/50`;
+  };
+  noteInput.addEventListener('input', updateCount);
+  updateCount(); // Initialize
+}
 
 // Mobile Sidebar Toggle
 const sidebar = document.getElementById("sidebar");
