@@ -1,6 +1,7 @@
 <?php
 require_once('../modules/adminLogic.php');
 // require_once ('../../vendor/Mobile_Detect.php');
+//Ver 1.0 of MeoMeo was released
 
 $error = $_SESSION['error'] ?? '';
 unset($_SESSION['error']);
