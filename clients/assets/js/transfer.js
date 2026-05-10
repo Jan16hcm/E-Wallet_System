@@ -80,3 +80,29 @@ if (phoneInput && recipientBadge) {
         }
     });
 }
+// Prevent double submission
+const transferForm = document.getElementById('transferForm');
+if (transferForm) {
+    transferForm.addEventListener('submit', function() {
+        const btn = transferForm.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.innerText = 'Processing...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'not-allowed';
+        }
+    });
+}
+
+const otpForm = document.getElementById('otpForm');
+if (otpForm) {
+    otpForm.addEventListener('submit', function() {
+        const btn = otpForm.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.innerText = 'Verifying...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'not-allowed';
+        }
+    });
+}

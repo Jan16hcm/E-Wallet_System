@@ -30,3 +30,15 @@ function copyCode(code, btn) {
         }, 2000);
     });
 }
+// Prevent double submission
+if (form) {
+    form.addEventListener('submit', function() {
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.innerText = 'Processing...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'not-allowed';
+        }
+    });
+}

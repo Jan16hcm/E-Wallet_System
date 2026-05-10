@@ -26,3 +26,16 @@ if (amountInput && feePreview) {
         `;
     });
 }
+// Prevent double submission
+const withdrawForm = document.getElementById('withdrawForm');
+if (withdrawForm) {
+    withdrawForm.addEventListener('submit', function() {
+        const btn = withdrawForm.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.innerText = 'Processing...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'not-allowed';
+        }
+    });
+}
