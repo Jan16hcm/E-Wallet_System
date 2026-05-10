@@ -5,11 +5,18 @@ require_once("../modules/usertype.php");
 
 $usertype = (string) usertype(); // 3 == admin, 2 = Request additional information, -1 = first login 
 if ($usertype != "0" && $usertype != "1" && $usertype != "2") {
-    header('Location: Login.php');
-    exit();
+    redirectHome();
 }
-$error = $_SESSION["error"] ?? '';
-unset($_SESSION["error"]);
+
+$error = $_SESSION['error'] ?? '';
+unset($_SESSION['error']);
+?>
+
+<?php if(!empty($error)) { ?>
+<script> alert (<?= json_encode($error) ?>)</script>
+<?php } ?>
+
+<?php
 // $detect = new WP_Rocket_Mobile_Detect;
 // $is_desktop = false;
 // if (!$detect->isMobile() && !$detect->isTablet()) {
@@ -283,9 +290,7 @@ include '../src/header.php';
         <span>Profile</span>
     </a>
 </div>
-<?php if(!empty($error)) { ?>
-<script> alert (<?= $error ?>)</script>
-<?php } ?>
+
 <script src="../assets/js/profile.js"></script>
 <?php
 include '../src/footer.php';

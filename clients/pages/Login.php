@@ -4,7 +4,6 @@ include_once("../modules/handleFailedLogin.php");
 include_once("../modules/verifypass.php");
 include_once("../modules/usertype.php");
 
-$errorT = $_SESSION["error"];
 $error = $_SESSION['login_error'] ?? '';
 $e_or_p = $_SESSION['login_e_or_p'] ?? '';
 unset($_SESSION['login_error'], $_SESSION["error"]);
@@ -215,10 +214,6 @@ include("../src/headerOutSide.php");
         </div>
     </form>
 </main>
-
-<?php if(!empty($errorT)) { ?>
-<script> alert (<?= $errorT ?>)</script>
-<?php } ?>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

@@ -8,9 +8,10 @@ require_once("../modules/getTodayWithdrawCount.php");
 require_once("../modules/isValidCard.php");
 
 $usertype = usertype();
-if ($usertype != "1") {
-    header('Location: Login.php');
-    exit();
+$error = checkuser((int)$usertype);
+if(!empty($error)){
+    $_SESSION['error'] = $error;
+    redirectHome();
 }
 
 $card_num = '';

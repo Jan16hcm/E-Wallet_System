@@ -13,11 +13,10 @@ $expire = '';
 $cvv = '';
 $amount = 0;
 $note = '';
-$error = checkuser($usertype);
+$error = checkuser((int)$usertype);
 if(!empty($error)){
     $_SESSION['error'] = $error;
-    header('Location: Login.php');
-    exit();
+    redirectHome();
 }
 $success_msg = '';
 
