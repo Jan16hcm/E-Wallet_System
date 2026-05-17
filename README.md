@@ -17,8 +17,8 @@ The application is deployed and publicly accessible at: **[meomeo.baby](http://m
 - [How to Run Locally](#️-how-to-run-locally)
 - [Testing Credentials](#-testing-credentials)
 - [Implementation Team](#-implementation-team)
-- [Project Structure](#-project-structure)
 - [Acknowledgments](#-acknowledgments)
+- [Project Structure](#-project-structure)
 ---
 
 ## 🛡️ Security Features
@@ -98,6 +98,16 @@ This project was developed by students from **Ton Duc Thang University (TDTU)**.
 | **Lam Gia Vu** | 523v0003 | Developer, UI/UX Design |
 
 ---
+## 🙏 Acknowledgments
+
+* **Ton Duc Thang University:** For providing the academic framework and resources to complete this project.
+* **Inspired by:** Real-world digital wallet platforms like MoMo and ZaloPay.
+* **Built with ❤️:** Using PHP, MySQL, and the open-source community's tools.
+* **Special Thanks:** To our course instructor for guidance on web security and system architecture.
+
+⭐ *If you find this project useful for your studies, please consider giving it a star!* ⭐
+
+---
 ## 📁 Project Structure
 ```text
 E-Wallet_System/
@@ -168,15 +178,5 @@ E-Wallet_System/
      ├── header.php
      └── headerOutSide.php
 ```
----
-## 🙏 Acknowledgments
-
-* **Ton Duc Thang University:** For providing the academic framework and resources to complete this project.
-* **Inspired by:** Real-world digital wallet platforms like MoMo and ZaloPay.
-* **Built with ❤️:** Using PHP, MySQL, and the open-source community's tools.
-* **Special Thanks:** To our course instructor for guidance on web security and system architecture.
-
-⭐ *If you find this project useful for your studies, please consider giving it a star!* ⭐
-
 ---
 [⬆ Back to Top](#-e-wallet-system-simplified-digital-wallet)
