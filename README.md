@@ -95,7 +95,7 @@ This project was developed by students from **Ton Duc Thang University (TDTU)**.
 | Name | Student ID | Role |
 | :--- | :--- | :--- |
 | **Tran Hoang Khai** | 523v0003 | **Leader**, Code Review, Developer, Database Design |
-| **Lam Gia Vu** | 523v0003 | Developer, UI/UX Design |
+| **Lam Gia Vu** | 524k0034 | Developer, UI/UX Design |
 
 ---
 ## 🙏 Acknowledgments
